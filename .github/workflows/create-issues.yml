@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Tapez "oui" pour créer les 37 issues (évite les doublons si relancé)'
+        description: 'Tapez "oui" pour créer les ~70 issues (évite les doublons si relancé)'
         required: true
         default: 'non'
 
@@ -21,991 +21,1407 @@ jobs:
         with:
           script: |
             const issues = [
-              // ─── SPRINT 0 — INFRASTRUCTURE ───────────────────────────────────────
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC A — SCAFFOLDING NODE.JS
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[INFRA] #1 — Init projet & configuration (.env, package.json, config.js)",
-                labels: ["sprint-0", "infrastructure"],
+                title: "Epic A | #1 — Initialiser la structure Node.js du projet",
+                labels: ["epic-a-scaffold", "sprint-0"],
                 body: `## 🎯 Objectif
-Initialiser la structure Node.js du projet Guardian et centraliser la configuration depuis les variables d'environnement.
+Poser le squelette exécutable du bot (sans logique métier).
 
-## 📋 Tâches
-- Vérifier / compléter \`package.json\` (dépendances : \`discord.js\`, \`better-sqlite3\`, \`dotenv\`)
-- Compléter \`.env.example\` avec toutes les clés nécessaires (\`DISCORD_TOKEN\`, \`CLIENT_ID\`, \`NODE_ENV\`)
-- Implémenter \`config.js\` : lecture \`.env\`, export des constantes globales (CHANNEL_NAMES, CATEGORY_NAMES, etc.)
-- Configurer \`.gitignore\` (\`node_modules/\`, \`.env\`, \`data/guardian.db\`)
-
-## 📁 Fichiers concernés
+## 📁 Fichiers à créer/modifier
 - \`package.json\`
-- \`.env.example\`
-- \`config.js\`
 - \`.gitignore\`
-
-## ✅ Critères d'acceptation
-- \`node index.js\` démarre sans erreur avec un token valide
-- Les variables d'env sont accessibles via \`config.js\`
-- Les 3 instances (prod / dev / test) sont supportées via \`NODE_ENV\`
-`
-              },
-              {
-                title: "[INFRA] #2 — Connexion BDD SQLite & création des tables (database/db.js)",
-                labels: ["sprint-0", "infrastructure", "database"],
-                body: `## 🎯 Objectif
-Initialiser la base de données SQLite via \`better-sqlite3\` et créer toutes les tables définies dans la spec.
-
-## 📋 Tâches
-- Créer \`database/db.js\` : ouverture du fichier \`data/guardian.db\`, export de l'instance \`db\`
-- Implémenter la création idempotente de toutes les tables (\`IF NOT EXISTS\`) :
-  - \`guilds\`, \`guild_config\`, \`grades\`
-  - \`games\`, \`member_games\`, \`members\`
-  - \`sanctions\`, \`changelogs_seen\`, \`servers_jeu\`
-  - \`parrainage\`, \`vocal_temp\`
-- Créer le dossier \`database/migrations/\` (vide + \`.gitkeep\`)
-
-## 📁 Fichiers concernés
-- \`database/db.js\` *(créer)*
-- \`database/migrations/.gitkeep\` *(créer)*
-- \`data/.gitkeep\` *(créer — répertoire dans .gitignore)*
-
-## ✅ Critères d'acceptation
-- Toutes les tables sont créées au premier lancement
-- Aucune erreur si le fichier db existe déjà (idempotence)
-- Schéma conforme à la spec (types, PKs, valeurs par défaut)
-`
-              },
-              {
-                title: "[INFRA] #3 — Système de logs centralisé (modules/logs/logger.js)",
-                labels: ["sprint-0", "infrastructure"],
-                body: `## 🎯 Objectif
-Créer un module de logs centralisé utilisé par tous les autres modules pour tracer les erreurs et actions.
-
-## 📋 Tâches
-- Créer \`modules/logs/logger.js\`
-- Logs console horodatés avec niveau : \`INFO\`, \`WARN\`, \`ERROR\`
-- Fonction \`logToDiscord(guild, channel, message)\` : poste dans un channel Discord (utilisée pour #logs-mod, #logs-config)
-- Export : \`{ log, warn, error, logToDiscord }\`
-
-## 📁 Fichiers concernés
-- \`modules/logs/logger.js\` *(créer)*
-
-## ✅ Critères d'acceptation
-- Tous les autres modules peuvent importer et utiliser logger sans setup supplémentaire
-- Les erreurs ne font jamais crasher le bot (try/catch interne)
-- Le niveau ERROR inclut la stack trace
-`
-              },
-              {
-                title: "[INFRA] #4 — Point d'entrée du bot (index.js, deploy-commands.js)",
-                labels: ["sprint-0", "infrastructure"],
-                body: `## 🎯 Objectif
-Mettre en place le client Discord.js, charger les events et les commandes slash dynamiquement.
-
-## 📋 Tâches
-- Implémenter \`index.js\` : création du \`Client\` Discord.js v14, chargement dynamique des fichiers dans \`events/\` et \`commands/\`
-- Implémenter \`deploy-commands.js\` : déploiement des commandes slash via REST API Discord
-- Gérer les intents nécessaires : \`Guilds\`, \`GuildMembers\`, \`GuildMessages\`, \`GuildVoiceStates\`, \`MessageContent\`, \`GuildPresences\`
-
-## 📁 Fichiers concernés
+- \`.env.example\`
 - \`index.js\`
+- \`config.js\`
+
+## ✅ Critères d'acceptation
+- \`node index.js\` démarre et se connecte sans erreur
+- Structure de dossiers conforme à la spec (\`events/\`, \`commands/\`, \`modules/\`, \`database/\`, \`data/\`)
+`,
+              },
+              {
+                title: "Epic A | #2 — Installer et configurer les dépendances runtime",
+                labels: ["epic-a-scaffold", "sprint-0"],
+                body: `## 🎯 Objectif
+Déclarer Discord.js v14 + SQLite + utilitaires nécessaires.
+
+## 📁 Fichiers à créer/modifier
+- \`package.json\`
+
+## ✅ Critères d'acceptation
+- \`npm install\` réussit sans erreur
+- Dépendances : \`discord.js\`, \`better-sqlite3\`, \`dotenv\`
+- devDependencies : \`nodemon\` (ou équivalent pour dev)
+`,
+              },
+              {
+                title: "Epic A | #3 — Mettre en place les scripts npm (run/dev/test/deploy-commands)",
+                labels: ["epic-a-scaffold", "sprint-0"],
+                body: `## 🎯 Objectif
+Standardiser l'exécution multi-environnements.
+
+## 📁 Fichiers à créer/modifier
+- \`package.json\`
 - \`deploy-commands.js\`
 
 ## ✅ Critères d'acceptation
-- Le bot se connecte et logue "✅ Guardian connecté" dans la console
-- Les events et commandes sont chargés dynamiquement (pas d'import manuel)
-- \`node deploy-commands.js\` déploie les slash commands sans erreur
-`
+- \`npm start\` → production
+- \`npm run dev\` → development (nodemon ou --watch)
+- \`npm test\` → node --test
+- \`npm run deploy\` → déploiement commandes slash
+`,
               },
               {
-                title: "[INFRA] #5 — Event handler ready.js — vérifications au démarrage",
-                labels: ["sprint-0", "infrastructure"],
+                title: "Epic A | #4 — Implémenter la configuration multi-instance via .env",
+                labels: ["epic-a-scaffold", "sprint-0"],
                 body: `## 🎯 Objectif
-Implémenter l'event \`ready\` : vérifier les guilds installées, lancer les timers périodiques, nettoyer les vocaux temporaires orphelins.
+Supporter production, development, test avec config isolée.
 
-## 📋 Tâches
-- Créer \`events/ready.js\`
-- Pour chaque guild : appeler \`checkInstall()\` *(issue #7)*
-- Lancer les timers : surveillance serveurs (5 min), changelogs Steam (60 min par défaut), expulsion Invités (24h)
-- Supprimer les vocaux temporaires vides restés en base (nettoyage au redémarrage)
-- Loguer le statut de démarrage
-
-## 📁 Fichiers concernés
-- \`events/ready.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`config.js\`
+- \`.env.example\`
 
 ## ✅ Critères d'acceptation
-- L'event se déclenche une seule fois au démarrage
-- Les timers sont lancés correctement
-- Les vocaux orphelins sont supprimés
-`
+- \`NODE_ENV=production\` → token prod, db prod
+- \`NODE_ENV=development\` → token dev, db dev
+- \`NODE_ENV=test\` → token test, db test
+- Toutes les constantes de noms de channels/catégories centralisées ici (zéro string hardcodée ailleurs)
+`,
               },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC B — BASE DE DONNÉES SQLITE
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[INFRA] #6 — Router d'interactions Discord (events/interactionCreate.js)",
-                labels: ["sprint-0", "infrastructure"],
+                title: "Epic B | #5 — Créer la connexion SQLite centralisée",
+                labels: ["epic-b-database", "sprint-0"],
                 body: `## 🎯 Objectif
-Créer le routeur central qui dispatche toutes les interactions Discord (boutons, menus, modals, slash commands) vers les bons handlers.
+Singleton DB + ouverture sécurisée + chemin DB par environnement.
 
-## 📋 Tâches
-- Créer \`events/interactionCreate.js\`
-- Router selon \`interaction.type\` :
-  - \`ChatInputCommand\` → fichier dans \`commands/\`
-  - \`Button\` → handler par \`customId\`
-  - \`StringSelectMenu\` → handler par \`customId\`
-  - \`ModalSubmit\` → handler par \`customId\`
-- Vérifier le grade Guardian de l'utilisateur avant d'exécuter toute action
-- Gestion globale des erreurs : reply éphémère "Une erreur est survenue"
-
-## 📁 Fichiers concernés
-- \`events/interactionCreate.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`database/db.js\`
+- \`config.js\`
 
 ## ✅ Critères d'acceptation
-- Chaque type d'interaction est correctement routé
-- Un utilisateur sans permissions reçoit un message éphémère d'erreur
-- Aucune interaction ne reste sans réponse (évite le "Cette interaction a échoué")
-`
+- Export d'une instance unique \`db\` (singleton)
+- Chemin du fichier \`.db\` variant selon \`NODE_ENV\`
+- Ouverture sécurisée (erreur explicite si impossible)
+`,
               },
-
-              // ─── SPRINT 1 — MODULE INITIALISATION ────────────────────────────────
               {
-                title: "[SETUP] #7 — checkInstall.js — Vérification installation (hash SHA256 du guildId)",
-                labels: ["sprint-1", "module-initialisation"],
+                title: "Epic B | #6 — Créer le schéma SQL initial (toutes tables Guardian)",
+                labels: ["epic-b-database", "sprint-0"],
                 body: `## 🎯 Objectif
-Au démarrage et à chaque \`guildCreate\`, vérifier si le serveur est déjà configuré ou s'il faut lancer le flow de setup.
+Créer automatiquement toutes les tables définies dans la spec au premier lancement.
 
-## 📋 Tâches
-- Créer \`modules/initialisation/checkInstall.js\`
-- Calculer le hash SHA256 du \`guildId\` (module natif \`crypto\`)
-- Requête \`SELECT\` sur la table \`guilds\` : comparer \`setup_hash\`
-- Si installé → charger la config depuis \`guild_config\`
-- Si non installé → déclencher le flow de setup *(issue #8)*
-- Export : \`checkInstall(guild)\`
+## 📁 Fichiers à créer/modifier
+- \`database/db.js\`
 
-## 📁 Fichiers concernés
-- \`modules/initialisation/checkInstall.js\` *(créer)*
+## Tables à créer (CREATE TABLE IF NOT EXISTS)
+\`guilds\`, \`guild_config\`, \`grades\`, \`games\`, \`member_games\`, \`members\`, \`sanctions\`, \`changelogs_seen\`, \`servers_jeu\`, \`parrainage\`, \`vocal_temp\`
 
 ## ✅ Critères d'acceptation
-- Un serveur déjà installé charge sa config sans relancer le setup
-- Un nouveau serveur déclenche le flow de setup automatiquement
-- Hash SHA256 utilisé (jamais le guildId brut en base)
-`
+- Idempotent : relancer ne casse pas une DB existante
+- Schéma conforme à la spec (types, PKs, valeurs par défaut)
+`,
               },
               {
-                title: "[SETUP] #8 — setup.js Étape 1 — Mapping grades Guardian ↔ rôles Discord",
-                labels: ["sprint-1", "module-initialisation"],
+                title: "Epic B | #7 — Ajouter helpers d'accès DB (get/set config, transactions)",
+                labels: ["epic-b-database", "sprint-0"],
                 body: `## 🎯 Objectif
-Première étape du setup guidé : permettre à l'Owner de mapper les 5 grades Guardian sur des rôles Discord existants ou à créer.
+Factoriser les accès SQL répétitifs.
 
-## 📋 Tâches
-- Créer \`modules/initialisation/setup.js\` (base du module, sera complété aux issues suivantes)
-- Créer la catégorie privée \`guardian-setup\` et le channel \`guardian-setup\` (visible Owner uniquement)
-- Afficher un embed avec 5 SelectMenu (un par grade) listant les rôles Discord existants + option "Créer ce rôle"
-- Si "Créer ce rôle" : Guardian crée le rôle Discord et le sélectionne
-- Vérifier qu'un seul membre a le grade Owner
-- Persister le mapping dans la table \`grades\`
+## 📁 Fichiers à créer/modifier
+- \`database/db.js\`
+- \`modules/config/settings.js\` (stub interface)
 
-## 📁 Fichiers concernés
-- \`modules/initialisation/setup.js\` *(créer)*
+## Helpers à implémenter
+- \`getConfig(guildId, module, key)\` → valeur ou défaut
+- \`setConfig(guildId, module, key, value)\`
+- \`getGrade(guildId, gradeName)\` → roleId
+- \`setGrade(guildId, gradeName, roleId)\`
 
 ## ✅ Critères d'acceptation
-- Les 5 grades sont mappés avant de passer à l'étape 2
-- Si un rôle Owner est assigné à plusieurs membres → erreur explicite
-- La progression vers l'étape 2 nécessite que tous les grades soient configurés
-`
+- Tous les modules utilisent ces helpers (pas de SQL inline répété)
+`,
               },
               {
-                title: "[SETUP] #9 — setup.js Étape 2 — Paramètres membres (délai, bio, parrainage, expulsion)",
-                labels: ["sprint-1", "module-initialisation"],
+                title: "Epic B | #8 — Préparer dossier de migrations",
+                labels: ["epic-b-database", "sprint-0"],
                 body: `## 🎯 Objectif
-Deuxième étape du setup : configurer les règles d'accueil et de promotion des membres.
+Poser la stratégie d'évolution DB future sans casser prod.
 
-## 📋 Tâches
-- Dans \`modules/initialisation/setup.js\` (suite de l'issue #8)
-- Afficher un formulaire modal avec :
-  - Texte d'accueil Invité (valeur par défaut fournie)
-  - Règles simplifiées Invité (valeur par défaut)
-  - Règles complètes Membre+ (valeur par défaut)
-  - Délai minimum avant demande promotion (défaut : 48h)
-  - Bio obligatoire : oui/non (toggle)
-  - Parrainage obligatoire : oui/non (toggle)
-  - Grade minimum pour traiter les demandes (défaut : Modérateur)
-  - Délai expulsion auto Invités (défaut : 30 jours, désactivable)
-- Persister dans \`guild_config\` (module : "membres")
-
-## 📁 Fichiers concernés
-- \`modules/initialisation/setup.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`database/migrations/\` (structure + placeholder \`001_initial.sql\`)
+- \`database/db.js\`
 
 ## ✅ Critères d'acceptation
-- Toutes les valeurs ont des défauts sensés (setup rapide possible)
-- La validation des inputs est effectuée (délai = nombre positif, textes non vides)
-- Persistance correcte en base avant passage à l'étape 3
-`
+- Dossier \`migrations/\` présent avec convention de nommage documentée
+- \`db.js\` peut appliquer les migrations manquantes au démarrage (version table)
+`,
               },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC C — LOGGING & GESTION D'ERREURS
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[SETUP] #10 — setup.js Étape 3 — Ajout des jeux du serveur",
-                labels: ["sprint-1", "module-initialisation"],
+                title: "Epic C | #9 — Créer logger.js (console structurée + niveaux)",
+                labels: ["epic-c-logging", "sprint-0"],
                 body: `## 🎯 Objectif
-Troisième étape du setup : permettre à l'Owner d'enregistrer les jeux disponibles sur le serveur.
+Logs uniformes (info/warn/error/debug) dans tout le bot.
 
-## 📋 Tâches
-- Dans \`modules/initialisation/setup.js\` (suite)
-- Afficher un formulaire d'ajout de jeu :
-  - Nom du jeu (texte libre)
-  - AppID Steam (optionnel)
-  - Activer galerie : oui/non
-  - Activer changelogs : oui/non
-- Bouton "Ajouter un autre jeu" pour ajouter plusieurs jeux en séquence
-- Bouton "Continuer" pour passer à l'étape 4
-- Persister chaque jeu dans la table \`games\`
-
-## 📁 Fichiers concernés
-- \`modules/initialisation/setup.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`modules/logs/logger.js\`
 
 ## ✅ Critères d'acceptation
-- Au moins un jeu peut être ajouté (0 jeux → warning mais non bloquant)
-- Chaque jeu est bien persisté en base avec toutes ses options
-- L'AppID Steam est validé (numérique, optionnel)
-`
+- Export : \`{ log, warn, error, debug, logToDiscord }\`
+- Chaque niveau préfixé d'un timestamp ISO et d'une icône
+- \`logToDiscord(guild, channelName, embed)\` → poste dans un channel Discord (utilisé pour #logs-mod, #logs-config)
+- Jamais de crash silencieux (\`logToDiscord\` catch toutes les erreurs internes)
+`,
               },
               {
-                title: "[SETUP] #11 — setup.js Étape 4 — Activation des modules optionnels",
-                labels: ["sprint-1", "module-initialisation"],
+                title: "Epic C | #10 — Brancher le logger global au point d'entrée",
+                labels: ["epic-c-logging", "sprint-0"],
                 body: `## 🎯 Objectif
-Quatrième étape du setup : activer ou désactiver les modules optionnels du bot.
+Capturer erreurs startup et exceptions non gérées.
 
-## 📋 Tâches
-- Dans \`modules/initialisation/setup.js\` (suite)
-- Afficher des toggles (boutons on/off) pour :
-  - Module suggestions
-  - Module liste-serveurs (surveillance IP)
-  - Module statut-bot
-  - Module AFK vocal
-  - Module game-updates (agrégateur changelogs)
-  - Module score comportemental
-- Persister les choix dans \`guild_config\` (module : "modules")
-
-## 📁 Fichiers concernés
-- \`modules/initialisation/setup.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`index.js\`
+- \`modules/logs/logger.js\`
 
 ## ✅ Critères d'acceptation
-- Chaque toggle est persisté indépendamment
-- L'état actuel (on/off) est visuellement clair dans l'interface
-`
+- \`process.on('uncaughtException', ...)\` et \`process.on('unhandledRejection', ...)\` loggés via \`logger.error\`
+- Erreur de connexion Discord loggée clairement avec conseil de vérification du token
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC D — BOOTSTRAP DISCORD & ROUTING ÉVÉNEMENTS
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic D | #11 — Initialiser le client Discord.js et intents minimaux",
+                labels: ["epic-d-bootstrap", "sprint-0"],
+                body: `## �� Objectif
+Démarrage fiable du bot avec intents/events requis par la spec.
+
+## 📁 Fichiers à créer/modifier
+- \`index.js\`
+
+## Intents requis
+\`Guilds\`, \`GuildMembers\`, \`GuildMessages\`, \`GuildVoiceStates\`, \`MessageContent\`, \`GuildPresences\`
+
+## ✅ Critères d'acceptation
+- Client créé avec exactement les intents nécessaires
+- Log "✅ Guardian connecté en tant que [nom]" au ready
+`,
               },
               {
-                title: "[SETUP] #12 — setup.js Étape 5 — Validation finale & création de la structure Discord",
-                labels: ["sprint-1", "module-initialisation"],
+                title: "Epic D | #12 — Mettre en place le chargeur d'événements dynamique",
+                labels: ["epic-d-bootstrap", "sprint-0"],
                 body: `## 🎯 Objectif
-Cinquième et dernière étape du setup : afficher le récapitulatif, confirmer, puis créer toute la structure Discord (catégories, channels, rôles).
+Architecture modulaire events/*.js — chargement dynamique sans import manuel.
 
-## 📋 Tâches
-- Dans \`modules/initialisation/setup.js\` (suite)
-- Afficher un embed récapitulatif complet (grades, paramètres, jeux, modules)
+## 📁 Fichiers à créer/modifier
+- \`index.js\`
+- \`events/ready.js\` (stub)
+- \`events/guildMemberAdd.js\` (stub)
+- \`events/guildMemberRemove.js\` (stub)
+- \`events/voiceStateUpdate.js\` (stub)
+- \`events/interactionCreate.js\` (stub)
+- \`events/messageCreate.js\` (stub)
+
+## ✅ Critères d'acceptation
+- Tout fichier ajouté dans \`events/\` est automatiquement chargé
+- Chaque fichier exporte \`{ name, once?, execute }\`
+`,
+              },
+              {
+                title: "Epic D | #13 — Déclarer et déployer les commandes slash de modération",
+                labels: ["epic-d-bootstrap", "sprint-0"],
+                body: `## 🎯 Objectif
+Enregistrer /parrainer, /warn, /mute, /kick, /ban, /historique via REST Discord.
+
+## 📁 Fichiers à créer/modifier
+- \`deploy-commands.js\`
+- \`commands/parrainer.js\` (définition SlashCommandBuilder uniquement)
+- \`commands/warn.js\`
+- \`commands/mute.js\`
+- \`commands/kick.js\`
+- \`commands/ban.js\`
+- \`commands/historique.js\`
+- \`commands/signaler.js\`
+
+## ✅ Critères d'acceptation
+- \`npm run deploy\` enregistre toutes les commandes sans erreur
+- Chaque fichier commande exporte \`{ data (SlashCommandBuilder), execute }\`
+- Les options de chaque commande sont correctement définies (types, required, descriptions FR)
+`,
+              },
+              {
+                title: "Epic D | #14 — Implémenter router interactionCreate (buttons/select/modals/slash)",
+                labels: ["epic-d-bootstrap", "sprint-0"],
+                body: `## 🎯 Objectif
+Point central de dispatch des interactions.
+
+## 📁 Fichiers à créer/modifier
+- \`events/interactionCreate.js\`
+
+## ✅ Critères d'acceptation
+- Dispatche selon \`interaction.isChatInputCommand()\`, \`isButton()\`, \`isStringSelectMenu()\`, \`isModalSubmit()\`
+- Vérifie le grade Guardian avant d'exécuter (sinon reply éphémère 403)
+- Toute interaction reçoit une réponse (évite le "Cette interaction a échoué")
+- Les erreurs inattendues sont loggées via \`logger.error\`
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC E — INITIALISATION SERVEUR (SETUP + CHECKINSTALL)
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic E | #15 — Implémenter checkInstall au démarrage (ready)",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Détecter une guild installée via hash SHA256 du guildId.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/checkInstall.js\`
+- \`events/ready.js\`
+- \`database/db.js\`
+
+## ✅ Critères d'acceptation
+- Hash SHA256 du guildId (module \`crypto\` natif Node.js)
+- Serveur installé → charge config depuis \`guild_config\`
+- Serveur non installé → lance le flow de setup
+- Appelé pour chaque guild au \`ready\` et à chaque \`guildCreate\`
+`,
+              },
+              {
+                title: "Epic E | #16 — Créer la session de setup privée (guardian-setup)",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Initialiser le canal/catégorie réservés à l'Owner Discord du serveur pour le setup guidé.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
+
+## ✅ Critères d'acceptation
+- Catégorie \`guardian-setup\` créée, visible uniquement par l'Owner Discord (propriétaire du serveur)
+- Channel \`#guardian-setup\` créé dans cette catégorie
+- Message d'introduction posté avec bouton "▶️ Démarrer le setup"
+`,
+              },
+              {
+                title: "Epic E | #17 — Setup étape 1 : mapping des grades ↔ rôles Discord",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Associer ou créer les rôles Discord pour chaque grade Guardian (Invité, Membre, Modérateur, Manager, Owner).
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
+- \`modules/config/settings.js\`
+
+## ✅ Critères d'acceptation
+- 5 SelectMenu (un par grade) listant les rôles Discord existants + option "Créer ce rôle"
+- Si "Créer ce rôle" : Guardian crée le rôle et le sélectionne automatiquement
+- Vérification : un seul membre peut avoir le grade Owner
+- Persiste le mapping dans la table \`grades\`
+- Impossible de passer à l'étape 2 tant que les 5 grades ne sont pas tous configurés
+`,
+              },
+              {
+                title: "Epic E | #18 — Setup étape 2 : paramètres membres",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Collecter et persister les règles d'accueil, de promotion et d'expulsion des membres.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
+- \`modules/config/settings.js\`
+
+## Paramètres à collecter
+- Texte d'accueil Invité (valeur par défaut)
+- Règles simplifiées Invité (valeur par défaut)
+- Règles complètes Membre+ (valeur par défaut)
+- Délai minimum avant demande de promotion (défaut : 48h)
+- Bio obligatoire : oui/non
+- Parrainage obligatoire : oui/non
+- Grade minimum pour traiter les demandes (défaut : Modérateur)
+- Délai expulsion auto Invités (défaut : 30 jours, désactivable)
+
+## ✅ Critères d'acceptation
+- Modal Discord avec valeurs préremplies par défaut
+- Validation des inputs (délai = entier positif, textes non vides)
+- Persistance dans \`guild_config\` (module : "membres")
+`,
+              },
+              {
+                title: "Epic E | #19 — Setup étape 3 : ajout jeux serveur",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Formulaire séquentiel de création de jeux + options galerie/changelog.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
+- \`database/db.js\`
+
+## ✅ Critères d'acceptation
+- Modal par jeu : nom, AppID Steam (optionnel), galerie oui/non, changelogs oui/non
+- Bouton "Ajouter un autre jeu" pour enchaîner plusieurs jeux
+- Bouton "Continuer sans jeu" (0 jeux autorisé avec warning)
+- Chaque jeu inséré dans la table \`games\`
+- AppID Steam validé (numérique si renseigné)
+`,
+              },
+              {
+                title: "Epic E | #20 — Setup étape 4 : toggles modules optionnels",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Activer/désactiver les modules globaux initiaux via des boutons toggle.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
+- \`modules/config/settings.js\`
+
+## Modules à toggler
+- Suggestions (#suggestions)
+- Liste-serveurs (#liste-serveurs + surveillance IP)
+- Statut-bot (#statut-bot)
+- AFK vocal
+- Game-updates (#game-updates)
+- Score comportemental
+
+## ✅ Critères d'acceptation
+- État visuel clair (bouton vert = actif, gris = inactif)
+- Persistance dans \`guild_config\` (module : "modules")
+`,
+              },
+              {
+                title: "Epic E | #21 — Setup étape 5 : validation récap + installation complète",
+                labels: ["epic-e-setup", "sprint-1"],
+                body: `## 🎯 Objectif
+Afficher le récapitulatif complet, confirmer, puis créer toute la structure Discord.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
+- \`modules/config/settings.js\`
+- \`database/db.js\`
+
+## ✅ Critères d'acceptation
+- Embed récapitulatif : grades, paramètres membres, jeux, modules
 - Bouton "✅ Confirmer et installer"
-- À la confirmation :
-  - Créer toutes les catégories et channels selon la spec (INFORMATIONS, COMMUNAUTÉ, VOCAUX, jeux, MODÉRATION, CONFIGURATION)
-  - Appliquer les permissions Discord correctes pour chaque grade sur chaque channel
-  - Créer les channels de jeux pour chaque jeu ajouté à l'étape 3
-  - Supprimer la catégorie \`guardian-setup\`
-  - Poster le message de bienvenue dans #bienvenue
-  - Enregistrer l'installation dans \`guilds\` (setup_done=1, setup_hash)
-- Poster le message de statut dans #statut-bot (si module activé)
-
-## 📁 Fichiers concernés
-- \`modules/initialisation/setup.js\` *(modifier)*
-
-## ✅ Critères d'acceptation
-- Toute la structure Discord est créée correctement
-- Les permissions sont appliquées selon la hiérarchie des grades
-- L'installation est marquée en base (setup_done=1)
-- La catégorie guardian-setup est supprimée après l'installation
-`
+- Création complète de la structure Discord (catégories + channels + permissions)
+- Suppression de la catégorie \`guardian-setup\`
+- Enregistrement \`guilds\` (setup_done=1, setup_hash)
+- Message de confirmation dans #bienvenue
+`,
               },
 
-              // ─── SPRINT 2 — MODULE MEMBRES ────────────────────────────────────────
+              // ════════════════════════════════════════════════════════════
+              // EPIC F — CRÉATION STRUCTURE DISCORD
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[MEMBRES] #13 — guildMemberAdd.js + newMember.js — Accueil Invité & assignation rôle",
-                labels: ["sprint-2", "module-membres"],
+                title: "Epic F | #22 — Créer constantes centralisées noms catégories/channels",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-À l'arrivée d'un nouveau membre, assigner automatiquement le rôle Invité et poster le message de bienvenue.
+Zéro string hardcodée dans la logique métier — toutes les constantes dans un fichier centralisé.
 
-## 📋 Tâches
-- Créer \`events/guildMemberAdd.js\`
-- Assigner le rôle Invité (grade 1) au nouveau membre
-- Créer \`modules/members/newMember.js\`
-- Poster dans #bienvenue :
-  - Texte personnalisé (depuis \`guild_config\`)
-  - Bouton "📋 Voir les règles" (affiche les règles en éphémère selon le grade)
-  - Bouton "🙋 Faire une demande pour devenir Membre"
-- Envoyer un DM au nouvel arrivant (présentation + lien #bienvenue)
-- Enregistrer le membre dans la table \`members\` (grade: 'invite', join_date)
-
-## 📁 Fichiers concernés
-- \`events/guildMemberAdd.js\` *(créer)*
-- \`modules/members/newMember.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`config.js\` (ou \`constants.js\` dédié)
+- \`modules/initialisation/setup.js\`
 
 ## ✅ Critères d'acceptation
-- Le rôle Invité est assigné dans les 2 secondes
-- Le message #bienvenue est posté automatiquement
-- Le DM est envoyé (gestion d'erreur si DMs fermés)
-- Le membre est enregistré en base
-`
+- Objet \`CHANNELS\` et \`CATEGORIES\` exporté depuis \`config.js\`
+- Tous les modules importent les constantes plutôt que d'écrire les noms en dur
+`,
               },
               {
-                title: "[MEMBRES] #14 — newMember.js — Flow de demande de promotion Invité → Membre",
-                labels: ["sprint-2", "module-membres"],
+                title: "Epic F | #23 — Générer catégorie INFORMATIONS + channels de base",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Implémenter le flow complet lorsqu'un Invité clique sur "Faire une demande pour devenir Membre".
+Créer la catégorie INFORMATIONS avec ses channels et les permissions correctes par grade.
 
-## 📋 Tâches
-- Dans \`modules/members/newMember.js\` (suite)
-- Vérifier dans l'ordre :
-  1. Délai minimum écoulé (depuis \`join_date\` en base) → message éphémère si non
-  2. Bio requise (si config activée) → ouvrir modal "Présente-toi"
-  3. Parrain requis (si config activée) → vérifier en base la table \`parrainage\`
-- Si toutes conditions remplies : poster dans #demandes :
-  - Pseudo + avatar (embed)
-  - Date d'arrivée + durée écoulée
-  - Bio (si fournie)
-  - Parrain (si applicable)
-  - Boutons : ✅ Accepter | ❌ Refuser | 💬 Répondre
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
 
-## 📁 Fichiers concernés
-- \`modules/members/newMember.js\` *(modifier)*
+## Channels à créer
+- **#règles** (read-only, Invité voit version simplifiée, Membre+ version complète)
+- **#annonces** (type Announcement, écriture Manager+)
+- **#bienvenue** (read-only, Guardian uniquement)
+- **#faq** (type Forum, posts par défaut)
+- **#statut-bot** (read-only, Guardian uniquement, togglable)
 
 ## ✅ Critères d'acceptation
-- Chaque condition est vérifiée dans l'ordre
-- Message éphémère explicite si condition non remplie (ex: "Il te reste 12h à attendre")
-- La demande dans #demandes contient toutes les informations requises
-`
+- Permissions Discord appliquées correctement pour chaque grade
+- #faq prégénéré avec posts par défaut au setup
+`,
               },
               {
-                title: "[MEMBRES] #15 — newMember.js — Traitement staff dans #demandes (accepter/refuser/répondre)",
-                labels: ["sprint-2", "module-membres"],
+                title: "Epic F | #24 — Générer catégorie COMMUNAUTÉ + permissions Invité partielles",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Implémenter les actions du staff sur les demandes de promotion dans #demandes.
+Créer la catégorie COMMUNAUTÉ avec les accès partiels Invité sur #général.
 
-## 📋 Tâches
-- Dans \`modules/members/newMember.js\` (suite)
-- Handler bouton **✅ Accepter** :
-  - Vérifier que l'acteur a le grade minimum configuré (défaut : Modérateur)
-  - Retirer le rôle Invité, assigner le rôle Membre
-  - Mettre à jour \`members\` en base (grade: 'membre')
-  - Poster confirmation dans #général : "Bienvenue @pseudo !"
-  - Logger dans #logs-mod
-  - Marquer la demande comme traitée (éditer le message embed)
-- Handler bouton **❌ Refuser** :
-  - Ouvrir un modal (raison optionnelle)
-  - Notifier l'Invité en DM avec la raison
-  - Logger dans #logs-mod
-  - Marquer la demande comme traitée
-- Handler bouton **💬 Répondre** :
-  - Ouvrir un modal (message libre)
-  - Envoyer le message en DM à l'Invité
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
 
-## 📁 Fichiers concernés
-- \`modules/members/newMember.js\` *(modifier)*
+## Channels à créer
+- **#général** (Invité : lecture 50 derniers msgs uniquement, pas l'historique complet)
+- **#game-updates** (read-only, Guardian, togglable)
+- **#suggestions** (type Forum, togglable)
+- **#liste-serveurs** (read-only, Guardian, togglable)
 
 ## ✅ Critères d'acceptation
-- Seuls les membres avec le grade suffisant peuvent traiter les demandes
-- Le DM est envoyé dans tous les cas (accept/refus)
-- La demande est visuellement marquée comme traitée dans #demandes
-`
+- Permission \`ReadMessageHistory: false\` pour le rôle Invité sur #général
+- Channels togglables masqués (pas supprimés) si module désactivé
+`,
               },
               {
-                title: "[MEMBRES] #16 — parrainage.js + commands/parrainer.js — Commande /parrainer",
-                labels: ["sprint-2", "module-membres"],
+                title: "Epic F | #25 — Générer catégorie VOCAUX + salons permanents",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Implémenter la commande slash \`/parrainer\` permettant à un Membre de parrainer un Invité.
+Créer la catégorie VOCAUX avec #créer-un-channel, vocal Général et vocal AFK (si activé).
 
-## 📋 Tâches
-- Créer \`commands/parrainer.js\` (définition de la slash command)
-- Créer \`modules/members/parrainage.js\` (logique métier)
-- Vérifier que l'utilisateur est au moins Membre (grade 2+)
-- Vérifier que la cible est bien un Invité sur le serveur
-- Vérifier qu'un Membre ne parraine qu'un seul Invité à la fois
-- Enregistrer en base dans \`parrainage\` (parrain_id, invite_id, date)
-- Notifier l'Invité en DM
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
 
-## 📁 Fichiers concernés
-- \`commands/parrainer.js\` *(créer)*
-- \`modules/members/parrainage.js\` *(créer)*
+## Channels à créer
+- **#créer-un-channel** (texte, interactions Guardian)
+- **Général** (vocal permanent, Invité+)
+- **AFK** (vocal permanent, togglable, délai paramétrable)
 
 ## ✅ Critères d'acceptation
-- Impossible de parrainer deux Invités en même temps
-- Impossible de parrainer quelqu'un qui n'est pas Invité
-- L'Invité est notifié en DM et sait qu'il peut faire sa demande
-`
+- Message permanent Guardian dans #créer-un-channel posté au setup
+- AFK masqué si module désactivé
+`,
               },
               {
-                title: "[MEMBRES] #17 — expulsion.js — Expulsion automatique des Invités hors délai",
-                labels: ["sprint-2", "module-membres"],
+                title: "Epic F | #26 — Générer catégorie MODÉRATION complète",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Expulser automatiquement les Invités qui n'ont pas été promus dans le délai configuré.
+Créer la catégorie MODÉRATION et tous ses channels, visibles uniquement par Modérateur+.
 
-## 📋 Tâches
-- Créer \`modules/members/expulsion.js\`
-- Vérification toutes les 24h (timer lancé depuis \`ready.js\`)
-- Requête en base : Invités avec \`join_date\` dépassant le délai configuré
-- Pour chaque Invité concerné :
-  - Envoyer un DM avant expulsion (message configurable dans \`guild_config\`)
-  - Expulser le membre (\`GuildMember.kick()\`)
-  - Logger dans #logs-mod
-- Respecter le paramètre "module expulsion désactivé" (\`guild_config\`)
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
 
-## 📁 Fichiers concernés
-- \`modules/members/expulsion.js\` *(créer)*
+## Channels à créer
+- **#général-staff** (texte, Modérateur+)
+- **#demandes** (texte, Guardian uniquement en écriture)
+- **#logs-mod** (texte, read-only, Guardian)
+- **#sanctions** (texte, commandes slash Guardian)
+- **#rapports** (texte, Guardian uniquement)
+- **Vocal Staff** (vocal permanent, Modérateur+)
 
 ## ✅ Critères d'acceptation
-- Aucune expulsion si le module est désactivé
-- Le DM est envoyé avant l'expulsion (gestion d'erreur si DMs fermés)
-- Chaque expulsion est loguée dans #logs-mod
-`
+- Catégorie invisible aux Invités et Membres
+`,
               },
               {
-                title: "[MEMBRES] #18 — guildMemberRemove.js — Log de départ dans #logs-mod",
-                labels: ["sprint-2", "module-membres"],
+                title: "Epic F | #27 — Générer catégorie CONFIGURATION (filtrage par grade)",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Loguer dans #logs-mod chaque départ ou expulsion d'un membre du serveur.
+Créer tous les channels de la catégorie CONFIGURATION selon la visibilité par grade.
 
-## 📋 Tâches
-- Créer \`events/guildMemberRemove.js\`
-- Poster dans #logs-mod : pseudo, avatar, grade Guardian, date d'arrivée, durée de présence
-- Distinguer départ volontaire et expulsion/ban (via \`fetchAuditLogs\`)
-- Nettoyer les données en base si nécessaire (vocal_temp, parrainage en cours)
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
 
-## 📁 Fichiers concernés
-- \`events/guildMemberRemove.js\` *(créer)*
+## Channels par niveau d'accès
+- Membre+ : **#mes-channels**, **#ma-gamelist**
+- Modérateur+ : **#statut-bot**, **#bot**, **#jeux-serveur**
+- Manager+ : **#membres**, **#channels**, **#vocaux**, **#jeux**, **#changelogs**, **#suggestions-config**, **#annonces-config**, **#faq-config**, **#serveurs-jeu**, **#gestion-serveurs**
 
 ## ✅ Critères d'acceptation
-- Le départ est logué dans les 5 secondes
-- Le type de départ est correctement identifié (volontaire / kick / ban)
-`
+- Chaque channel a les bonnes permissions de visibilité
+- Message permanent Guardian posté dans chaque channel de config
+`,
               },
-
-              // ─── SPRINT 3 — MODULE GAMELIST & OPT-IN ──────────────────────────────
               {
-                title: "[GAMES] #19 — gameList.js — Interface #mes-channels & sélection multi-jeux (opt-in)",
-                labels: ["sprint-3", "module-games"],
+                title: "Epic F | #28 — Générer channels Owner-only avancés",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Implémenter l'interface interactive d'opt-in aux jeux depuis #mes-channels.
+Créer les channels réservés à l'Owner : #guardian, #comportement, #auto-modération, #rôles, #logs-config.
 
-## 📋 Tâches
-- Créer \`modules/games/gameList.js\`
-- Poster un message permanent dans #mes-channels avec bouton "🎮 Gérer mes jeux"
-- Au clic : afficher un \`StringSelectMenuBuilder\` multi-select avec tous les jeux disponibles (depuis \`games\` en base)
-- Pré-cocher les jeux déjà sélectionnés (depuis \`member_games\`)
-- À la soumission :
-  - Calculer les différences (ajouts / retraits)
-  - Ajouter / retirer les rôles Discord correspondants
-  - Mettre à jour \`member_games\` en base
-  - Confirmation éphémère : liste des jeux actifs
-- Gérer la limite Discord (max 25 options par SelectMenu) → pagination si > 25 jeux
-
-## 📁 Fichiers concernés
-- \`modules/games/gameList.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`modules/initialisation/setup.js\`
 
 ## ✅ Critères d'acceptation
-- L'interface fonctionne même avec 0 jeux disponibles (message explicatif)
-- Les rôles sont assignés/retirés immédiatement
-- La sélection est persistée en base
-`
+- Canaux visibles uniquement par le rôle Owner
+- Message Guardian posté dans #gestion-serveurs expliquant que c'est un placeholder pour bot Pterodactyl
+`,
               },
               {
-                title: "[GAMES] #20 — gameList.js — Interface #ma-gamelist (synchronisée avec #mes-channels)",
-                labels: ["sprint-3", "module-games"],
+                title: "Epic F | #29 — Créer structure par jeu (catégorie + rôle + channels)",
+                labels: ["epic-f-discord-structure", "sprint-1"],
                 body: `## 🎯 Objectif
-Créer l'interface de #ma-gamelist, synchronisée avec #mes-channels (mêmes données, même logique).
+Provisioning dynamique d'un jeu : catégorie, rôle opt-in, channels #jeu / #jeu-galerie / #jeu-changelogs.
 
-## 📋 Tâches
-- Dans \`modules/games/gameList.js\` (suite de l'issue #19)
-- Poster un message permanent dans #ma-gamelist affichant les jeux suivis
-- Interface identique à #mes-channels (même SelectMenu)
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gameList.js\`
+- \`modules/initialisation/setup.js\`
+
+## ✅ Critères d'acceptation
+- Catégorie [Nom du jeu] créée avec permissions : visible seulement aux membres ayant le rôle jeu + Modérateur+
+- #[jeu] toujours créé
+- #[jeu]-galerie créé uniquement si galerie activée pour ce jeu
+- #[jeu]-changelogs créé uniquement si changelogs activés pour ce jeu
+- Fonction réutilisable (utilisée au setup ET lors de l'ajout d'un jeu depuis #jeux-serveur)
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC G — MEMBRES (ONBOARDING, PROMOTION, PARRAINAGE, EXPULSION)
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic G | #30 — guildMemberAdd : assignation auto grade Invité",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Rôle Invité auto + enregistrement membre en DB à chaque arrivée.
+
+## 📁 Fichiers à créer/modifier
+- \`events/guildMemberAdd.js\`
+- \`modules/members/newMember.js\`
+- \`database/db.js\`
+
+## ✅ Critères d'acceptation
+- Rôle Invité assigné dans les 2 secondes suivant l'arrivée
+- Membre inséré dans la table \`members\` (grade: 'invite', join_date: ISO8601)
+- Gestion d'erreur si le rôle Invité n'existe pas (log + alerte dans #statut-bot)
+`,
+              },
+              {
+                title: "Epic G | #31 — Message d'accueil #bienvenue + DM onboarding",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Publication du message d'accueil personnalisé dans #bienvenue + envoi DM à l'arrivant.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/members/newMember.js\`
+
+## ✅ Critères d'acceptation
+- Embed dans #bienvenue : texte personnalisé (depuis config), pseudo+avatar, boutons :
+  - "📋 Voir les règles" (éphémère : affiche règles selon grade)
+  - "🙋 Faire une demande pour devenir Membre"
+- DM au nouvel arrivant : présentation serveur + conditions pour devenir Membre + lien #bienvenue
+- Gestion d'erreur si DMs fermés (ne fait pas crasher le bot)
+`,
+              },
+              {
+                title: "Epic G | #32 — Workflow demande promotion (validation délai/bio/parrain)",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Logique métier complète de vérification des conditions avant soumission au staff.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/members/newMember.js\`
+- \`modules/config/settings.js\`
+
+## Vérifications dans l'ordre
+1. Délai minimum écoulé → message éphémère "Il te reste Xh à attendre" si non
+2. Bio requise (si activé) → ouvrir modal "Présente-toi en quelques mots"
+3. Parrain requis (si activé) → vérifier table \`parrainage\` en base
+
+## ✅ Critères d'acceptation
+- Chaque condition bloquante génère un message éphémère clair avec la raison
+- Les conditions sont vérifiées dans l'ordre (pas de vérification suivante si la première échoue)
+`,
+              },
+              {
+                title: "Epic G | #33 — Publication demande dans #demandes (embed + actions staff)",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Créer la carte de demande dans #demandes avec toutes les informations et les boutons d'action.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/members/newMember.js\`
+- \`events/interactionCreate.js\`
+
+## ✅ Critères d'acceptation
+- Embed : pseudo + avatar, date d'arrivée, durée écoulée, bio (si fournie), parrain (si applicable)
+- Boutons : ✅ Accepter | ❌ Refuser | 💬 Répondre
+- Seul le grade minimum configuré peut interagir avec les boutons
+`,
+              },
+              {
+                title: "Epic G | #34 — Traitement staff : accepter/refuser/répondre",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Handlers complets pour les 3 actions staff sur une demande de promotion.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/members/newMember.js\`
+- \`modules/logs/logger.js\`
+
+## ✅ Critères d'acceptation
+- **Accepter** : retirer rôle Invité → assigner rôle Membre → update DB → post #général "Bienvenue !" → log #logs-mod → archiver demande
+- **Refuser** : modal raison (optionnelle) → DM invité → log #logs-mod → archiver demande
+- **Répondre** : modal message libre → DM invité
+- La demande archivée est visuellement marquée (embed edité, boutons désactivés)
+`,
+              },
+              {
+                title: "Epic G | #35 — Commande /parrainer",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Parrainage contrôlé + persistance DB + notification de l'invité.
+
+## 📁 Fichiers à créer/modifier
+- \`commands/parrainer.js\`
+- \`modules/members/parrainage.js\`
+- \`database/db.js\`
+
+## ✅ Critères d'acceptation
+- Utilisateur doit être Membre+ (grade ≥ 2)
+- La cible doit être un Invité sur le serveur (grade 1)
+- Un Membre ne peut parrainer qu'un seul Invité à la fois
+- Enregistrement dans \`parrainage\` (parrain_id, invite_id, date)
+- DM à l'invité : "Tu as été parrainé par @pseudo, tu peux maintenant faire ta demande"
+`,
+              },
+              {
+                title: "Epic G | #36 — Job d'expulsion automatique des Invités hors délai",
+                labels: ["epic-g-members", "sprint-2"],
+                body: `## 🎯 Objectif
+Vérification périodique (24h) + kick + DM + log modération des Invités dépassant le délai.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/members/expulsion.js\`
+- \`events/ready.js\`
+
+## ✅ Critères d'acceptation
+- Timer toutes les 24h (lancé depuis \`ready.js\`)
+- Requête base : Invités avec join_date dépassant le délai configuré
+- DM envoyé avant l'expulsion (message configurable dans guild_config)
+- Expulsion via \`GuildMember.kick()\`
+- Log dans #logs-mod pour chaque expulsion
+- Aucune expulsion si le module est désactivé dans guild_config
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC H — GAMELIST & OPT-IN
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic H | #37 — Message permanent #mes-channels + bouton gestion",
+                labels: ["epic-h-gamelist", "sprint-3"],
+                body: `## 🎯 Objectif
+Interface persistante dans #mes-channels pour la gestion de l'opt-in jeux.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gameList.js\`
+
+## ✅ Critères d'acceptation
+- Message épinglé (ou re-posté si supprimé) avec embed et bouton "🎮 Gérer mes jeux"
+- Message "Aucun jeu disponible sur ce serveur" si la liste est vide
+- Visible uniquement aux Membres+ (grade ≥ 2)
+`,
+              },
+              {
+                title: "Epic H | #38 — Multi-select jeux + pré-cochage sélection actuelle",
+                labels: ["epic-h-gamelist", "sprint-3"],
+                body: `## 🎯 Objectif
+UX complète opt-in : SelectMenu multi-select avec les jeux déjà sélectionnés pré-cochés.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gameList.js\`
+- \`events/interactionCreate.js\`
+
+## ✅ Critères d'acceptation
+- \`StringSelectMenuBuilder\` avec \`minValues: 0\`, \`maxValues: nombre de jeux\`
+- Options pré-cochées selon \`member_games\` en base
+- Gestion de la limite Discord de 25 options (pagination si > 25 jeux)
+- Confirmation éphémère : "Tes jeux actifs : [liste]"
+`,
+              },
+              {
+                title: "Epic H | #39 — Diff ajouts/retraits + rôles Discord associés",
+                labels: ["epic-h-gamelist", "sprint-3"],
+                body: `## 🎯 Objectif
+Calculer le diff entre ancienne et nouvelle sélection, puis assigner/retirer les rôles Discord.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gameList.js\`
+
+## ✅ Critères d'acceptation
+- Calcul du diff : \`ajouts = nouvelle - ancienne\`, \`retraits = ancienne - nouvelle\`
+- \`GuildMember.roles.add()\` pour chaque ajout
+- \`GuildMember.roles.remove()\` pour chaque retrait
+- Mise à jour de \`member_games\` en base (insert ajouts, delete retraits)
+`,
+              },
+              {
+                title: "Epic H | #40 — Synchronisation #ma-gamelist ↔ #mes-channels",
+                labels: ["epic-h-gamelist", "sprint-3"],
+                body: `## 🎯 Objectif
+Les deux interfaces #ma-gamelist et #mes-channels utilisent la même logique et les mêmes données.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gameList.js\`
+
+## ✅ Critères d'acceptation
+- Message permanent dans #ma-gamelist identique à #mes-channels
 - Toute modification dans l'un se reflète dans l'autre (même table \`member_games\`)
-
-## 📁 Fichiers concernés
-- \`modules/games/gameList.js\` *(modifier)*
-
-## ✅ Critères d'acceptation
-- Modifier dans #ma-gamelist = modifier dans #mes-channels (et vice versa)
-- Le message permanent de #ma-gamelist est toujours à jour
-`
+- La fonction d'affichage est partagée (DRY)
+`,
               },
               {
-                title: "[GAMES] #21 — gameList.js — Ajout/retrait de jeu par Manager/Owner (#jeux-serveur)",
-                labels: ["sprint-3", "module-games"],
+                title: "Epic H | #41 — Gestion admin ajout/retrait jeu depuis #jeux-serveur",
+                labels: ["epic-h-gamelist", "sprint-3"],
                 body: `## 🎯 Objectif
-Permettre aux Manager/Owner d'ajouter ou retirer un jeu officiellement sur le serveur depuis #jeux-serveur.
+Provisioning/deprovisioning complet d'un jeu depuis l'interface Manager+ dans #jeux-serveur.
 
-## 📋 Tâches
-- Dans \`modules/games/gameList.js\` (suite)
-- Interface dans #jeux-serveur :
-  - Bouton "➕ Ajouter un jeu" → modal (nom, AppID Steam optionnel, galerie oui/non, changelogs oui/non)
-  - Bouton "❌ Retirer un jeu" → SelectMenu des jeux existants
-- Ajout d'un jeu :
-  - Créer la catégorie Discord + channels (#jeu, #jeu-galerie si activé, #jeu-changelogs si activé)
-  - Créer le rôle Discord associé
-  - Insérer dans la table \`games\`
-- Retrait d'un jeu :
-  - Supprimer la catégorie + channels + rôle Discord
-  - Supprimer de \`games\` et mettre à jour \`member_games\`
-
-## 📁 Fichiers concernés
-- \`modules/games/gameList.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gameList.js\`
+- \`modules/config/settings.js\`
 
 ## ✅ Critères d'acceptation
-- L'ajout d'un jeu crée immédiatement toute la structure Discord
-- Le retrait supprime proprement tout (channels, rôle, références en base)
-`
+- **Ajout** : modal (nom, AppID Steam, galerie, changelogs) → créer catégorie+channels+rôle Discord → insérer dans \`games\`
+- **Retrait** : SelectMenu → supprimer catégorie+channels+rôle Discord → supprimer de \`games\` et \`member_games\`
+- Confirmation éphémère après chaque action
+`,
               },
 
-              // ─── SPRINT 3 — MODULE VOCAUX TEMPORAIRES ─────────────────────────────
+              // ════════════════════════════════════════════════════════════
+              // EPIC I — VOCAUX TEMPORAIRES
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[VOCAL] #22 — gamesVocal.js — Création de vocal temporaire depuis #créer-un-channel",
-                labels: ["sprint-3", "module-vocal"],
+                title: "Epic I | #42 — UI #créer-un-channel + sélection du jeu",
+                labels: ["epic-i-vocal", "sprint-3"],
                 body: `## 🎯 Objectif
-Permettre aux Membres de créer un channel vocal temporaire lié à un jeu via #créer-un-channel.
+Interface de création vocale depuis le bouton et le menu déroulant dans #créer-un-channel.
 
-## 📋 Tâches
-- Créer \`modules/games/gamesVocal.js\`
-- Poster un message permanent dans #créer-un-channel avec bouton "🔊 Créer un vocal"
-- Au clic : afficher un SelectMenu avec les jeux disponibles
-- À la sélection :
-  - Créer le channel vocal dans la catégorie VOCAUX
-  - Nommer selon le format : \`[Préfixe] [Nom du jeu] [Suffixe]\` (config #vocaux)
-  - Incrémenter si un vocal du même jeu existe déjà ("Partie 2", "Partie 3"...)
-  - Appliquer la limite de membres configurée
-  - Insérer dans la table \`vocal_temp\`
-  - Confirmation éphémère avec lien vers le vocal
-
-## 📁 Fichiers concernés
-- \`modules/games/gamesVocal.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gamesVocal.js\`
+- \`events/interactionCreate.js\`
 
 ## ✅ Critères d'acceptation
-- Seuls les Membres+ peuvent créer un vocal
-- L'incrémentation numérique fonctionne correctement
-- La confirmation inclut un lien cliquable vers le vocal
-`
+- Message permanent avec bouton "🔊 Créer un vocal"
+- Au clic : SelectMenu avec tous les jeux disponibles
+- Réservé aux Membres+ (grade ≥ 2)
+`,
               },
               {
-                title: "[VOCAL] #23 — gamesVocal.js + voiceStateUpdate.js — Suppression automatique vocal vide",
-                labels: ["sprint-3", "module-vocal"],
+                title: "Epic I | #43 — Création vocal temporaire (nom, limite, incrémentation)",
+                labels: ["epic-i-vocal", "sprint-3"],
                 body: `## 🎯 Objectif
-Supprimer automatiquement les vocaux temporaires après X minutes de vacuité.
+Créer le channel vocal avec nom formaté, limite de membres et numérotation automatique si doublon.
 
-## 📋 Tâches
-- Créer \`events/voiceStateUpdate.js\`
-- Écouter \`voiceStateUpdate\` : détecter quand un vocal temporaire devient vide
-- Démarrer un timer (délai depuis \`guild_config\`, défaut : 5 min)
-- Si toujours vide à l'expiration : supprimer le channel Discord + nettoyer \`vocal_temp\`
-- Si quelqu'un rejoint avant l'expiration : annuler le timer
-- Dans \`modules/games/gamesVocal.js\` : gérer les timers en mémoire (Map par channelId)
-- Au redémarrage du bot : supprimer les vocaux temporaires vides restés en base
-
-## 📁 Fichiers concernés
-- \`events/voiceStateUpdate.js\` *(créer)*
-- \`modules/games/gamesVocal.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gamesVocal.js\`
+- \`database/db.js\`
 
 ## ✅ Critères d'acceptation
-- Un vocal vide est supprimé après le délai configuré
-- Rejoindre avant l'expiration annule bien la suppression
-- Aucune erreur si le channel a déjà été supprimé manuellement
-`
+- Format : \`[Préfixe] [Nom du jeu] [Suffixe]\` (config #vocaux)
+- Si vocal du même jeu existe déjà : "🎮 Minecraft — Partie 2", "Partie 3", etc.
+- Limite de membres appliquée à la création (\`userLimit\`)
+- Insérer dans \`vocal_temp\`
+- Confirmation éphémère avec lien \`<#channelId>\` vers le vocal créé
+`,
               },
-
-              // ─── SPRINT 4 — MODULE CHANGELOGS STEAM ───────────────────────────────
               {
-                title: "[STEAM] #24 — gamesNotification.js — Polling API Steam + anti-doublon + diffusion",
-                labels: ["sprint-4", "module-steam"],
+                title: "Epic I | #44 — Suppression auto sur vide avec timer annulable",
+                labels: ["epic-i-vocal", "sprint-3"],
                 body: `## 🎯 Objectif
-Récupérer automatiquement les changelogs Steam et les diffuser dans les channels appropriés.
+Lifecycle complet des vocaux temporaires via voiceStateUpdate : timer de suppression annulable.
 
-## 📋 Tâches
-- Créer \`modules/games/gamesNotification.js\`
-- Timer lancé depuis \`ready.js\` (fréquence depuis \`guild_config\`, défaut : 60 min)
-- Pour chaque jeu avec \`steam_app_id\` configuré :
-  - Appeler l'API Steam : \`ISteamNews/GetNewsForApp\`
-  - Comparer le dernier \`gid\` avec \`changelogs_seen\` en base
-  - Si nouveau changelog :
-    - Formater le message (titre, date, résumé tronqué si trop long + lien "Lire la suite", lien Steam)
-    - Poster dans #[jeu]-changelogs (si activé pour ce jeu)
-    - Poster dans #game-updates (si module activé)
-    - Mettre à jour \`changelogs_seen\`
-- Gestion d'erreur : si API indisponible → logger l'erreur, réessayer au prochain cycle
-
-## 📁 Fichiers concernés
-- \`modules/games/gamesNotification.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`events/voiceStateUpdate.js\`
+- \`modules/games/gamesVocal.js\`
 
 ## ✅ Critères d'acceptation
-- Un même changelog n'est jamais posté deux fois (anti-doublon)
-- Le bot ne crashe jamais si l'API Steam est indisponible
-- Les messages sont bien formatés avec lien direct vers le changelog
-`
+- Écoute \`voiceStateUpdate\` : détecte quand un vocal temporaire devient vide
+- Démarre un timer (délai depuis guild_config, défaut : 5 min)
+- Si quelqu'un rejoint avant l'expiration → annuler le timer (Map<channelId, timeout>)
+- À l'expiration → supprimer le channel + nettoyer \`vocal_temp\`
+- Aucune erreur si le channel a déjà été supprimé manuellement (vérification existence)
+`,
               },
-
-              // ─── SPRINT 4 — MODULE MODÉRATION ─────────────────────────────────────
               {
-                title: "[MOD] #25 — moderation.js + commandes /warn /mute /kick /ban — Sanctions manuelles",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic I | #45 — Nettoyage au redémarrage des vocaux temporaires vides",
+                labels: ["epic-i-vocal", "sprint-3"],
                 body: `## 🎯 Objectif
-Implémenter les 4 commandes slash de modération manuelle et leur logique complète.
+Éviter les salons orphelins après un redémarrage du bot.
 
-## 📋 Tâches
-- Créer \`modules/moderation/moderation.js\` (logique partagée)
-- Créer \`commands/warn.js\`, \`commands/mute.js\`, \`commands/kick.js\`, \`commands/ban.js\`
-- **/warn <membre> <raison>** :
-  - Enregistrer dans \`sanctions\`
-  - Incrémenter \`score_comportement\` dans \`members\`
-  - Notifier en DM + log #logs-mod
-  - Vérifier les seuils comportementaux *(issue #31)*
-- **/mute <membre> <durée> <raison>** (format : "1h", "30m", "1j") :
-  - \`GuildMember.timeout()\` Discord natif
-  - Enregistrer dans \`sanctions\` avec durée
-  - Notifier DM + log
-- **/kick <membre> <raison>** : notifier DM → expulser → log
-- **/ban <membre> <raison>** : bannir → enregistrer → log
-- Vérifier que le modérateur a un grade suffisant (≥ Modérateur)
-
-## 📁 Fichiers concernés
-- \`modules/moderation/moderation.js\` *(créer)*
-- \`commands/warn.js\`, \`commands/mute.js\`, \`commands/kick.js\`, \`commands/ban.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`events/ready.js\`
+- \`modules/games/gamesVocal.js\`
 
 ## ✅ Critères d'acceptation
-- Toutes les sanctions sont enregistrées en base
-- Le membre est notifié en DM dans tous les cas
-- Chaque action est loguée dans #logs-mod
-`
+- Au \`ready\` : requête tous les \`vocal_temp\` en base
+- Pour chaque entrée : vérifier si le channel existe et est vide
+- Si vide → supprimer le channel Discord + supprimer de \`vocal_temp\`
+- Si non vide → redémarrer le timer de suppression
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC J — CHANGELOGS STEAM
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic J | #46 — Service client Steam API + fallback endpoint",
+                labels: ["epic-j-steam", "sprint-4"],
+                body: `## 🎯 Objectif
+Wrapper d'appel robuste vers l'API Steam avec fallback entre endpoints.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gamesNotification.js\`
+
+## Endpoints à essayer dans l'ordre
+1. \`ISteamNews/GetNewsForApp/v0002\`
+2. \`store.steampowered.com/events/ajaxgetadjacentpartnerevents\` (fallback)
+
+## ✅ Critères d'acceptation
+- Timeout configurable (défaut : 5s)
+- Si API indisponible → logger l'erreur, retourner \`null\` (ne pas crasher)
+- Retourne la liste des news formatée ou \`null\`
+`,
               },
               {
-                title: "[MOD] #26 — commands/historique.js — Historique des sanctions d'un membre",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic J | #47 — Détection nouveauté changelog + anti-doublon DB",
+                labels: ["epic-j-steam", "sprint-4"],
                 body: `## 🎯 Objectif
-Permettre au staff de consulter l'historique complet des sanctions d'un membre.
+Comparer le dernier GID (ID news Steam) avec la base et persister les changelogs_seen.
 
-## 📋 Tâches
-- Créer \`commands/historique.js\` (slash command : \`/historique <membre>\`)
-- Requête \`sanctions\` en base filtrée par \`guild_id\` + \`user_id\`
-- Afficher via embed : type, raison, date, appliqué par, durée (si mute), auto (oui/non)
-- Inclure le score comportemental actuel
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gamesNotification.js\`
+- \`database/db.js\`
+
+## ✅ Critères d'acceptation
+- Comparaison \`gid\` avec \`changelogs_seen.last_changelog_id\`
+- Mise à jour de \`changelogs_seen\` après publication
+- Un même changelog n'est jamais posté deux fois (même après redémarrage)
+`,
+              },
+              {
+                title: "Epic J | #48 — Publication #jeu-changelogs et #game-updates",
+                labels: ["epic-j-steam", "sprint-4"],
+                body: `## 🎯 Objectif
+Formater et router les nouveaux changelogs vers les bons channels selon les toggles de config.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/games/gamesNotification.js\`
+
+## Format du message
+- Titre du patch note
+- Date de publication (format lisible)
+- Résumé tronqué si > 1024 chars + lien "Lire la suite →"
+- Lien direct vers le changelog Steam
+
+## ✅ Critères d'acceptation
+- Poster dans #[jeu]-changelogs si \`changelog_enabled=1\` pour ce jeu
+- Poster dans #game-updates si le module est activé dans guild_config
+- Embed bien formaté avec couleur de marque Steam
+`,
+              },
+              {
+                title: "Epic J | #49 — Planification périodique changelogs (fréquence config)",
+                labels: ["epic-j-steam", "sprint-4"],
+                body: `## 🎯 Objectif
+Scheduler stable avec gestion d'erreurs non bloquante.
+
+## 📁 Fichiers à créer/modifier
+- \`events/ready.js\`
+- \`modules/games/gamesNotification.js\`
+
+## ✅ Critères d'acceptation
+- Timer lancé depuis \`ready.js\` avec fréquence lue depuis guild_config (défaut : 60 min)
+- Si une itération échoue → logger l'erreur, ne pas arrêter le scheduler
+- Export \`startChangelogScheduler(client)\` appelé au ready
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC K — MODÉRATION MANUELLE
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic K | #50 — Implémenter /warn",
+                labels: ["epic-k-moderation", "sprint-4"],
+                body: `## 🎯 Objectif
+Sanction warn + DM membre + log #logs-mod + incrémentation score comportemental.
+
+## 📁 Fichiers à créer/modifier
+- \`commands/warn.js\`
+- \`modules/moderation/moderation.js\`
+- \`modules/moderation/behavior.js\`
+
+## ✅ Critères d'acceptation
 - Réservé à Modérateur+ (grade ≥ 3)
-
-## 📁 Fichiers concernés
-- \`commands/historique.js\` *(créer)*
-
-## ✅ Critères d'acceptation
-- L'embed est lisible et bien formaté (pagination si > 10 sanctions)
-- Affiche "Aucune sanction" si historique vide
-- Inaccessible aux grades inférieurs à Modérateur
-`
+- Enregistrement dans \`sanctions\` (type: 'warn', auto: 0)
+- Incrémentation \`score_comportement\` dans \`members\`
+- DM au membre : raison + qui a appliqué
+- Log dans #logs-mod
+- Vérification des seuils comportementaux (appel à \`behavior.js\`)
+`,
               },
               {
-                title: "[MOD] #27 — reports.js — Signalements membres via modal → #rapports",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic K | #51 — Implémenter /mute",
+                labels: ["epic-k-moderation", "sprint-4"],
                 body: `## 🎯 Objectif
-Permettre aux Membres de signaler un autre membre via un formulaire interactif.
+Timeout Discord natif avec parser de durée + planification du log de fin de mute.
 
-## 📋 Tâches
-- Créer \`modules/moderation/reports.js\`
-- Bouton "🚨 Signaler" (accessible via commande \`/signaler\` ou message Guardian)
-- Ouvrir un modal : qui signales-tu ? (mention/pseudo), motif, lien/description preuve (optionnel)
-- Poster dans #rapports : embed avec toutes les infos + bouton "✅ Traité"
-- Handler bouton "✅ Traité" : éditer le message, logger dans #logs-mod
-- Créer \`commands/signaler.js\` (entrée utilisateur)
-
-## 📁 Fichiers concernés
-- \`modules/moderation/reports.js\` *(créer)*
-- \`commands/signaler.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`commands/mute.js\`
+- \`modules/moderation/moderation.js\`
 
 ## ✅ Critères d'acceptation
-- Tout Membre+ peut utiliser /signaler
-- Le rapport dans #rapports contient toutes les informations
-- Le bouton "Traité" est loggé dans #logs-mod
-`
+- Parser durée : "1h" → 3600000ms | "30m" → 1800000ms | "1j" → 86400000ms
+- \`GuildMember.timeout(durationMs, raison)\`
+- Enregistrement dans \`sanctions\` (type: 'mute', duration)
+- DM au membre avant le mute
+- Log dans #logs-mod au départ + log à la fin du mute
+`,
               },
               {
-                title: "[MOD] #28 — autoMod.js — Anti-spam (fenêtre glissante + seuil paramétrable)",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic K | #52 — Implémenter /kick",
+                labels: ["epic-k-moderation", "sprint-4"],
                 body: `## 🎯 Objectif
-Détecter et sanctionner automatiquement le spam de messages via une fenêtre glissante.
+Expulsion contrôlée avec DM avant l'expulsion + journalisation complète.
 
-## 📋 Tâches
-- Créer \`modules/moderation/autoMod.js\` (base du fichier, complété aux issues suivantes)
-- Écouter \`messageCreate\` (via \`events/messageCreate.js\`)
-- Compter les messages par utilisateur sur une fenêtre glissante (ex: 5 msgs en 3s, paramétrable)
-- Si seuil dépassé :
+## 📁 Fichiers à créer/modifier
+- \`commands/kick.js\`
+- \`modules/moderation/moderation.js\`
+
+## ✅ Critères d'acceptation
+- DM au membre avant expulsion (gestion d'erreur si DMs fermés)
+- \`GuildMember.kick(raison)\`
+- Enregistrement dans \`sanctions\` (type: 'kick')
+- Log dans #logs-mod
+`,
+              },
+              {
+                title: "Epic K | #53 — Implémenter /ban",
+                labels: ["epic-k-moderation", "sprint-4"],
+                body: `## 🎯 Objectif
+Bannissement + persistance sanction + logs.
+
+## 📁 Fichiers à créer/modifier
+- \`commands/ban.js\`
+- \`modules/moderation/moderation.js\`
+
+## ✅ Critères d'acceptation
+- \`Guild.bans.create(userId, { reason })\`
+- Enregistrement dans \`sanctions\` (type: 'ban')
+- Log dans #logs-mod
+- Gestion du cas où l'utilisateur a déjà quitté le serveur (ban par ID)
+`,
+              },
+              {
+                title: "Epic K | #54 — Implémenter /historique",
+                labels: ["epic-k-moderation", "sprint-4"],
+                body: `## 🎯 Objectif
+Affichage de l'historique complet des sanctions d'un membre via embed paginé.
+
+## 📁 Fichiers à créer/modifier
+- \`commands/historique.js\`
+- \`modules/moderation/moderation.js\`
+
+## ✅ Critères d'acceptation
+- Réservé à Modérateur+ (grade ≥ 3)
+- Requête \`sanctions\` filtrée par guildId + userId
+- Embed : type, raison, date, appliqué par, durée (si mute), auto (oui/non)
+- Score comportemental actuel affiché en bas de l'embed
+- Pagination si > 10 sanctions (boutons Précédent/Suivant)
+- "Aucune sanction enregistrée" si historique vide
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC L — RAPPORTS MEMBRES
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic L | #55 — Commande /signaler + modal de signalement",
+                labels: ["epic-l-reports", "sprint-4"],
+                body: `## 🎯 Objectif
+Permettre à tout Membre de signaler un autre membre via un formulaire interactif.
+
+## 📁 Fichiers à créer/modifier
+- \`commands/signaler.js\`
+- \`modules/moderation/reports.js\`
+
+## ✅ Critères d'acceptation
+- Accessible aux Membres+ (grade ≥ 2)
+- Modal : "Qui signales-tu ?" (mention/pseudo), "Motif", "Lien/description preuve" (optionnel)
+- Validation : champs obligatoires non vides
+`,
+              },
+              {
+                title: "Epic L | #56 — Publication rapport dans #rapports + bouton Traité",
+                labels: ["epic-l-reports", "sprint-4"],
+                body: `## 🎯 Objectif
+Poster le rapport dans #rapports (Modération) avec bouton de traitement.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/moderation/reports.js\`
+
+## ✅ Critères d'acceptation
+- Embed dans #rapports : qui signale (mention), qui est signalé, motif, preuve, timestamp
+- Bouton "✅ Marquer comme traité" (Modérateur+)
+- Handler bouton : éditer l'embed (titre "TRAITÉ"), log dans #logs-mod avec qui a traité
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC M — AUTO-MODÉRATION
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic M | #57 — Anti-spam : fenêtre glissante + seuil paramétrable",
+                labels: ["epic-m-automod", "sprint-4"],
+                body: `## 🎯 Objectif
+Détecter et sanctionner automatiquement le spam via une fenêtre glissante paramétrable.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/moderation/autoMod.js\`
+- \`events/messageCreate.js\`
+
+## ✅ Critères d'acceptation
+- Map en mémoire : \`userId → [timestamps des messages]\`
+- Nettoyer les timestamps expirés à chaque message (éviter les fuites mémoire)
+- Si seuil dépassé (ex: 5 msgs en 3s, paramétrable dans guild_config) :
   - Supprimer les messages en excès
-  - Appliquer la sanction automatique selon les règles \`behavior.js\` *(issue #31)*
-  - Logger dans #logs-mod
-- Créer \`events/messageCreate.js\`
-
-## 📁 Fichiers concernés
-- \`modules/moderation/autoMod.js\` *(créer)*
-- \`events/messageCreate.js\` *(créer)*
-
-## ✅ Critères d'acceptation
-- La fenêtre glissante fonctionne correctement (mémoire nettoyée périodiquement)
-- Les paramètres (seuil, durée fenêtre) sont lus depuis \`guild_config\`
-- Aucun faux positif sur les admins (Modérateur+ exemptés ou paramétrable)
-`
+  - Appliquer sanction auto selon behavior.js
+  - Log dans #logs-mod
+- Modérateur+ exemptés (paramétrable)
+`,
               },
               {
-                title: "[MOD] #29 — autoMod.js — Slow mode automatique par channel",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic M | #58 — Slow mode automatique par channel",
+                labels: ["epic-m-automod", "sprint-4"],
                 body: `## 🎯 Objectif
-Permettre d'activer un slow mode Discord natif sur des channels spécifiques depuis #auto-modération.
+Activer/désactiver le slow mode Discord natif sur des channels spécifiques depuis #auto-modération.
 
-## 📋 Tâches
-- Dans \`modules/moderation/autoMod.js\` (suite)
-- Interface dans #auto-modération : liste des channels + toggle slow mode + saisie délai (en secondes)
-- Appliquer \`channel.setRateLimitPerUser(délai)\` Discord
-- Persister les paramètres dans \`guild_config\`
-- Désactiver (délai = 0) via l'interface
-
-## 📁 Fichiers concernés
-- \`modules/moderation/autoMod.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`modules/moderation/autoMod.js\`
 
 ## ✅ Critères d'acceptation
-- L'activation est immédiate (appliquée via l'API Discord)
-- Le paramètre est persisté (survit au redémarrage)
-- Délai limité aux valeurs Discord acceptées (0–21600 secondes)
-`
+- Interface dans #auto-modération : liste des channels + toggle + saisie délai (secondes)
+- \`channel.setRateLimitPerUser(délai)\`
+- Persistance dans guild_config (survit au redémarrage)
+- Désactiver = délai 0
+- Valeurs acceptées : 0–21600 secondes (limite Discord)
+`,
               },
               {
-                title: "[MOD] #30 — autoMod.js — Blacklist de mots (suppression silencieuse ou visible)",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic M | #59 — Blacklist de mots (mode silencieux ou avertissement visible)",
+                labels: ["epic-m-automod", "sprint-4"],
                 body: `## 🎯 Objectif
-Détecter et gérer automatiquement les messages contenant des mots de la blacklist.
+Détecter les mots blacklistés dans les messages et agir selon le mode configuré.
 
-## 📋 Tâches
-- Dans \`modules/moderation/autoMod.js\` (suite)
-- Interface dans #auto-modération : ajouter/retirer des mots de la blacklist
-- Vérification à chaque \`messageCreate\` (insensible à la casse)
-- Mode A) Suppression silencieuse uniquement
-- Mode B) Suppression + message d'avertissement visible dans le channel
-- Incrémenter le score comportemental du membre
-- Persister la blacklist dans \`guild_config\`
-
-## 📁 Fichiers concernés
-- \`modules/moderation/autoMod.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`modules/moderation/autoMod.js\`
 
 ## ✅ Critères d'acceptation
-- La vérification est insensible à la casse
-- Le mode (A ou B) est paramétrable par serveur
-- Le score comportemental est incrémenté correctement
-`
+- Interface dans #auto-modération : ajouter/retirer des mots, choisir le mode (A ou B)
+- Mode A : suppression silencieuse uniquement
+- Mode B : suppression + message d'avertissement visible dans le channel (mentionnant le membre)
+- Vérification insensible à la casse
+- Incrémentation du score comportemental
+- Persistance de la blacklist dans guild_config
+`,
               },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC N — SCORE COMPORTEMENTAL
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[MOD] #31 — behavior.js — Score comportemental, seuils & sanctions automatiques",
-                labels: ["sprint-4", "module-moderation"],
+                title: "Epic N | #60 — Score comportemental : incrémentation et seuils",
+                labels: ["epic-n-behavior", "sprint-4"],
                 body: `## 🎯 Objectif
-Implémenter le système de score comportemental avec seuils configurables et sanctions automatiques chaînées.
+Incrémenter le score à chaque sanction et déclencher les sanctions automatiques chaînées selon les seuils configurés.
 
-## 📋 Tâches
-- Créer \`modules/moderation/behavior.js\`
-- Lire la config des seuils depuis \`guild_config\` (ex: score 3 → mute 1h | score 5 → kick | score 7 → ban)
-- Fonction \`checkBehaviorThresholds(guild, member)\` : vérifier si un seuil est dépassé → appliquer la sanction
-- Interface dans #comportement (Owner) : définir/modifier les seuils et actions
-- Consulter les scores de tous les membres
-- Réinitialiser le score d'un membre (bouton)
-- Logger chaque déclenchement automatique dans #logs-mod
-
-## 📁 Fichiers concernés
-- \`modules/moderation/behavior.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`modules/moderation/behavior.js\`
 
 ## ✅ Critères d'acceptation
-- Les seuils sont configurables dynamiquement (sans redémarrer le bot)
-- Les sanctions auto sont appliquées et loguées comme \`auto=1\` en base
-- La réinitialisation de score est disponible pour Owner
-`
+- Fonction \`incrementScore(guildId, userId, amount)\` : update \`members.score_comportement\`
+- Fonction \`checkThresholds(guild, member)\` : comparer score aux seuils configurés → appliquer sanction si dépassé
+- Les seuils et actions sont lus depuis guild_config (ex: \`{"3": "mute:1h", "5": "kick", "7": "ban"}\`)
+- Chaque déclenchement auto loggé dans #logs-mod avec \`auto=1\` en base
+`,
               },
-
-              // ─── SPRINT 5 — MODULE SURVEILLANCE SERVEURS ──────────────────────────
               {
-                title: "[SERVERS] #32 — serverMonitor.js — Surveillance TCP toutes les 5 min + #liste-serveurs",
-                labels: ["sprint-5", "module-servers"],
+                title: "Epic N | #61 — Interface #comportement (Owner) : config seuils + consultation + reset",
+                labels: ["epic-n-behavior", "sprint-4"],
                 body: `## 🎯 Objectif
-Surveiller les serveurs de jeu enregistrés via TCP et mettre à jour #liste-serveurs en temps réel.
+Permettre à l'Owner de configurer les seuils comportementaux et de gérer les scores membres.
 
-## 📋 Tâches
-- Créer \`modules/servers/serverMonitor.js\`
-- Timer toutes les 5 minutes (lancé depuis \`ready.js\`)
-- Pour chaque serveur dans \`servers_jeu\` :
-  - Tentative TCP sur IP:port (timeout : 3 secondes max)
-  - Statut : ✅ En ligne | ❌ Hors ligne | ⚠️ Instable (timeout intermittent)
-  - Si possible : récupérer le nombre de joueurs (Source Query pour serveurs Source)
-  - Mettre à jour le message embed dans #liste-serveurs (éditer, pas re-poster)
-  - Mettre à jour \`servers_jeu\` en base (\`last_status\`, \`last_check\`)
-- Interface dans #serveurs-jeu (Manager+) : ajouter/retirer un serveur de la surveillance
-- Poster un message explicatif dans #gestion-serveurs au setup (placeholder Pterodactyl)
-
-## 📁 Fichiers concernés
-- \`modules/servers/serverMonitor.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`modules/moderation/behavior.js\`
+- \`modules/config/settings.js\`
 
 ## ✅ Critères d'acceptation
-- Le bot ne crashe jamais en cas d'erreur réseau
-- Un embed par serveur dans #liste-serveurs, mis à jour (pas dupliqué)
-- Timeout respecté (3 secondes max par serveur)
-`
+- Interface dans #comportement (Owner uniquement) :
+  - Ajouter/modifier/supprimer des seuils (score → sanction)
+  - Consulter les scores de tous les membres (tableau paginé)
+  - Réinitialiser le score d'un membre (bouton + confirmation)
+- Modifications persistées dans guild_config
+- Réinitialisation loggée dans #logs-mod
+`,
               },
 
-              // ─── SPRINT 5 — MODULE SETTINGS ───────────────────────────────────────
+              // ════════════════════════════════════════════════════════════
+              // EPIC O — SURVEILLANCE SERVEURS DE JEU
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[CONFIG] #33 — settings.js — Interface de configuration interactive par channel",
-                labels: ["sprint-5", "module-config"],
+                title: "Epic O | #62 — Checker TCP serveur de jeu (timeout 3s + statuts)",
+                labels: ["epic-o-servers", "sprint-5"],
                 body: `## 🎯 Objectif
-Créer les interfaces interactives permanentes dans chaque channel de la catégorie CONFIGURATION.
+Wrapper de connexion TCP robuste pour vérifier le statut d'un serveur de jeu.
 
-## 📋 Tâches
-- Créer \`modules/config/settings.js\`
-- Pour chaque channel de config, poster (ou re-poster si supprimé) un message épinglé avec l'interface :
-  - #bot (Modérateur+) : paramètres généraux du bot
-  - #membres (Manager+) : délai promotion, bio, parrainage, règles, texte d'accueil
-  - #channels (Manager+) : activer/désactiver modules et channels
-  - #vocaux (Manager+) : préfixe, suffixe, limite, délai suppression
-  - #jeux (Manager+) : paramètres par jeu
-  - #changelogs (Manager+) : config Steam
-  - #suggestions-config (Manager+) : config forum suggestions
-  - #annonces-config (Manager+) : grade minimum, template
-  - #faq-config (Manager+) : gestion posts FAQ
-  - #serveurs-jeu (Manager+) : déjà géré par serverMonitor
-  - #guardian (Owner) : mapping grades, reset
-  - #comportement (Owner) : seuils comportementaux
-  - #auto-modération (Owner) : anti-spam, slow mode, blacklist
-  - #rôles (Owner) : noms et couleurs des rôles de grade
-- Chaque modification met à jour \`guild_config\` en base
-
-## 📁 Fichiers concernés
-- \`modules/config/settings.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`modules/servers/serverMonitor.js\`
 
 ## ✅ Critères d'acceptation
-- Chaque channel a son interface interactive à jour
-- Toutes les modifications passent par les interactions Discord (aucune commande texte)
-- Les valeurs actuelles sont toujours affichées dans l'interface
-`
+- Tentative TCP sur IP:port avec timeout 3s max
+- Statuts : ✅ En ligne | ❌ Hors ligne | ⚠️ Instable (timeout intermittent)
+- Si le jeu expose une API Source Query → récupérer nombre de joueurs (joueurs/max)
+- Aucun crash en cas d'erreur réseau
+`,
               },
               {
-                title: "[CONFIG] #34 — settings.js — Log des modifications dans #logs-config (Owner)",
-                labels: ["sprint-5", "module-config"],
+                title: "Epic O | #63 — Scheduler surveillance + mise à jour embeds #liste-serveurs",
+                labels: ["epic-o-servers", "sprint-5"],
                 body: `## 🎯 Objectif
-Tracer toutes les modifications de configuration effectuées via Guardian dans #logs-config.
+Timer toutes les 5 minutes + mise à jour (édition, pas re-post) des embeds dans #liste-serveurs.
 
-## 📋 Tâches
-- Dans \`modules/config/settings.js\` (suite)
-- À chaque modification de config : poster dans #logs-config :
-  - Qui a modifié (mention + grade)
-  - Quel paramètre (module + clé)
-  - Ancienne valeur → Nouvelle valeur
-  - Timestamp
-- Accessible uniquement à l'Owner (channel visible Owner only)
-- Utiliser \`logger.logToDiscord()\` depuis \`modules/logs/logger.js\`
-
-## 📁 Fichiers concernés
-- \`modules/config/settings.js\` *(modifier)*
+## 📁 Fichiers à créer/modifier
+- \`modules/servers/serverMonitor.js\`
+- \`events/ready.js\`
 
 ## ✅ Critères d'acceptation
-- Aucune modification de config n'est effectuée sans être loguée
-- Le format du log est lisible et contient l'ancienne et la nouvelle valeur
-`
+- Timer toutes les 5 min (lancé depuis ready.js)
+- Un embed par serveur surveillé, édité à chaque cycle (persistance du messageId en base)
+- Timestamp "Dernière vérification : il y a X min" dans chaque embed
+- Mise à jour de \`last_status\` et \`last_check\` dans \`servers_jeu\`
+`,
+              },
+              {
+                title: "Epic O | #64 — Interface #serveurs-jeu (Manager+) : ajouter/retirer un serveur",
+                labels: ["epic-o-servers", "sprint-5"],
+                body: `## 🎯 Objectif
+Permettre aux Manager+ d'ajouter ou retirer des serveurs de jeu surveillés.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/servers/serverMonitor.js\`
+- \`modules/config/settings.js\`
+
+## ✅ Critères d'acceptation
+- Bouton "➕ Ajouter un serveur" → modal : nom, jeu associé, IP, port
+- Bouton "❌ Retirer un serveur" → SelectMenu des serveurs enregistrés
+- Validation IP/port (format correct, port 1–65535)
+- Insérer/supprimer dans \`servers_jeu\`
+`,
               },
 
-              // ─── SPRINT 6 — MODULE OPTIONNEL ──────────────────────────────────────
+              // ════════════════════════════════════════════════════════════
+              // EPIC P — MODULE SETTINGS (INTERFACES CONFIG)
+              // ════════════════════════════════════════════════════════════
               {
-                title: "[OPT] #35 — richPresence.js — Placeholder Rich Presence / Leaderboard (optionnel)",
-                labels: ["sprint-6", "module-optionnel"],
+                title: "Epic P | #65 — settings.js : système de messages permanents par channel de config",
+                labels: ["epic-p-settings", "sprint-5"],
                 body: `## 🎯 Objectif
-Créer le fichier placeholder documenté pour le futur module Rich Presence / Leaderboard.
+Poster (et re-poster si supprimé) un message interactif épinglé dans chaque channel de la catégorie CONFIGURATION.
 
-## ⚠️ MODULE FACULTATIF — À développer en dernier
+## 📁 Fichiers à créer/modifier
+- \`modules/config/settings.js\`
+
+## ✅ Critères d'acceptation
+- Fonction \`ensureConfigMessage(guild, channelName, buildEmbed, buildComponents)\`
+- Vérifie si le message Guardian existe toujours dans le channel (par messageId persisté en base ou pin)
+- Sinon → re-poste le message
+- Appelé au ready pour chaque guild installée
+`,
+              },
+              {
+                title: "Epic P | #66 — Interfaces config Membre+ (#mes-channels, #ma-gamelist)",
+                labels: ["epic-p-settings", "sprint-5"],
+                body: `## 🎯 Objectif
+Messages permanents de gestion opt-in jeux dans les channels accessibles aux Membres.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/config/settings.js\`
+- \`modules/games/gameList.js\`
+
+## ✅ Critères d'acceptation
+- #mes-channels et #ma-gamelist ont leur interface interactive (délégation vers gameList.js)
+`,
+              },
+              {
+                title: "Epic P | #67 — Interfaces config Modérateur+ (#bot, #jeux-serveur, #statut-bot)",
+                labels: ["epic-p-settings", "sprint-5"],
+                body: `## 🎯 Objectif
+Interfaces de configuration pour les channels accessibles aux Modérateurs.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/config/settings.js\`
+
+## ✅ Critères d'acceptation
+- **#statut-bot** : embed temps réel (version, uptime, modules actifs, dernières actions, erreurs récentes) — mis à jour toutes les 5 min
+- **#bot** : paramètres généraux du bot (comportement global, messages par défaut)
+- **#jeux-serveur** : délégué à \`gameList.js\` (issue #41)
+`,
+              },
+              {
+                title: "Epic P | #68 — Interfaces config Manager+ (#membres, #channels, #vocaux, #jeux, #changelogs, #suggestions-config, etc.)",
+                labels: ["epic-p-settings", "sprint-5"],
+                body: `## 🎯 Objectif
+Implémenter les interfaces interactives pour tous les channels de configuration Manager+.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/config/settings.js\`
+
+## Channels à couvrir
+- **#membres** : délai promotion, bio, parrainage, texte accueil, règles, grade minimum staff
+- **#channels** : toggles modules (AFK, galerie, suggestions, liste-serveurs, statut-bot, game-updates)
+- **#vocaux** : préfixe, suffixe, limite membres, délai suppression
+- **#jeux** : paramètres par jeu (galerie, changelogs, texte, appID, préfixe/suffixe)
+- **#changelogs** : activation globale/par jeu, fréquence, agrégation #game-updates
+- **#suggestions-config** : activer/désactiver, grade min post, grade min réaction
+- **#annonces-config** : grade min post, template
+- **#faq-config** : régénérer posts, ajouter/modifier/supprimer posts
+
+## ✅ Critères d'acceptation
+- Toutes les modifications persistées dans guild_config
+- Confirmation éphémère après chaque modification
+- Valeurs actuelles toujours affichées dans les interfaces
+`,
+              },
+              {
+                title: "Epic P | #69 — Interfaces config Owner (#guardian, #rôles) + logs-config",
+                labels: ["epic-p-settings", "sprint-5"],
+                body: `## 🎯 Objectif
+Interfaces Owner : mapping grades, activation modules, rôles, et traçage des modifications dans #logs-config.
+
+## 📁 Fichiers à créer/modifier
+- \`modules/config/settings.js\`
+
+## ✅ Critères d'acceptation
+- **#guardian** : re-mapper les grades, activer/désactiver modules entiers, reset partiel/complet (avec confirmation double)
+- **#rôles** : modifier nom et couleur des rôles de grade
+- **#logs-config** : à chaque modification de config via Guardian → poster : qui, quel paramètre, ancienne valeur → nouvelle valeur, timestamp
+- Accessible uniquement à l'Owner (grade 5)
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC Q — TESTS
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic Q | #70 — Tests unitaires : database/db.js (schéma, CRUD, helpers)",
+                labels: ["epic-q-tests", "sprint-transverse"],
+                body: `## 🎯 Objectif
+Couvrir la couche base de données avec des tests unitaires fiables.
+
+## 📁 Fichiers à créer/modifier
+- \`tests/database.test.js\`
+
+## ✅ Critères d'acceptation
+- Base en mémoire (\`:memory:\`) pour les tests (isolation totale)
+- Idempotence de la création des tables
+- CRUD sur les tables principales : \`guilds\`, \`games\`, \`members\`, \`sanctions\`
+- Tests des helpers : \`getConfig\`, \`setConfig\`, \`getGrade\`, \`setGrade\`
+- \`npm test\` passe sans erreur
+`,
+              },
+              {
+                title: "Epic Q | #71 — Tests unitaires : checkInstall + logique promotion + behavior",
+                labels: ["epic-q-tests", "sprint-transverse"],
+                body: `## 🎯 Objectif
+Couvrir la logique métier critique des modules core.
+
+## 📁 Fichiers à créer/modifier
+- \`tests/checkInstall.test.js\`
+- \`tests/members.test.js\`
+- \`tests/behavior.test.js\`
+
+## ✅ Critères d'acceptation
+- **checkInstall** : hash SHA256 correct, détection installé/non installé
+- **members** : vérification conditions promotion (délai, bio, parrain) avec cas limite
+- **behavior** : incrémentation score, déclenchement seuils, réinitialisation
+- Interactions Discord mockées (pas de client réel)
+- \`npm test\` passe sans erreur
+`,
+              },
+              {
+                title: "Epic Q | #72 — Tests unitaires : autoMod (anti-spam, blacklist, slow mode)",
+                labels: ["epic-q-tests", "sprint-transverse"],
+                body: `## 🎯 Objectif
+Couvrir les algorithmes d'auto-modération.
+
+## 📁 Fichiers à créer/modifier
+- \`tests/autoMod.test.js\`
+
+## ✅ Critères d'acceptation
+- Anti-spam : fenêtre glissante, seuils, nettoyage mémoire
+- Blacklist : détection insensible à la casse, mode A vs B
+- Gestion des membres exemptés
+- \`npm test\` passe sans erreur
+`,
+              },
+
+              // ════════════════════════════════════════════════════════════
+              // EPIC R — RICH PRESENCE (OPTIONNEL)
+              // ════════════════════════════════════════════════════════════
+              {
+                title: "Epic R | #73 — [OPTIONNEL] Placeholder Rich Presence / Leaderboard",
+                labels: ["epic-r-optionnel", "sprint-optionnel"],
+                body: `## ⚠️ MODULE FACULTATIF — À développer EN DERNIER
 Ne pas bloquer ni conditionner les autres modules à celui-ci.
 
-## 📋 Tâches
-- Créer \`modules/richPresence/richPresence.js\` (fichier placeholder)
-- Documenter en commentaires l'idée générale du module :
-  - Lecture Rich Presence Discord via \`presenceUpdate\`
-  - Classement des jeux les plus joués sur le serveur
-  - Stats optionnelles : temps de jeu, sessions
-  - Données opt-in uniquement (consentement membre)
-- Export vide ou fonction stub documentée
+## 🎯 Objectif
+Créer le fichier placeholder documenté pour le futur module Rich Presence / Leaderboard.
 
-## 📁 Fichiers concernés
-- \`modules/richPresence/richPresence.js\` *(créer)*
+## 📁 Fichiers à créer/modifier
+- \`modules/richPresence/richPresence.js\` (placeholder)
+
+## Idée générale (future implémentation)
+- Lire la Rich Presence Discord des membres via \`presenceUpdate\`
+- Générer un classement des jeux les plus joués sur le serveur
+- Stats optionnelles : temps de jeu cumulé, sessions
+- Toutes les données sont opt-in (consentement membre requis)
+- Channel dédié ou embed mis à jour périodiquement
 
 ## ✅ Critères d'acceptation
-- Le fichier existe et est documenté
-- Il n'impacte pas le fonctionnement des autres modules
+- Le fichier existe avec les commentaires documentant l'intention
 - Clairement marqué [TODO / OPTIONNEL] en en-tête
-`
-              },
-
-              // ─── SPRINT TRANSVERSE — TESTS ────────────────────────────────────────
-              {
-                title: "[TEST] #36 — Tests unitaires — Base de données (database/db.js)",
-                labels: ["sprint-transverse", "tests"],
-                body: `## 🎯 Objectif
-Écrire les tests unitaires pour la couche base de données.
-
-## 📋 Tâches
-- Dans \`tests/\` (framework existant : \`node --test\`)
-- Tester la création des tables (idempotence)
-- Tester les CRUD de base sur chaque table principale (\`guilds\`, \`games\`, \`members\`, \`sanctions\`)
-- Utiliser une base en mémoire (\`:memory:\`) pour les tests
-- Couvrir les cas limites : duplicata de PK, valeurs NULL optionnelles
-
-## 📁 Fichiers concernés
-- \`tests/database.test.js\` *(créer)*
-
-## ✅ Critères d'acceptation
-- \`npm test\` passe sans erreur
-- Tests d'idempotence de création des tables
-- Tests CRUD sur les tables principales
-`
-              },
-              {
-                title: "[TEST] #37 — Tests unitaires — Modules core (initialisation, membres)",
-                labels: ["sprint-transverse", "tests"],
-                body: `## 🎯 Objectif
-Écrire les tests unitaires pour les modules critiques (checkInstall, logique promotion, score comportemental).
-
-## 📋 Tâches
-- Tester \`checkInstall\` : hash SHA256, détection serveur installé/non installé
-- Tester la logique de vérification des conditions de promotion (délai, bio, parrain)
-- Tester le score comportemental (incrémentation, seuils, déclenchement sanctions)
-- Mocker les interactions Discord (pas de client réel en test)
-
-## 📁 Fichiers concernés
-- \`tests/checkInstall.test.js\` *(créer)*
-- \`tests/members.test.js\` *(créer)*
-- \`tests/behavior.test.js\` *(créer)*
-
-## ✅ Critères d'acceptation
-- \`npm test\` passe sans erreur
-- La logique métier critique est couverte
-- Aucun test ne nécessite une connexion Discord réelle
-`
+- N'impacte aucun autre module
+`,
               },
             ];
 
-            // Labels to ensure exist
+            // ── Labels to create ──────────────────────────────────────────────
             const labelDefs = [
-              { name: "sprint-0",             color: "0075ca", description: "Sprint 0 — Infrastructure" },
-              { name: "sprint-1",             color: "e4e669", description: "Sprint 1 — Initialisation" },
-              { name: "sprint-2",             color: "d93f0b", description: "Sprint 2 — Membres" },
-              { name: "sprint-3",             color: "0052cc", description: "Sprint 3 — Games & Vocaux" },
-              { name: "sprint-4",             color: "5319e7", description: "Sprint 4 — Steam & Modération" },
-              { name: "sprint-5",             color: "006b75", description: "Sprint 5 — Servers & Config" },
-              { name: "sprint-6",             color: "1d76db", description: "Sprint 6 — Optionnel" },
-              { name: "sprint-transverse",    color: "ededed", description: "Sprint transverse — Tests" },
-              { name: "infrastructure",       color: "c5def5", description: "Infrastructure & Setup" },
-              { name: "database",             color: "f9d0c4", description: "Base de données" },
-              { name: "module-initialisation",color: "bfd4f2", description: "Module Initialisation" },
-              { name: "module-membres",       color: "fef2c0", description: "Module Membres" },
-              { name: "module-games",         color: "c2e0c6", description: "Module Games / Opt-in" },
-              { name: "module-vocal",         color: "d4c5f9", description: "Module Vocaux Temporaires" },
-              { name: "module-steam",         color: "fbca04", description: "Module Changelogs Steam" },
-              { name: "module-moderation",    color: "e11d48", description: "Module Modération" },
-              { name: "module-servers",       color: "0ea5e9", description: "Module Surveillance Serveurs" },
-              { name: "module-config",        color: "84cc16", description: "Module Settings / Config" },
-              { name: "module-optionnel",     color: "94a3b8", description: "Module Optionnel" },
-              { name: "tests",                color: "22c55e", description: "Tests unitaires" },
+              { name: "epic-a-scaffold",           color: "0075ca", description: "Epic A — Scaffolding Node.js" },
+              { name: "epic-b-database",            color: "f9d0c4", description: "Epic B — Base de données SQLite" },
+              { name: "epic-c-logging",             color: "c5def5", description: "Epic C — Logging & erreurs" },
+              { name: "epic-d-bootstrap",           color: "bfd4f2", description: "Epic D — Bootstrap Discord" },
+              { name: "epic-e-setup",               color: "e4e669", description: "Epic E — Setup & checkInstall" },
+              { name: "epic-f-discord-structure",   color: "fef2c0", description: "Epic F — Structure Discord" },
+              { name: "epic-g-members",             color: "d93f0b", description: "Epic G — Membres & onboarding" },
+              { name: "epic-h-gamelist",            color: "c2e0c6", description: "Epic H — Gamelist & opt-in" },
+              { name: "epic-i-vocal",               color: "d4c5f9", description: "Epic I — Vocaux temporaires" },
+              { name: "epic-j-steam",               color: "fbca04", description: "Epic J — Changelogs Steam" },
+              { name: "epic-k-moderation",          color: "e11d48", description: "Epic K — Modération manuelle" },
+              { name: "epic-l-reports",             color: "f97316", description: "Epic L — Rapports membres" },
+              { name: "epic-m-automod",             color: "9333ea", description: "Epic M — Auto-modération" },
+              { name: "epic-n-behavior",            color: "7c3aed", description: "Epic N — Score comportemental" },
+              { name: "epic-o-servers",             color: "0ea5e9", description: "Epic O — Surveillance serveurs" },
+              { name: "epic-p-settings",            color: "84cc16", description: "Epic P — Settings / Config" },
+              { name: "epic-q-tests",               color: "22c55e", description: "Epic Q — Tests unitaires" },
+              { name: "epic-r-optionnel",           color: "94a3b8", description: "Epic R — Rich Presence (optionnel)" },
+              { name: "sprint-0",                   color: "ededed", description: "Sprint 0 — Infrastructure" },
+              { name: "sprint-1",                   color: "0075ca", description: "Sprint 1 — Setup & Structure Discord" },
+              { name: "sprint-2",                   color: "d93f0b", description: "Sprint 2 — Membres" },
+              { name: "sprint-3",                   color: "0052cc", description: "Sprint 3 — Games & Vocaux" },
+              { name: "sprint-4",                   color: "5319e7", description: "Sprint 4 — Steam & Modération" },
+              { name: "sprint-5",                   color: "006b75", description: "Sprint 5 — Servers & Config" },
+              { name: "sprint-transverse",          color: "c5def5", description: "Sprint transverse — Tests" },
+              { name: "sprint-optionnel",           color: "f3f4f6", description: "Sprint optionnel — Rich Presence" },
             ];
 
-            // Create labels (ignore errors if already exist)
+            // Create labels
             console.log("Creating labels...");
             for (const label of labelDefs) {
               try {
@@ -1019,15 +1435,15 @@ Ne pas bloquer ni conditionner les autres modules à celui-ci.
                 console.log(`✅ Label: ${label.name}`);
               } catch (e) {
                 if (e.status === 422) {
-                  console.log(`⏭️ Label already exists: ${label.name}`);
+                  console.log(`⏭️  Already exists: ${label.name}`);
                 } else {
-                  console.warn(`⚠️ Label error (${label.name}): ${e.message}`);
+                  console.warn(`⚠️  Label error (${label.name}): ${e.message}`);
                 }
               }
             }
 
             // Create issues
-            console.log("\nCreating issues...");
+            console.log(`\nCreating ${issues.length} issues...`);
             let created = 0;
             for (const issue of issues) {
               try {
@@ -1038,12 +1454,11 @@ Ne pas bloquer ni conditionner les autres modules à celui-ci.
                   body: issue.body,
                   labels: issue.labels,
                 });
-                console.log(`✅ Issue #${result.data.number}: ${issue.title}`);
+                console.log(`✅ #${result.data.number}: ${issue.title}`);
                 created++;
-                // Small delay to avoid rate limiting
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 350));
               } catch (e) {
-                console.error(`❌ Failed to create issue "${issue.title}": ${e.message}`);
+                console.error(`❌ Failed: "${issue.title}" — ${e.message}`);
               }
             }
 
