@@ -1,0 +1,1050 @@
+name: 🗂️ Créer les Issues Scrum Guardian
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Tapez "oui" pour créer les 37 issues (évite les doublons si relancé)'
+        required: true
+        default: 'non'
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'oui'
+    permissions:
+      issues: write
+
+    steps:
+      - name: Créer toutes les Issues Scrum
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = [
+              // ─── SPRINT 0 — INFRASTRUCTURE ───────────────────────────────────────
+              {
+                title: "[INFRA] #1 — Init projet & configuration (.env, package.json, config.js)",
+                labels: ["sprint-0", "infrastructure"],
+                body: `## 🎯 Objectif
+Initialiser la structure Node.js du projet Guardian et centraliser la configuration depuis les variables d'environnement.
+
+## 📋 Tâches
+- Vérifier / compléter \`package.json\` (dépendances : \`discord.js\`, \`better-sqlite3\`, \`dotenv\`)
+- Compléter \`.env.example\` avec toutes les clés nécessaires (\`DISCORD_TOKEN\`, \`CLIENT_ID\`, \`NODE_ENV\`)
+- Implémenter \`config.js\` : lecture \`.env\`, export des constantes globales (CHANNEL_NAMES, CATEGORY_NAMES, etc.)
+- Configurer \`.gitignore\` (\`node_modules/\`, \`.env\`, \`data/guardian.db\`)
+
+## 📁 Fichiers concernés
+- \`package.json\`
+- \`.env.example\`
+- \`config.js\`
+- \`.gitignore\`
+
+## ✅ Critères d'acceptation
+- \`node index.js\` démarre sans erreur avec un token valide
+- Les variables d'env sont accessibles via \`config.js\`
+- Les 3 instances (prod / dev / test) sont supportées via \`NODE_ENV\`
+`
+              },
+              {
+                title: "[INFRA] #2 — Connexion BDD SQLite & création des tables (database/db.js)",
+                labels: ["sprint-0", "infrastructure", "database"],
+                body: `## 🎯 Objectif
+Initialiser la base de données SQLite via \`better-sqlite3\` et créer toutes les tables définies dans la spec.
+
+## 📋 Tâches
+- Créer \`database/db.js\` : ouverture du fichier \`data/guardian.db\`, export de l'instance \`db\`
+- Implémenter la création idempotente de toutes les tables (\`IF NOT EXISTS\`) :
+  - \`guilds\`, \`guild_config\`, \`grades\`
+  - \`games\`, \`member_games\`, \`members\`
+  - \`sanctions\`, \`changelogs_seen\`, \`servers_jeu\`
+  - \`parrainage\`, \`vocal_temp\`
+- Créer le dossier \`database/migrations/\` (vide + \`.gitkeep\`)
+
+## 📁 Fichiers concernés
+- \`database/db.js\` *(créer)*
+- \`database/migrations/.gitkeep\` *(créer)*
+- \`data/.gitkeep\` *(créer — répertoire dans .gitignore)*
+
+## ✅ Critères d'acceptation
+- Toutes les tables sont créées au premier lancement
+- Aucune erreur si le fichier db existe déjà (idempotence)
+- Schéma conforme à la spec (types, PKs, valeurs par défaut)
+`
+              },
+              {
+                title: "[INFRA] #3 — Système de logs centralisé (modules/logs/logger.js)",
+                labels: ["sprint-0", "infrastructure"],
+                body: `## 🎯 Objectif
+Créer un module de logs centralisé utilisé par tous les autres modules pour tracer les erreurs et actions.
+
+## 📋 Tâches
+- Créer \`modules/logs/logger.js\`
+- Logs console horodatés avec niveau : \`INFO\`, \`WARN\`, \`ERROR\`
+- Fonction \`logToDiscord(guild, channel, message)\` : poste dans un channel Discord (utilisée pour #logs-mod, #logs-config)
+- Export : \`{ log, warn, error, logToDiscord }\`
+
+## 📁 Fichiers concernés
+- \`modules/logs/logger.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Tous les autres modules peuvent importer et utiliser logger sans setup supplémentaire
+- Les erreurs ne font jamais crasher le bot (try/catch interne)
+- Le niveau ERROR inclut la stack trace
+`
+              },
+              {
+                title: "[INFRA] #4 — Point d'entrée du bot (index.js, deploy-commands.js)",
+                labels: ["sprint-0", "infrastructure"],
+                body: `## 🎯 Objectif
+Mettre en place le client Discord.js, charger les events et les commandes slash dynamiquement.
+
+## 📋 Tâches
+- Implémenter \`index.js\` : création du \`Client\` Discord.js v14, chargement dynamique des fichiers dans \`events/\` et \`commands/\`
+- Implémenter \`deploy-commands.js\` : déploiement des commandes slash via REST API Discord
+- Gérer les intents nécessaires : \`Guilds\`, \`GuildMembers\`, \`GuildMessages\`, \`GuildVoiceStates\`, \`MessageContent\`, \`GuildPresences\`
+
+## 📁 Fichiers concernés
+- \`index.js\`
+- \`deploy-commands.js\`
+
+## ✅ Critères d'acceptation
+- Le bot se connecte et logue "✅ Guardian connecté" dans la console
+- Les events et commandes sont chargés dynamiquement (pas d'import manuel)
+- \`node deploy-commands.js\` déploie les slash commands sans erreur
+`
+              },
+              {
+                title: "[INFRA] #5 — Event handler ready.js — vérifications au démarrage",
+                labels: ["sprint-0", "infrastructure"],
+                body: `## 🎯 Objectif
+Implémenter l'event \`ready\` : vérifier les guilds installées, lancer les timers périodiques, nettoyer les vocaux temporaires orphelins.
+
+## 📋 Tâches
+- Créer \`events/ready.js\`
+- Pour chaque guild : appeler \`checkInstall()\` *(issue #7)*
+- Lancer les timers : surveillance serveurs (5 min), changelogs Steam (60 min par défaut), expulsion Invités (24h)
+- Supprimer les vocaux temporaires vides restés en base (nettoyage au redémarrage)
+- Loguer le statut de démarrage
+
+## 📁 Fichiers concernés
+- \`events/ready.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- L'event se déclenche une seule fois au démarrage
+- Les timers sont lancés correctement
+- Les vocaux orphelins sont supprimés
+`
+              },
+              {
+                title: "[INFRA] #6 — Router d'interactions Discord (events/interactionCreate.js)",
+                labels: ["sprint-0", "infrastructure"],
+                body: `## 🎯 Objectif
+Créer le routeur central qui dispatche toutes les interactions Discord (boutons, menus, modals, slash commands) vers les bons handlers.
+
+## 📋 Tâches
+- Créer \`events/interactionCreate.js\`
+- Router selon \`interaction.type\` :
+  - \`ChatInputCommand\` → fichier dans \`commands/\`
+  - \`Button\` → handler par \`customId\`
+  - \`StringSelectMenu\` → handler par \`customId\`
+  - \`ModalSubmit\` → handler par \`customId\`
+- Vérifier le grade Guardian de l'utilisateur avant d'exécuter toute action
+- Gestion globale des erreurs : reply éphémère "Une erreur est survenue"
+
+## 📁 Fichiers concernés
+- \`events/interactionCreate.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Chaque type d'interaction est correctement routé
+- Un utilisateur sans permissions reçoit un message éphémère d'erreur
+- Aucune interaction ne reste sans réponse (évite le "Cette interaction a échoué")
+`
+              },
+
+              // ─── SPRINT 1 — MODULE INITIALISATION ────────────────────────────────
+              {
+                title: "[SETUP] #7 — checkInstall.js — Vérification installation (hash SHA256 du guildId)",
+                labels: ["sprint-1", "module-initialisation"],
+                body: `## 🎯 Objectif
+Au démarrage et à chaque \`guildCreate\`, vérifier si le serveur est déjà configuré ou s'il faut lancer le flow de setup.
+
+## 📋 Tâches
+- Créer \`modules/initialisation/checkInstall.js\`
+- Calculer le hash SHA256 du \`guildId\` (module natif \`crypto\`)
+- Requête \`SELECT\` sur la table \`guilds\` : comparer \`setup_hash\`
+- Si installé → charger la config depuis \`guild_config\`
+- Si non installé → déclencher le flow de setup *(issue #8)*
+- Export : \`checkInstall(guild)\`
+
+## 📁 Fichiers concernés
+- \`modules/initialisation/checkInstall.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Un serveur déjà installé charge sa config sans relancer le setup
+- Un nouveau serveur déclenche le flow de setup automatiquement
+- Hash SHA256 utilisé (jamais le guildId brut en base)
+`
+              },
+              {
+                title: "[SETUP] #8 — setup.js Étape 1 — Mapping grades Guardian ↔ rôles Discord",
+                labels: ["sprint-1", "module-initialisation"],
+                body: `## 🎯 Objectif
+Première étape du setup guidé : permettre à l'Owner de mapper les 5 grades Guardian sur des rôles Discord existants ou à créer.
+
+## 📋 Tâches
+- Créer \`modules/initialisation/setup.js\` (base du module, sera complété aux issues suivantes)
+- Créer la catégorie privée \`guardian-setup\` et le channel \`guardian-setup\` (visible Owner uniquement)
+- Afficher un embed avec 5 SelectMenu (un par grade) listant les rôles Discord existants + option "Créer ce rôle"
+- Si "Créer ce rôle" : Guardian crée le rôle Discord et le sélectionne
+- Vérifier qu'un seul membre a le grade Owner
+- Persister le mapping dans la table \`grades\`
+
+## 📁 Fichiers concernés
+- \`modules/initialisation/setup.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Les 5 grades sont mappés avant de passer à l'étape 2
+- Si un rôle Owner est assigné à plusieurs membres → erreur explicite
+- La progression vers l'étape 2 nécessite que tous les grades soient configurés
+`
+              },
+              {
+                title: "[SETUP] #9 — setup.js Étape 2 — Paramètres membres (délai, bio, parrainage, expulsion)",
+                labels: ["sprint-1", "module-initialisation"],
+                body: `## 🎯 Objectif
+Deuxième étape du setup : configurer les règles d'accueil et de promotion des membres.
+
+## 📋 Tâches
+- Dans \`modules/initialisation/setup.js\` (suite de l'issue #8)
+- Afficher un formulaire modal avec :
+  - Texte d'accueil Invité (valeur par défaut fournie)
+  - Règles simplifiées Invité (valeur par défaut)
+  - Règles complètes Membre+ (valeur par défaut)
+  - Délai minimum avant demande promotion (défaut : 48h)
+  - Bio obligatoire : oui/non (toggle)
+  - Parrainage obligatoire : oui/non (toggle)
+  - Grade minimum pour traiter les demandes (défaut : Modérateur)
+  - Délai expulsion auto Invités (défaut : 30 jours, désactivable)
+- Persister dans \`guild_config\` (module : "membres")
+
+## 📁 Fichiers concernés
+- \`modules/initialisation/setup.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Toutes les valeurs ont des défauts sensés (setup rapide possible)
+- La validation des inputs est effectuée (délai = nombre positif, textes non vides)
+- Persistance correcte en base avant passage à l'étape 3
+`
+              },
+              {
+                title: "[SETUP] #10 — setup.js Étape 3 — Ajout des jeux du serveur",
+                labels: ["sprint-1", "module-initialisation"],
+                body: `## 🎯 Objectif
+Troisième étape du setup : permettre à l'Owner d'enregistrer les jeux disponibles sur le serveur.
+
+## 📋 Tâches
+- Dans \`modules/initialisation/setup.js\` (suite)
+- Afficher un formulaire d'ajout de jeu :
+  - Nom du jeu (texte libre)
+  - AppID Steam (optionnel)
+  - Activer galerie : oui/non
+  - Activer changelogs : oui/non
+- Bouton "Ajouter un autre jeu" pour ajouter plusieurs jeux en séquence
+- Bouton "Continuer" pour passer à l'étape 4
+- Persister chaque jeu dans la table \`games\`
+
+## 📁 Fichiers concernés
+- \`modules/initialisation/setup.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Au moins un jeu peut être ajouté (0 jeux → warning mais non bloquant)
+- Chaque jeu est bien persisté en base avec toutes ses options
+- L'AppID Steam est validé (numérique, optionnel)
+`
+              },
+              {
+                title: "[SETUP] #11 — setup.js Étape 4 — Activation des modules optionnels",
+                labels: ["sprint-1", "module-initialisation"],
+                body: `## 🎯 Objectif
+Quatrième étape du setup : activer ou désactiver les modules optionnels du bot.
+
+## 📋 Tâches
+- Dans \`modules/initialisation/setup.js\` (suite)
+- Afficher des toggles (boutons on/off) pour :
+  - Module suggestions
+  - Module liste-serveurs (surveillance IP)
+  - Module statut-bot
+  - Module AFK vocal
+  - Module game-updates (agrégateur changelogs)
+  - Module score comportemental
+- Persister les choix dans \`guild_config\` (module : "modules")
+
+## 📁 Fichiers concernés
+- \`modules/initialisation/setup.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Chaque toggle est persisté indépendamment
+- L'état actuel (on/off) est visuellement clair dans l'interface
+`
+              },
+              {
+                title: "[SETUP] #12 — setup.js Étape 5 — Validation finale & création de la structure Discord",
+                labels: ["sprint-1", "module-initialisation"],
+                body: `## 🎯 Objectif
+Cinquième et dernière étape du setup : afficher le récapitulatif, confirmer, puis créer toute la structure Discord (catégories, channels, rôles).
+
+## 📋 Tâches
+- Dans \`modules/initialisation/setup.js\` (suite)
+- Afficher un embed récapitulatif complet (grades, paramètres, jeux, modules)
+- Bouton "✅ Confirmer et installer"
+- À la confirmation :
+  - Créer toutes les catégories et channels selon la spec (INFORMATIONS, COMMUNAUTÉ, VOCAUX, jeux, MODÉRATION, CONFIGURATION)
+  - Appliquer les permissions Discord correctes pour chaque grade sur chaque channel
+  - Créer les channels de jeux pour chaque jeu ajouté à l'étape 3
+  - Supprimer la catégorie \`guardian-setup\`
+  - Poster le message de bienvenue dans #bienvenue
+  - Enregistrer l'installation dans \`guilds\` (setup_done=1, setup_hash)
+- Poster le message de statut dans #statut-bot (si module activé)
+
+## 📁 Fichiers concernés
+- \`modules/initialisation/setup.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Toute la structure Discord est créée correctement
+- Les permissions sont appliquées selon la hiérarchie des grades
+- L'installation est marquée en base (setup_done=1)
+- La catégorie guardian-setup est supprimée après l'installation
+`
+              },
+
+              // ─── SPRINT 2 — MODULE MEMBRES ────────────────────────────────────────
+              {
+                title: "[MEMBRES] #13 — guildMemberAdd.js + newMember.js — Accueil Invité & assignation rôle",
+                labels: ["sprint-2", "module-membres"],
+                body: `## 🎯 Objectif
+À l'arrivée d'un nouveau membre, assigner automatiquement le rôle Invité et poster le message de bienvenue.
+
+## 📋 Tâches
+- Créer \`events/guildMemberAdd.js\`
+- Assigner le rôle Invité (grade 1) au nouveau membre
+- Créer \`modules/members/newMember.js\`
+- Poster dans #bienvenue :
+  - Texte personnalisé (depuis \`guild_config\`)
+  - Bouton "📋 Voir les règles" (affiche les règles en éphémère selon le grade)
+  - Bouton "🙋 Faire une demande pour devenir Membre"
+- Envoyer un DM au nouvel arrivant (présentation + lien #bienvenue)
+- Enregistrer le membre dans la table \`members\` (grade: 'invite', join_date)
+
+## 📁 Fichiers concernés
+- \`events/guildMemberAdd.js\` *(créer)*
+- \`modules/members/newMember.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Le rôle Invité est assigné dans les 2 secondes
+- Le message #bienvenue est posté automatiquement
+- Le DM est envoyé (gestion d'erreur si DMs fermés)
+- Le membre est enregistré en base
+`
+              },
+              {
+                title: "[MEMBRES] #14 — newMember.js — Flow de demande de promotion Invité → Membre",
+                labels: ["sprint-2", "module-membres"],
+                body: `## 🎯 Objectif
+Implémenter le flow complet lorsqu'un Invité clique sur "Faire une demande pour devenir Membre".
+
+## 📋 Tâches
+- Dans \`modules/members/newMember.js\` (suite)
+- Vérifier dans l'ordre :
+  1. Délai minimum écoulé (depuis \`join_date\` en base) → message éphémère si non
+  2. Bio requise (si config activée) → ouvrir modal "Présente-toi"
+  3. Parrain requis (si config activée) → vérifier en base la table \`parrainage\`
+- Si toutes conditions remplies : poster dans #demandes :
+  - Pseudo + avatar (embed)
+  - Date d'arrivée + durée écoulée
+  - Bio (si fournie)
+  - Parrain (si applicable)
+  - Boutons : ✅ Accepter | ❌ Refuser | 💬 Répondre
+
+## 📁 Fichiers concernés
+- \`modules/members/newMember.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Chaque condition est vérifiée dans l'ordre
+- Message éphémère explicite si condition non remplie (ex: "Il te reste 12h à attendre")
+- La demande dans #demandes contient toutes les informations requises
+`
+              },
+              {
+                title: "[MEMBRES] #15 — newMember.js — Traitement staff dans #demandes (accepter/refuser/répondre)",
+                labels: ["sprint-2", "module-membres"],
+                body: `## 🎯 Objectif
+Implémenter les actions du staff sur les demandes de promotion dans #demandes.
+
+## 📋 Tâches
+- Dans \`modules/members/newMember.js\` (suite)
+- Handler bouton **✅ Accepter** :
+  - Vérifier que l'acteur a le grade minimum configuré (défaut : Modérateur)
+  - Retirer le rôle Invité, assigner le rôle Membre
+  - Mettre à jour \`members\` en base (grade: 'membre')
+  - Poster confirmation dans #général : "Bienvenue @pseudo !"
+  - Logger dans #logs-mod
+  - Marquer la demande comme traitée (éditer le message embed)
+- Handler bouton **❌ Refuser** :
+  - Ouvrir un modal (raison optionnelle)
+  - Notifier l'Invité en DM avec la raison
+  - Logger dans #logs-mod
+  - Marquer la demande comme traitée
+- Handler bouton **💬 Répondre** :
+  - Ouvrir un modal (message libre)
+  - Envoyer le message en DM à l'Invité
+
+## 📁 Fichiers concernés
+- \`modules/members/newMember.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Seuls les membres avec le grade suffisant peuvent traiter les demandes
+- Le DM est envoyé dans tous les cas (accept/refus)
+- La demande est visuellement marquée comme traitée dans #demandes
+`
+              },
+              {
+                title: "[MEMBRES] #16 — parrainage.js + commands/parrainer.js — Commande /parrainer",
+                labels: ["sprint-2", "module-membres"],
+                body: `## 🎯 Objectif
+Implémenter la commande slash \`/parrainer\` permettant à un Membre de parrainer un Invité.
+
+## 📋 Tâches
+- Créer \`commands/parrainer.js\` (définition de la slash command)
+- Créer \`modules/members/parrainage.js\` (logique métier)
+- Vérifier que l'utilisateur est au moins Membre (grade 2+)
+- Vérifier que la cible est bien un Invité sur le serveur
+- Vérifier qu'un Membre ne parraine qu'un seul Invité à la fois
+- Enregistrer en base dans \`parrainage\` (parrain_id, invite_id, date)
+- Notifier l'Invité en DM
+
+## 📁 Fichiers concernés
+- \`commands/parrainer.js\` *(créer)*
+- \`modules/members/parrainage.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Impossible de parrainer deux Invités en même temps
+- Impossible de parrainer quelqu'un qui n'est pas Invité
+- L'Invité est notifié en DM et sait qu'il peut faire sa demande
+`
+              },
+              {
+                title: "[MEMBRES] #17 — expulsion.js — Expulsion automatique des Invités hors délai",
+                labels: ["sprint-2", "module-membres"],
+                body: `## 🎯 Objectif
+Expulser automatiquement les Invités qui n'ont pas été promus dans le délai configuré.
+
+## 📋 Tâches
+- Créer \`modules/members/expulsion.js\`
+- Vérification toutes les 24h (timer lancé depuis \`ready.js\`)
+- Requête en base : Invités avec \`join_date\` dépassant le délai configuré
+- Pour chaque Invité concerné :
+  - Envoyer un DM avant expulsion (message configurable dans \`guild_config\`)
+  - Expulser le membre (\`GuildMember.kick()\`)
+  - Logger dans #logs-mod
+- Respecter le paramètre "module expulsion désactivé" (\`guild_config\`)
+
+## 📁 Fichiers concernés
+- \`modules/members/expulsion.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Aucune expulsion si le module est désactivé
+- Le DM est envoyé avant l'expulsion (gestion d'erreur si DMs fermés)
+- Chaque expulsion est loguée dans #logs-mod
+`
+              },
+              {
+                title: "[MEMBRES] #18 — guildMemberRemove.js — Log de départ dans #logs-mod",
+                labels: ["sprint-2", "module-membres"],
+                body: `## 🎯 Objectif
+Loguer dans #logs-mod chaque départ ou expulsion d'un membre du serveur.
+
+## 📋 Tâches
+- Créer \`events/guildMemberRemove.js\`
+- Poster dans #logs-mod : pseudo, avatar, grade Guardian, date d'arrivée, durée de présence
+- Distinguer départ volontaire et expulsion/ban (via \`fetchAuditLogs\`)
+- Nettoyer les données en base si nécessaire (vocal_temp, parrainage en cours)
+
+## 📁 Fichiers concernés
+- \`events/guildMemberRemove.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Le départ est logué dans les 5 secondes
+- Le type de départ est correctement identifié (volontaire / kick / ban)
+`
+              },
+
+              // ─── SPRINT 3 — MODULE GAMELIST & OPT-IN ──────────────────────────────
+              {
+                title: "[GAMES] #19 — gameList.js — Interface #mes-channels & sélection multi-jeux (opt-in)",
+                labels: ["sprint-3", "module-games"],
+                body: `## 🎯 Objectif
+Implémenter l'interface interactive d'opt-in aux jeux depuis #mes-channels.
+
+## 📋 Tâches
+- Créer \`modules/games/gameList.js\`
+- Poster un message permanent dans #mes-channels avec bouton "🎮 Gérer mes jeux"
+- Au clic : afficher un \`StringSelectMenuBuilder\` multi-select avec tous les jeux disponibles (depuis \`games\` en base)
+- Pré-cocher les jeux déjà sélectionnés (depuis \`member_games\`)
+- À la soumission :
+  - Calculer les différences (ajouts / retraits)
+  - Ajouter / retirer les rôles Discord correspondants
+  - Mettre à jour \`member_games\` en base
+  - Confirmation éphémère : liste des jeux actifs
+- Gérer la limite Discord (max 25 options par SelectMenu) → pagination si > 25 jeux
+
+## 📁 Fichiers concernés
+- \`modules/games/gameList.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- L'interface fonctionne même avec 0 jeux disponibles (message explicatif)
+- Les rôles sont assignés/retirés immédiatement
+- La sélection est persistée en base
+`
+              },
+              {
+                title: "[GAMES] #20 — gameList.js — Interface #ma-gamelist (synchronisée avec #mes-channels)",
+                labels: ["sprint-3", "module-games"],
+                body: `## 🎯 Objectif
+Créer l'interface de #ma-gamelist, synchronisée avec #mes-channels (mêmes données, même logique).
+
+## 📋 Tâches
+- Dans \`modules/games/gameList.js\` (suite de l'issue #19)
+- Poster un message permanent dans #ma-gamelist affichant les jeux suivis
+- Interface identique à #mes-channels (même SelectMenu)
+- Toute modification dans l'un se reflète dans l'autre (même table \`member_games\`)
+
+## 📁 Fichiers concernés
+- \`modules/games/gameList.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Modifier dans #ma-gamelist = modifier dans #mes-channels (et vice versa)
+- Le message permanent de #ma-gamelist est toujours à jour
+`
+              },
+              {
+                title: "[GAMES] #21 — gameList.js — Ajout/retrait de jeu par Manager/Owner (#jeux-serveur)",
+                labels: ["sprint-3", "module-games"],
+                body: `## 🎯 Objectif
+Permettre aux Manager/Owner d'ajouter ou retirer un jeu officiellement sur le serveur depuis #jeux-serveur.
+
+## 📋 Tâches
+- Dans \`modules/games/gameList.js\` (suite)
+- Interface dans #jeux-serveur :
+  - Bouton "➕ Ajouter un jeu" → modal (nom, AppID Steam optionnel, galerie oui/non, changelogs oui/non)
+  - Bouton "❌ Retirer un jeu" → SelectMenu des jeux existants
+- Ajout d'un jeu :
+  - Créer la catégorie Discord + channels (#jeu, #jeu-galerie si activé, #jeu-changelogs si activé)
+  - Créer le rôle Discord associé
+  - Insérer dans la table \`games\`
+- Retrait d'un jeu :
+  - Supprimer la catégorie + channels + rôle Discord
+  - Supprimer de \`games\` et mettre à jour \`member_games\`
+
+## 📁 Fichiers concernés
+- \`modules/games/gameList.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- L'ajout d'un jeu crée immédiatement toute la structure Discord
+- Le retrait supprime proprement tout (channels, rôle, références en base)
+`
+              },
+
+              // ─── SPRINT 3 — MODULE VOCAUX TEMPORAIRES ─────────────────────────────
+              {
+                title: "[VOCAL] #22 — gamesVocal.js — Création de vocal temporaire depuis #créer-un-channel",
+                labels: ["sprint-3", "module-vocal"],
+                body: `## 🎯 Objectif
+Permettre aux Membres de créer un channel vocal temporaire lié à un jeu via #créer-un-channel.
+
+## 📋 Tâches
+- Créer \`modules/games/gamesVocal.js\`
+- Poster un message permanent dans #créer-un-channel avec bouton "🔊 Créer un vocal"
+- Au clic : afficher un SelectMenu avec les jeux disponibles
+- À la sélection :
+  - Créer le channel vocal dans la catégorie VOCAUX
+  - Nommer selon le format : \`[Préfixe] [Nom du jeu] [Suffixe]\` (config #vocaux)
+  - Incrémenter si un vocal du même jeu existe déjà ("Partie 2", "Partie 3"...)
+  - Appliquer la limite de membres configurée
+  - Insérer dans la table \`vocal_temp\`
+  - Confirmation éphémère avec lien vers le vocal
+
+## 📁 Fichiers concernés
+- \`modules/games/gamesVocal.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Seuls les Membres+ peuvent créer un vocal
+- L'incrémentation numérique fonctionne correctement
+- La confirmation inclut un lien cliquable vers le vocal
+`
+              },
+              {
+                title: "[VOCAL] #23 — gamesVocal.js + voiceStateUpdate.js — Suppression automatique vocal vide",
+                labels: ["sprint-3", "module-vocal"],
+                body: `## 🎯 Objectif
+Supprimer automatiquement les vocaux temporaires après X minutes de vacuité.
+
+## 📋 Tâches
+- Créer \`events/voiceStateUpdate.js\`
+- Écouter \`voiceStateUpdate\` : détecter quand un vocal temporaire devient vide
+- Démarrer un timer (délai depuis \`guild_config\`, défaut : 5 min)
+- Si toujours vide à l'expiration : supprimer le channel Discord + nettoyer \`vocal_temp\`
+- Si quelqu'un rejoint avant l'expiration : annuler le timer
+- Dans \`modules/games/gamesVocal.js\` : gérer les timers en mémoire (Map par channelId)
+- Au redémarrage du bot : supprimer les vocaux temporaires vides restés en base
+
+## 📁 Fichiers concernés
+- \`events/voiceStateUpdate.js\` *(créer)*
+- \`modules/games/gamesVocal.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Un vocal vide est supprimé après le délai configuré
+- Rejoindre avant l'expiration annule bien la suppression
+- Aucune erreur si le channel a déjà été supprimé manuellement
+`
+              },
+
+              // ─── SPRINT 4 — MODULE CHANGELOGS STEAM ───────────────────────────────
+              {
+                title: "[STEAM] #24 — gamesNotification.js — Polling API Steam + anti-doublon + diffusion",
+                labels: ["sprint-4", "module-steam"],
+                body: `## 🎯 Objectif
+Récupérer automatiquement les changelogs Steam et les diffuser dans les channels appropriés.
+
+## 📋 Tâches
+- Créer \`modules/games/gamesNotification.js\`
+- Timer lancé depuis \`ready.js\` (fréquence depuis \`guild_config\`, défaut : 60 min)
+- Pour chaque jeu avec \`steam_app_id\` configuré :
+  - Appeler l'API Steam : \`ISteamNews/GetNewsForApp\`
+  - Comparer le dernier \`gid\` avec \`changelogs_seen\` en base
+  - Si nouveau changelog :
+    - Formater le message (titre, date, résumé tronqué si trop long + lien "Lire la suite", lien Steam)
+    - Poster dans #[jeu]-changelogs (si activé pour ce jeu)
+    - Poster dans #game-updates (si module activé)
+    - Mettre à jour \`changelogs_seen\`
+- Gestion d'erreur : si API indisponible → logger l'erreur, réessayer au prochain cycle
+
+## 📁 Fichiers concernés
+- \`modules/games/gamesNotification.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Un même changelog n'est jamais posté deux fois (anti-doublon)
+- Le bot ne crashe jamais si l'API Steam est indisponible
+- Les messages sont bien formatés avec lien direct vers le changelog
+`
+              },
+
+              // ─── SPRINT 4 — MODULE MODÉRATION ─────────────────────────────────────
+              {
+                title: "[MOD] #25 — moderation.js + commandes /warn /mute /kick /ban — Sanctions manuelles",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Implémenter les 4 commandes slash de modération manuelle et leur logique complète.
+
+## 📋 Tâches
+- Créer \`modules/moderation/moderation.js\` (logique partagée)
+- Créer \`commands/warn.js\`, \`commands/mute.js\`, \`commands/kick.js\`, \`commands/ban.js\`
+- **/warn <membre> <raison>** :
+  - Enregistrer dans \`sanctions\`
+  - Incrémenter \`score_comportement\` dans \`members\`
+  - Notifier en DM + log #logs-mod
+  - Vérifier les seuils comportementaux *(issue #31)*
+- **/mute <membre> <durée> <raison>** (format : "1h", "30m", "1j") :
+  - \`GuildMember.timeout()\` Discord natif
+  - Enregistrer dans \`sanctions\` avec durée
+  - Notifier DM + log
+- **/kick <membre> <raison>** : notifier DM → expulser → log
+- **/ban <membre> <raison>** : bannir → enregistrer → log
+- Vérifier que le modérateur a un grade suffisant (≥ Modérateur)
+
+## 📁 Fichiers concernés
+- \`modules/moderation/moderation.js\` *(créer)*
+- \`commands/warn.js\`, \`commands/mute.js\`, \`commands/kick.js\`, \`commands/ban.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Toutes les sanctions sont enregistrées en base
+- Le membre est notifié en DM dans tous les cas
+- Chaque action est loguée dans #logs-mod
+`
+              },
+              {
+                title: "[MOD] #26 — commands/historique.js — Historique des sanctions d'un membre",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Permettre au staff de consulter l'historique complet des sanctions d'un membre.
+
+## 📋 Tâches
+- Créer \`commands/historique.js\` (slash command : \`/historique <membre>\`)
+- Requête \`sanctions\` en base filtrée par \`guild_id\` + \`user_id\`
+- Afficher via embed : type, raison, date, appliqué par, durée (si mute), auto (oui/non)
+- Inclure le score comportemental actuel
+- Réservé à Modérateur+ (grade ≥ 3)
+
+## 📁 Fichiers concernés
+- \`commands/historique.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- L'embed est lisible et bien formaté (pagination si > 10 sanctions)
+- Affiche "Aucune sanction" si historique vide
+- Inaccessible aux grades inférieurs à Modérateur
+`
+              },
+              {
+                title: "[MOD] #27 — reports.js — Signalements membres via modal → #rapports",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Permettre aux Membres de signaler un autre membre via un formulaire interactif.
+
+## 📋 Tâches
+- Créer \`modules/moderation/reports.js\`
+- Bouton "🚨 Signaler" (accessible via commande \`/signaler\` ou message Guardian)
+- Ouvrir un modal : qui signales-tu ? (mention/pseudo), motif, lien/description preuve (optionnel)
+- Poster dans #rapports : embed avec toutes les infos + bouton "✅ Traité"
+- Handler bouton "✅ Traité" : éditer le message, logger dans #logs-mod
+- Créer \`commands/signaler.js\` (entrée utilisateur)
+
+## 📁 Fichiers concernés
+- \`modules/moderation/reports.js\` *(créer)*
+- \`commands/signaler.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Tout Membre+ peut utiliser /signaler
+- Le rapport dans #rapports contient toutes les informations
+- Le bouton "Traité" est loggé dans #logs-mod
+`
+              },
+              {
+                title: "[MOD] #28 — autoMod.js — Anti-spam (fenêtre glissante + seuil paramétrable)",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Détecter et sanctionner automatiquement le spam de messages via une fenêtre glissante.
+
+## 📋 Tâches
+- Créer \`modules/moderation/autoMod.js\` (base du fichier, complété aux issues suivantes)
+- Écouter \`messageCreate\` (via \`events/messageCreate.js\`)
+- Compter les messages par utilisateur sur une fenêtre glissante (ex: 5 msgs en 3s, paramétrable)
+- Si seuil dépassé :
+  - Supprimer les messages en excès
+  - Appliquer la sanction automatique selon les règles \`behavior.js\` *(issue #31)*
+  - Logger dans #logs-mod
+- Créer \`events/messageCreate.js\`
+
+## 📁 Fichiers concernés
+- \`modules/moderation/autoMod.js\` *(créer)*
+- \`events/messageCreate.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- La fenêtre glissante fonctionne correctement (mémoire nettoyée périodiquement)
+- Les paramètres (seuil, durée fenêtre) sont lus depuis \`guild_config\`
+- Aucun faux positif sur les admins (Modérateur+ exemptés ou paramétrable)
+`
+              },
+              {
+                title: "[MOD] #29 — autoMod.js — Slow mode automatique par channel",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Permettre d'activer un slow mode Discord natif sur des channels spécifiques depuis #auto-modération.
+
+## 📋 Tâches
+- Dans \`modules/moderation/autoMod.js\` (suite)
+- Interface dans #auto-modération : liste des channels + toggle slow mode + saisie délai (en secondes)
+- Appliquer \`channel.setRateLimitPerUser(délai)\` Discord
+- Persister les paramètres dans \`guild_config\`
+- Désactiver (délai = 0) via l'interface
+
+## 📁 Fichiers concernés
+- \`modules/moderation/autoMod.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- L'activation est immédiate (appliquée via l'API Discord)
+- Le paramètre est persisté (survit au redémarrage)
+- Délai limité aux valeurs Discord acceptées (0–21600 secondes)
+`
+              },
+              {
+                title: "[MOD] #30 — autoMod.js — Blacklist de mots (suppression silencieuse ou visible)",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Détecter et gérer automatiquement les messages contenant des mots de la blacklist.
+
+## 📋 Tâches
+- Dans \`modules/moderation/autoMod.js\` (suite)
+- Interface dans #auto-modération : ajouter/retirer des mots de la blacklist
+- Vérification à chaque \`messageCreate\` (insensible à la casse)
+- Mode A) Suppression silencieuse uniquement
+- Mode B) Suppression + message d'avertissement visible dans le channel
+- Incrémenter le score comportemental du membre
+- Persister la blacklist dans \`guild_config\`
+
+## 📁 Fichiers concernés
+- \`modules/moderation/autoMod.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- La vérification est insensible à la casse
+- Le mode (A ou B) est paramétrable par serveur
+- Le score comportemental est incrémenté correctement
+`
+              },
+              {
+                title: "[MOD] #31 — behavior.js — Score comportemental, seuils & sanctions automatiques",
+                labels: ["sprint-4", "module-moderation"],
+                body: `## 🎯 Objectif
+Implémenter le système de score comportemental avec seuils configurables et sanctions automatiques chaînées.
+
+## 📋 Tâches
+- Créer \`modules/moderation/behavior.js\`
+- Lire la config des seuils depuis \`guild_config\` (ex: score 3 → mute 1h | score 5 → kick | score 7 → ban)
+- Fonction \`checkBehaviorThresholds(guild, member)\` : vérifier si un seuil est dépassé → appliquer la sanction
+- Interface dans #comportement (Owner) : définir/modifier les seuils et actions
+- Consulter les scores de tous les membres
+- Réinitialiser le score d'un membre (bouton)
+- Logger chaque déclenchement automatique dans #logs-mod
+
+## 📁 Fichiers concernés
+- \`modules/moderation/behavior.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Les seuils sont configurables dynamiquement (sans redémarrer le bot)
+- Les sanctions auto sont appliquées et loguées comme \`auto=1\` en base
+- La réinitialisation de score est disponible pour Owner
+`
+              },
+
+              // ─── SPRINT 5 — MODULE SURVEILLANCE SERVEURS ──────────────────────────
+              {
+                title: "[SERVERS] #32 — serverMonitor.js — Surveillance TCP toutes les 5 min + #liste-serveurs",
+                labels: ["sprint-5", "module-servers"],
+                body: `## 🎯 Objectif
+Surveiller les serveurs de jeu enregistrés via TCP et mettre à jour #liste-serveurs en temps réel.
+
+## 📋 Tâches
+- Créer \`modules/servers/serverMonitor.js\`
+- Timer toutes les 5 minutes (lancé depuis \`ready.js\`)
+- Pour chaque serveur dans \`servers_jeu\` :
+  - Tentative TCP sur IP:port (timeout : 3 secondes max)
+  - Statut : ✅ En ligne | ❌ Hors ligne | ⚠️ Instable (timeout intermittent)
+  - Si possible : récupérer le nombre de joueurs (Source Query pour serveurs Source)
+  - Mettre à jour le message embed dans #liste-serveurs (éditer, pas re-poster)
+  - Mettre à jour \`servers_jeu\` en base (\`last_status\`, \`last_check\`)
+- Interface dans #serveurs-jeu (Manager+) : ajouter/retirer un serveur de la surveillance
+- Poster un message explicatif dans #gestion-serveurs au setup (placeholder Pterodactyl)
+
+## 📁 Fichiers concernés
+- \`modules/servers/serverMonitor.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Le bot ne crashe jamais en cas d'erreur réseau
+- Un embed par serveur dans #liste-serveurs, mis à jour (pas dupliqué)
+- Timeout respecté (3 secondes max par serveur)
+`
+              },
+
+              // ─── SPRINT 5 — MODULE SETTINGS ───────────────────────────────────────
+              {
+                title: "[CONFIG] #33 — settings.js — Interface de configuration interactive par channel",
+                labels: ["sprint-5", "module-config"],
+                body: `## 🎯 Objectif
+Créer les interfaces interactives permanentes dans chaque channel de la catégorie CONFIGURATION.
+
+## 📋 Tâches
+- Créer \`modules/config/settings.js\`
+- Pour chaque channel de config, poster (ou re-poster si supprimé) un message épinglé avec l'interface :
+  - #bot (Modérateur+) : paramètres généraux du bot
+  - #membres (Manager+) : délai promotion, bio, parrainage, règles, texte d'accueil
+  - #channels (Manager+) : activer/désactiver modules et channels
+  - #vocaux (Manager+) : préfixe, suffixe, limite, délai suppression
+  - #jeux (Manager+) : paramètres par jeu
+  - #changelogs (Manager+) : config Steam
+  - #suggestions-config (Manager+) : config forum suggestions
+  - #annonces-config (Manager+) : grade minimum, template
+  - #faq-config (Manager+) : gestion posts FAQ
+  - #serveurs-jeu (Manager+) : déjà géré par serverMonitor
+  - #guardian (Owner) : mapping grades, reset
+  - #comportement (Owner) : seuils comportementaux
+  - #auto-modération (Owner) : anti-spam, slow mode, blacklist
+  - #rôles (Owner) : noms et couleurs des rôles de grade
+- Chaque modification met à jour \`guild_config\` en base
+
+## 📁 Fichiers concernés
+- \`modules/config/settings.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Chaque channel a son interface interactive à jour
+- Toutes les modifications passent par les interactions Discord (aucune commande texte)
+- Les valeurs actuelles sont toujours affichées dans l'interface
+`
+              },
+              {
+                title: "[CONFIG] #34 — settings.js — Log des modifications dans #logs-config (Owner)",
+                labels: ["sprint-5", "module-config"],
+                body: `## 🎯 Objectif
+Tracer toutes les modifications de configuration effectuées via Guardian dans #logs-config.
+
+## 📋 Tâches
+- Dans \`modules/config/settings.js\` (suite)
+- À chaque modification de config : poster dans #logs-config :
+  - Qui a modifié (mention + grade)
+  - Quel paramètre (module + clé)
+  - Ancienne valeur → Nouvelle valeur
+  - Timestamp
+- Accessible uniquement à l'Owner (channel visible Owner only)
+- Utiliser \`logger.logToDiscord()\` depuis \`modules/logs/logger.js\`
+
+## 📁 Fichiers concernés
+- \`modules/config/settings.js\` *(modifier)*
+
+## ✅ Critères d'acceptation
+- Aucune modification de config n'est effectuée sans être loguée
+- Le format du log est lisible et contient l'ancienne et la nouvelle valeur
+`
+              },
+
+              // ─── SPRINT 6 — MODULE OPTIONNEL ──────────────────────────────────────
+              {
+                title: "[OPT] #35 — richPresence.js — Placeholder Rich Presence / Leaderboard (optionnel)",
+                labels: ["sprint-6", "module-optionnel"],
+                body: `## 🎯 Objectif
+Créer le fichier placeholder documenté pour le futur module Rich Presence / Leaderboard.
+
+## ⚠️ MODULE FACULTATIF — À développer en dernier
+Ne pas bloquer ni conditionner les autres modules à celui-ci.
+
+## 📋 Tâches
+- Créer \`modules/richPresence/richPresence.js\` (fichier placeholder)
+- Documenter en commentaires l'idée générale du module :
+  - Lecture Rich Presence Discord via \`presenceUpdate\`
+  - Classement des jeux les plus joués sur le serveur
+  - Stats optionnelles : temps de jeu, sessions
+  - Données opt-in uniquement (consentement membre)
+- Export vide ou fonction stub documentée
+
+## 📁 Fichiers concernés
+- \`modules/richPresence/richPresence.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- Le fichier existe et est documenté
+- Il n'impacte pas le fonctionnement des autres modules
+- Clairement marqué [TODO / OPTIONNEL] en en-tête
+`
+              },
+
+              // ─── SPRINT TRANSVERSE — TESTS ────────────────────────────────────────
+              {
+                title: "[TEST] #36 — Tests unitaires — Base de données (database/db.js)",
+                labels: ["sprint-transverse", "tests"],
+                body: `## 🎯 Objectif
+Écrire les tests unitaires pour la couche base de données.
+
+## 📋 Tâches
+- Dans \`tests/\` (framework existant : \`node --test\`)
+- Tester la création des tables (idempotence)
+- Tester les CRUD de base sur chaque table principale (\`guilds\`, \`games\`, \`members\`, \`sanctions\`)
+- Utiliser une base en mémoire (\`:memory:\`) pour les tests
+- Couvrir les cas limites : duplicata de PK, valeurs NULL optionnelles
+
+## 📁 Fichiers concernés
+- \`tests/database.test.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- \`npm test\` passe sans erreur
+- Tests d'idempotence de création des tables
+- Tests CRUD sur les tables principales
+`
+              },
+              {
+                title: "[TEST] #37 — Tests unitaires — Modules core (initialisation, membres)",
+                labels: ["sprint-transverse", "tests"],
+                body: `## 🎯 Objectif
+Écrire les tests unitaires pour les modules critiques (checkInstall, logique promotion, score comportemental).
+
+## 📋 Tâches
+- Tester \`checkInstall\` : hash SHA256, détection serveur installé/non installé
+- Tester la logique de vérification des conditions de promotion (délai, bio, parrain)
+- Tester le score comportemental (incrémentation, seuils, déclenchement sanctions)
+- Mocker les interactions Discord (pas de client réel en test)
+
+## 📁 Fichiers concernés
+- \`tests/checkInstall.test.js\` *(créer)*
+- \`tests/members.test.js\` *(créer)*
+- \`tests/behavior.test.js\` *(créer)*
+
+## ✅ Critères d'acceptation
+- \`npm test\` passe sans erreur
+- La logique métier critique est couverte
+- Aucun test ne nécessite une connexion Discord réelle
+`
+              },
+            ];
+
+            // Labels to ensure exist
+            const labelDefs = [
+              { name: "sprint-0",             color: "0075ca", description: "Sprint 0 — Infrastructure" },
+              { name: "sprint-1",             color: "e4e669", description: "Sprint 1 — Initialisation" },
+              { name: "sprint-2",             color: "d93f0b", description: "Sprint 2 — Membres" },
+              { name: "sprint-3",             color: "0052cc", description: "Sprint 3 — Games & Vocaux" },
+              { name: "sprint-4",             color: "5319e7", description: "Sprint 4 — Steam & Modération" },
+              { name: "sprint-5",             color: "006b75", description: "Sprint 5 — Servers & Config" },
+              { name: "sprint-6",             color: "1d76db", description: "Sprint 6 — Optionnel" },
+              { name: "sprint-transverse",    color: "ededed", description: "Sprint transverse — Tests" },
+              { name: "infrastructure",       color: "c5def5", description: "Infrastructure & Setup" },
+              { name: "database",             color: "f9d0c4", description: "Base de données" },
+              { name: "module-initialisation",color: "bfd4f2", description: "Module Initialisation" },
+              { name: "module-membres",       color: "fef2c0", description: "Module Membres" },
+              { name: "module-games",         color: "c2e0c6", description: "Module Games / Opt-in" },
+              { name: "module-vocal",         color: "d4c5f9", description: "Module Vocaux Temporaires" },
+              { name: "module-steam",         color: "fbca04", description: "Module Changelogs Steam" },
+              { name: "module-moderation",    color: "e11d48", description: "Module Modération" },
+              { name: "module-servers",       color: "0ea5e9", description: "Module Surveillance Serveurs" },
+              { name: "module-config",        color: "84cc16", description: "Module Settings / Config" },
+              { name: "module-optionnel",     color: "94a3b8", description: "Module Optionnel" },
+              { name: "tests",                color: "22c55e", description: "Tests unitaires" },
+            ];
+
+            // Create labels (ignore errors if already exist)
+            console.log("Creating labels...");
+            for (const label of labelDefs) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description,
+                });
+                console.log(`✅ Label: ${label.name}`);
+              } catch (e) {
+                if (e.status === 422) {
+                  console.log(`⏭️ Label already exists: ${label.name}`);
+                } else {
+                  console.warn(`⚠️ Label error (${label.name}): ${e.message}`);
+                }
+              }
+            }
+
+            // Create issues
+            console.log("\nCreating issues...");
+            let created = 0;
+            for (const issue of issues) {
+              try {
+                const result = await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: issue.title,
+                  body: issue.body,
+                  labels: issue.labels,
+                });
+                console.log(`✅ Issue #${result.data.number}: ${issue.title}`);
+                created++;
+                // Small delay to avoid rate limiting
+                await new Promise(r => setTimeout(r, 300));
+              } catch (e) {
+                console.error(`❌ Failed to create issue "${issue.title}": ${e.message}`);
+              }
+            }
+
+            console.log(`\n🎉 Done! Created ${created}/${issues.length} issues.`);
