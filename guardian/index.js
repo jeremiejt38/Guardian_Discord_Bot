@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
-const { DISCORD_TOKEN } = require('./config');
+const { DISCORD_TOKEN, assertDiscordTokenConfigured } = require('./config');
 const { initDatabase } = require('./database/db');
 const logger = require('./modules/logs/logger');
 
@@ -50,6 +50,7 @@ function loadEvents() {
 
 (async () => {
   try {
+    assertDiscordTokenConfigured();
     initDatabase();
     loadCommands();
     loadEvents();

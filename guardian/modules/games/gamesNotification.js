@@ -1,24 +1,117 @@
 const { getDb } = require('../../database/db');
+const { CHANNEL_NAMES } = require('../../config');
+const { getGuildSetting } = require('../config/settings');
 const logger = require('../logs/logger');
 
-async function checkSteamChangelogs() {
+function formatChangelogMessage(gameName, item) {
+  const date = item?.date ? new Date(item.date * 1000).toLocaleString('fr-FR') : 'date inconnue';
+  const title = item?.title || `Nouveau changelog: ${gameName}`;
+  const url = item?.url || '';
+  const raw = (item?.contents || '').replace(/\s+/g, ' ').trim();
+  const summary = raw.length > 600 ? `${raw.slice(0, 597)}...` : raw;
+
+  return [`🎮 **${gameName}**`, `**${title}**`, `Publié le: ${date}`, summary, url].filter(Boolean).join('\n');
+}
+
+async function fetchLatestSteamNews(appId) {
+  const url = new URL('https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/');
+  url.searchParams.set('appid', appId);
+  url.searchParams.set('count', '1');
+  url.searchParams.set('maxlength', '1000');
+  url.searchParams.set('format', 'json');
+
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`Steam API returned ${response.status}`);
+  }
+
+  const payload = await response.json();
+  return payload?.appnews?.newsitems?.[0] || null;
+}
+
+async function postIfTextChannel(channel, content) {
+  if (channel?.isTextBased()) {
+    await channel.send(content);
+  }
+}
+
+async function publishChangelog(client, game, item) {
+  if (!client) {
+    return;
+  }
+
+  const guild = await client.guilds.fetch(game.guild_id).catch(() => null);
+  if (!guild) {
+    return;
+  }
+
+  const message = formatChangelogMessage(game.name, item);
+  const perGameChannel = game.channel_changelog_id ? await guild.channels.fetch(game.channel_changelog_id).catch(() => null) : null;
+
+  if (game.changelog_enabled && perGameChannel) {
+    await postIfTextChannel(perGameChannel, message);
+  }
+
+  const aggregateEnabled = getGuildSetting(game.guild_id, 'changelogs', 'aggregate_game_updates', true);
+  if (!aggregateEnabled) {
+    return;
+  }
+
+  const aggregateChannel = guild.channels.cache.find(
+    (channel) => channel.name === CHANNEL_NAMES.gameUpdates && channel.isTextBased()
+  );
+  if (aggregateChannel) {
+    await aggregateChannel.send(message);
+  }
+}
+
+async function checkSteamChangelogs(client) {
   try {
     const db = getDb();
-    const trackedGames = db.prepare('SELECT game_id, steam_app_id, name FROM games WHERE steam_app_id IS NOT NULL').all();
+    const trackedGames = db
+      .prepare(
+        `SELECT game_id, guild_id, steam_app_id, name, channel_changelog_id, changelog_enabled
+         FROM games
+         WHERE steam_app_id IS NOT NULL AND steam_app_id != ''`
+      )
+      .all();
 
     for (const game of trackedGames) {
-      logger.info('Steam changelog check placeholder', { game: game.name, appId: game.steam_app_id });
+      try {
+        const item = await fetchLatestSteamNews(game.steam_app_id);
+        if (!item?.gid) {
+          continue;
+        }
+
+        const seen = db.prepare('SELECT last_changelog_id FROM changelogs_seen WHERE game_id = ?').get(game.game_id);
+        if (seen?.last_changelog_id === item.gid) {
+          continue;
+        }
+
+        db.prepare(
+          `INSERT INTO changelogs_seen (game_id, last_changelog_id)
+           VALUES (?, ?)
+           ON CONFLICT(game_id) DO UPDATE SET last_changelog_id = excluded.last_changelog_id`
+        ).run(game.game_id, item.gid);
+
+        await publishChangelog(client, game, item);
+      } catch (error) {
+        logger.error(`Steam changelog check failed for game ${game.name}`, error);
+      }
     }
   } catch (error) {
     logger.error('Failed Steam changelog cycle', error);
   }
 }
 
-function startChangelogTimer(intervalMs = 60 * 60 * 1000) {
-  return setInterval(checkSteamChangelogs, intervalMs);
+function startChangelogTimer(client, intervalMs = 60 * 60 * 1000) {
+  return setInterval(() => {
+    checkSteamChangelogs(client).catch((error) => logger.error('Steam changelog timer failure', error));
+  }, intervalMs);
 }
 
 module.exports = {
+  fetchLatestSteamNews,
   checkSteamChangelogs,
   startChangelogTimer
 };

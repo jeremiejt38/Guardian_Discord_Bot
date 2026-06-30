@@ -22,7 +22,7 @@ module.exports = {
     }
 
     startInviteExpulsionJob(client);
-    startChangelogTimer();
+    startChangelogTimer(client);
     startServerMonitor();
   }
 };

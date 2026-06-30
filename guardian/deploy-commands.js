@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const { REST, Routes } = require('discord.js');
-const { CLIENT_ID, DISCORD_TOKEN } = require('./config');
+const { CLIENT_ID, DISCORD_TOKEN, assertDiscordTokenConfigured } = require('./config');
 
 if (!CLIENT_ID) {
   throw new Error('CLIENT_ID is required for slash command deployment.');
 }
+assertDiscordTokenConfigured();
 
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
