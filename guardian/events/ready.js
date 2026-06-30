@@ -1,0 +1,28 @@
+const { isGuildInstalled } = require('../modules/initialisation/checkInstall');
+const { createSetupArea } = require('../modules/initialisation/setup');
+const { startInviteExpulsionJob } = require('../modules/members/expulsion');
+const { startChangelogTimer } = require('../modules/games/gamesNotification');
+const { startServerMonitor } = require('../modules/servers/serverMonitor');
+const logger = require('../modules/logs/logger');
+
+module.exports = {
+  name: 'ready',
+  once: true,
+  async execute(client) {
+    logger.info(`Connected as ${client.user.tag}`);
+
+    for (const guild of client.guilds.cache.values()) {
+      try {
+        if (!isGuildInstalled(guild.id)) {
+          await createSetupArea(guild);
+        }
+      } catch (error) {
+        logger.error(`Failed ready setup check for guild ${guild.id}`, error);
+      }
+    }
+
+    startInviteExpulsionJob(client);
+    startChangelogTimer();
+    startServerMonitor();
+  }
+};

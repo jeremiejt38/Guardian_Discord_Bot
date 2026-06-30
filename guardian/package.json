@@ -1,0 +1,17 @@
+{
+  "name": "guardian-discord-bot",
+  "version": "0.1.0",
+  "description": "Guardian Discord bot for gaming communities",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "deploy:commands": "node deploy-commands.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2"
+  }
+}
