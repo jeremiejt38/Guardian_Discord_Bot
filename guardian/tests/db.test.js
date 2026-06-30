@@ -23,6 +23,7 @@ test('initDatabase creates required schema tables', () => {
     .map((row) => row.name);
 
   assert.ok(tables.includes('guilds'));
+  assert.ok(tables.includes('schema_version'));
   assert.ok(tables.includes('guild_config'));
   assert.ok(tables.includes('grades'));
   assert.ok(tables.includes('games'));
@@ -33,6 +34,9 @@ test('initDatabase creates required schema tables', () => {
   assert.ok(tables.includes('servers_jeu'));
   assert.ok(tables.includes('parrainage'));
   assert.ok(tables.includes('vocal_temp'));
+
+  const versionRow = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get();
+  assert.equal(versionRow.version, 1);
 
   db.close();
   fs.rmSync(tempDbPath, { force: true });

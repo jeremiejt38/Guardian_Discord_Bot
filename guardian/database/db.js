@@ -17,7 +17,13 @@ function initDatabase(customPath = DATABASE_PATH) {
 
   db = new Database(customPath);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_version (
+      version INTEGER PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS guilds (
       guild_id TEXT PRIMARY KEY,
       setup_done INTEGER NOT NULL DEFAULT 0,
@@ -117,6 +123,7 @@ function initDatabase(customPath = DATABASE_PATH) {
       created_at TEXT NOT NULL
     );
   `);
+  db.prepare('INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (1, ?)').run(new Date().toISOString());
 
   return db;
 }
