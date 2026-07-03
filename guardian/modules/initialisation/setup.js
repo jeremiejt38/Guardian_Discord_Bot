@@ -1,7 +1,11 @@
-const { ChannelType, PermissionFlagsBits } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = require('discord.js');
 const { CHANNEL_NAMES } = require('../../config');
 const { setGuildSetting } = require('../config/settings');
 const { markGuildInstalled } = require('./checkInstall');
+const { CUSTOM_IDS } = require('./setupFlow');
+const { provisionGuildStructure } = require('./provision');
+const { applyGuardianPermissions } = require('./permissions');
+const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
 async function createSetupArea(guild) {
@@ -48,16 +52,17 @@ async function createSetupArea(guild) {
     setGuildSetting(guild.id, 'setup', 'owner_id', owner.id);
 
     if (!existingChannel) {
-      await channel.send(
-      [
-        'Bienvenue dans Guardian setup.',
-        'Étape 1/5: associer les grades Guardian aux rôles Discord.',
-        'Étape 2/5: configurer les paramètres membres.',
-        'Étape 3/5: définir les jeux du serveur.',
-        'Étape 4/5: activer les modules optionnels.',
-        'Étape 5/5: confirmer et installer.'
-      ].join('\n')
+      const controls = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(CUSTOM_IDS.start)
+          .setStyle(ButtonStyle.Primary)
+          .setLabel(t('setup.start', {}, { guildId: guild.id }))
       );
+
+      await channel.send({
+        content: t('setup.intro', {}, { guildId: guild.id }).join('\n'),
+        components: [controls]
+      });
     }
 
     return { category, channel };
@@ -68,6 +73,8 @@ async function createSetupArea(guild) {
 }
 
 async function finalizeInstall(guild) {
+  await provisionGuildStructure(guild);
+  await applyGuardianPermissions(guild);
   markGuildInstalled(guild.id, guild.ownerId);
   setGuildSetting(guild.id, 'setup', 'step', 5);
 
