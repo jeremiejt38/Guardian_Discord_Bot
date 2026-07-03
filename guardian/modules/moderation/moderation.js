@@ -23,7 +23,17 @@ function getSanctionsHistory(guildId, userId) {
     .all(guildId, userId);
 }
 
+function getBehaviorScore(guildId, userId) {
+  const db = getDb();
+  const row = db
+    .prepare('SELECT score_comportement FROM members WHERE guild_id = ? AND user_id = ?')
+    .get(guildId, userId);
+
+  return row?.score_comportement ?? 0;
+}
+
 module.exports = {
   saveSanction,
-  getSanctionsHistory
+  getSanctionsHistory,
+  getBehaviorScore
 };

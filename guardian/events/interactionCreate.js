@@ -1,4 +1,5 @@
 const { markReportHandled } = require('../modules/moderation/reports');
+const { handleHistoriquePagination } = require('../commands/historique');
 
 module.exports = {
   name: 'interactionCreate',
@@ -15,6 +16,11 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId === 'report:handled') {
       await markReportHandled(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('historique:')) {
+      await handleHistoriquePagination(interaction);
       return;
     }
 
