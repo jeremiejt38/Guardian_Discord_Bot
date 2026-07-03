@@ -133,6 +133,35 @@ function buildModerationPermissions(guild, roleMap, ownerId) {
   return permissions;
 }
 
+function buildConfigPermissions(guild, roleMap, ownerId, minimumGrade) {
+  const order = [
+    GRADE_NAMES.invite,
+    GRADE_NAMES.membre,
+    GRADE_NAMES.moderateur,
+    GRADE_NAMES.manager,
+    GRADE_NAMES.owner
+  ];
+
+  const start = Math.max(order.indexOf(minimumGrade), 0);
+  const allowedRoleIds = order.slice(start).map((grade) => roleMap[grade]).filter(Boolean);
+
+  const permissions = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }];
+
+  if (allowedRoleIds.length === 0) {
+    permissions.push({ id: ownerId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] });
+    return permissions;
+  }
+
+  for (const roleId of allowedRoleIds) {
+    permissions.push({
+      id: roleId,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+    });
+  }
+
+  return permissions;
+}
+
 function buildRequestsPermissions(guild, roleMap) {
   const gradeRoleIds = [
     roleMap[GRADE_NAMES.invite],
@@ -190,6 +219,14 @@ async function seedVoiceCreateMessage(channel) {
   }
 
   await channel.send('Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.');
+}
+
+async function seedGuardianConfigMessage(channel) {
+  if (channel.lastMessageId) {
+    return;
+  }
+
+  await channel.send(`Guardian Configuration: ce salon #${channel.name} est pret et configure.`);
 }
 
 async function createInformationsArea(guild, roleMap) {
@@ -273,6 +310,34 @@ async function createModerationArea(guild, roleMap, ownerId) {
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderationLogs, moderationPermissions);
 }
 
+async function createConfigurationArea(guild, roleMap, ownerId) {
+  const configurationCategory = await ensureCategory(guild, CATEGORIES.configuration, buildHiddenPermissions(guild, ownerId));
+
+  const channels = [
+    {
+      name: CHANNELS.gameChannels,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre)
+    },
+    {
+      name: CHANNELS.gameList,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre)
+    },
+    {
+      name: CHANNELS.serverList,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur)
+    },
+    {
+      name: CHANNELS.configLogs,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
+    }
+  ];
+
+  for (const item of channels) {
+    const channel = await ensureTextChannel(guild, configurationCategory.id, item.name, item.permissions);
+    await seedGuardianConfigMessage(channel);
+  }
+}
+
 async function createSetupArea(guild) {
   try {
     const owner = await guild.fetchOwner();
@@ -292,6 +357,7 @@ async function createSetupArea(guild) {
     await createCommunauteArea(guild, roleMap, owner.id);
     await createVocalArea(guild, owner.id);
     await createModerationArea(guild, roleMap, owner.id);
+    await createConfigurationArea(guild, roleMap, owner.id);
 
     await channel.send('Bienvenue dans Guardian setup. Le wizard complet peut être branché ici module par module.');
     finalizeInstall(guild);
