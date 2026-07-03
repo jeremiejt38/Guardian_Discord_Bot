@@ -12,15 +12,19 @@ module.exports = {
     const member = interaction.options.getMember('membre', true);
     const reason = interaction.options.getString('raison', true);
 
+    await member.send(`Tu as été expulsé du serveur. Raison: ${reason}`).catch(() => undefined);
+
     await member.kick(reason);
 
-    saveSanction({
+    await saveSanction({
       guildId: interaction.guildId,
       userId: member.id,
       type: 'kick',
       reason,
       appliedBy: interaction.user.id,
-      auto: 0
+      auto: 0,
+      guild: interaction.guild,
+      member
     });
 
     await interaction.reply({ content: `${member} a été expulsé.`, ephemeral: true });

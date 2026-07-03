@@ -104,7 +104,8 @@ function initDatabase(customPath = DATABASE_PATH) {
       ip TEXT NOT NULL,
       port INTEGER NOT NULL,
       last_status TEXT CHECK (last_status IN ('online', 'offline', 'unstable')),
-      last_check TEXT
+      last_check TEXT,
+      status_message_id TEXT
     );
 
     CREATE TABLE IF NOT EXISTS parrainage (
@@ -122,7 +123,40 @@ function initDatabase(customPath = DATABASE_PATH) {
       created_by TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS promotion_requests (
+      request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
+      bio TEXT,
+      sponsorship_id TEXT,
+      message_id TEXT,
+      created_at TEXT NOT NULL,
+      reviewed_at TEXT,
+      reviewed_by TEXT,
+      reason TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS reports (
+      report_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      reporter_id TEXT NOT NULL,
+      target_text TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      evidence TEXT,
+      status TEXT NOT NULL CHECK (status IN ('open', 'handled')) DEFAULT 'open',
+      message_id TEXT,
+      created_at TEXT NOT NULL,
+      handled_at TEXT,
+      handled_by TEXT
+    );
   `);
+  try {
+    db.exec('ALTER TABLE servers_jeu ADD COLUMN status_message_id TEXT');
+  } catch {
+    // Column already exists on upgraded databases.
+  }
   db.prepare('INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (1, ?)').run(new Date().toISOString());
 
   return db;

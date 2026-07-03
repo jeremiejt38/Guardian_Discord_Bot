@@ -7,7 +7,7 @@ module.exports = {
       return;
     }
 
-    const spamDetected = evaluateSpam(message);
+    const spamDetected = await evaluateSpam(message);
     if (spamDetected) {
       await message.delete().catch(() => undefined);
       await message.channel.send({ content: `${message.author}, ralentis svp.` }).catch(() => undefined);

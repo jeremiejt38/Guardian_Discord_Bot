@@ -34,6 +34,11 @@ test('initDatabase creates required schema tables', () => {
   assert.ok(tables.includes('servers_jeu'));
   assert.ok(tables.includes('parrainage'));
   assert.ok(tables.includes('vocal_temp'));
+  assert.ok(tables.includes('promotion_requests'));
+  assert.ok(tables.includes('reports'));
+
+  const serverColumns = db.prepare("PRAGMA table_info(servers_jeu)").all().map((column) => column.name);
+  assert.ok(serverColumns.includes('status_message_id'));
 
   const versionRow = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get();
   assert.equal(versionRow.version, 1);

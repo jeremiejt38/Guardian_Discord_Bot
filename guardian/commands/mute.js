@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { saveSanction } = require('../modules/moderation/moderation');
+const { saveSanction, parseDurationToMs } = require('../modules/moderation/moderation');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -13,16 +13,28 @@ module.exports = {
     const member = interaction.options.getMember('membre', true);
     const reason = interaction.options.getString('raison', true);
     const duration = interaction.options.getString('duree', true);
+    const durationMs = parseDurationToMs(duration);
 
-    saveSanction({
+    if (!durationMs) {
+      await interaction.reply({ content: 'Durée invalide. Utilise par exemple 30m, 1h ou 1d.', ephemeral: true });
+      return;
+    }
+
+    await member.timeout(durationMs, reason).catch(() => undefined);
+
+    await saveSanction({
       guildId: interaction.guildId,
       userId: member.id,
       type: 'mute',
       reason,
       duration,
       appliedBy: interaction.user.id,
-      auto: 0
+      auto: 0,
+      guild: interaction.guild,
+      member
     });
+
+    await member.send(`Tu as été mute pour ${duration}. Raison: ${reason}`).catch(() => undefined);
 
     await interaction.reply({ content: `Mute enregistré pour ${member}.`, ephemeral: true });
   }

@@ -9,18 +9,23 @@ module.exports = {
     .addUserOption((option) => option.setName('membre').setDescription('Membre à avertir').setRequired(true))
     .addStringOption((option) => option.setName('raison').setDescription('Raison').setRequired(true)),
   async execute(interaction) {
-    const member = interaction.options.getUser('membre', true);
+    const user = interaction.options.getUser('membre', true);
+    const member = await interaction.guild.members.fetch(user.id).catch(() => null);
     const reason = interaction.options.getString('raison', true);
 
-    saveSanction({
+    await saveSanction({
       guildId: interaction.guildId,
-      userId: member.id,
+      userId: user.id,
       type: 'warn',
       reason,
       appliedBy: interaction.user.id,
-      auto: 0
+      auto: 0,
+      guild: interaction.guild,
+      member
     });
 
-    await interaction.reply({ content: `Warn enregistré pour ${member}.`, ephemeral: true });
+    await user.send(`Tu as reçu un avertissement: ${reason}`).catch(() => undefined);
+
+    await interaction.reply({ content: `Warn enregistré pour ${user}.`, ephemeral: true });
   }
 };
