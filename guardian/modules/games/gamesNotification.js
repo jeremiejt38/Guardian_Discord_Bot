@@ -3,6 +3,8 @@ const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const logger = require('../logs/logger');
 
+const lastRunByGuild = new Map();
+
 function formatChangelogMessage(gameName, item) {
   const date = item?.date ? new Date(item.date * 1000).toLocaleString('fr-FR') : 'date inconnue';
   const title = item?.title || `Nouveau changelog: ${gameName}`;
@@ -35,6 +37,28 @@ async function postIfTextChannel(channel, content) {
   }
 }
 
+async function resolveTextChannel(guild, preferredId, fallbackName, context) {
+  if (preferredId) {
+    const byId = await guild.channels.fetch(preferredId).catch(() => null);
+    if (byId?.isTextBased()) {
+      return byId;
+    }
+
+    logger.warn(`Configured channel ID missing for ${context} in guild ${guild.id}, falling back by name`);
+  }
+
+  if (!fallbackName) {
+    return null;
+  }
+
+  return guild.channels.cache.find((channel) => channel.name === fallbackName && channel.isTextBased()) || null;
+}
+
+function shouldRunGuild(guildId, nowMs, intervalMinutes) {
+  const last = lastRunByGuild.get(guildId) || 0;
+  return nowMs - last >= intervalMinutes * 60 * 1000;
+}
+
 async function publishChangelog(client, game, item) {
   if (!client) {
     return;
@@ -46,7 +70,7 @@ async function publishChangelog(client, game, item) {
   }
 
   const message = formatChangelogMessage(game.name, item);
-  const perGameChannel = game.channel_changelog_id ? await guild.channels.fetch(game.channel_changelog_id).catch(() => null) : null;
+  const perGameChannel = await resolveTextChannel(guild, game.channel_changelog_id, null, `game ${game.game_id}`);
 
   if (game.changelog_enabled && perGameChannel) {
     await postIfTextChannel(perGameChannel, message);
@@ -57,8 +81,11 @@ async function publishChangelog(client, game, item) {
     return;
   }
 
-  const aggregateChannel = guild.channels.cache.find(
-    (channel) => channel.name === CHANNEL_NAMES.gameUpdates && channel.isTextBased()
+  const aggregateChannel = await resolveTextChannel(
+    guild,
+    getGuildSetting(game.guild_id, 'channels', 'game_updates_channel_id', null),
+    CHANNEL_NAMES.gameUpdates,
+    'aggregate game updates'
   );
   if (aggregateChannel) {
     await aggregateChannel.send(message);
@@ -76,35 +103,53 @@ async function checkSteamChangelogs(client) {
       )
       .all();
 
+    const byGuild = new Map();
     for (const game of trackedGames) {
-      try {
-        const item = await fetchLatestSteamNews(game.steam_app_id);
-        if (!item?.gid) {
-          continue;
-        }
+      const list = byGuild.get(game.guild_id) || [];
+      list.push(game);
+      byGuild.set(game.guild_id, list);
+    }
 
-        const seen = db.prepare('SELECT last_changelog_id FROM changelogs_seen WHERE game_id = ?').get(game.game_id);
-        if (seen?.last_changelog_id === item.gid) {
-          continue;
-        }
+    const nowMs = Date.now();
 
-        db.prepare(
-          `INSERT INTO changelogs_seen (game_id, last_changelog_id)
-           VALUES (?, ?)
-           ON CONFLICT(game_id) DO UPDATE SET last_changelog_id = excluded.last_changelog_id`
-        ).run(game.game_id, item.gid);
-
-        await publishChangelog(client, game, item);
-      } catch (error) {
-        logger.error(`Steam changelog check failed for game ${game.name}`, error);
+    for (const [guildId, games] of byGuild) {
+      const intervalMinutes = Math.max(1, Number(getGuildSetting(guildId, 'changelogs', 'check_interval_minutes', 60)));
+      if (!shouldRunGuild(guildId, nowMs, intervalMinutes)) {
+        continue;
       }
+
+      for (const game of games) {
+        try {
+          const item = await fetchLatestSteamNews(game.steam_app_id);
+          if (!item?.gid) {
+            continue;
+          }
+
+          const seen = db.prepare('SELECT last_changelog_id FROM changelogs_seen WHERE game_id = ?').get(game.game_id);
+          if (seen?.last_changelog_id === item.gid) {
+            continue;
+          }
+
+          db.prepare(
+            `INSERT INTO changelogs_seen (game_id, last_changelog_id)
+             VALUES (?, ?)
+             ON CONFLICT(game_id) DO UPDATE SET last_changelog_id = excluded.last_changelog_id`
+          ).run(game.game_id, item.gid);
+
+          await publishChangelog(client, game, item);
+        } catch (error) {
+          logger.error(`Steam changelog check failed for game ${game.name}`, error);
+        }
+      }
+
+      lastRunByGuild.set(guildId, nowMs);
     }
   } catch (error) {
     logger.error('Failed Steam changelog cycle', error);
   }
 }
 
-function startChangelogTimer(client, intervalMs = 60 * 60 * 1000) {
+function startChangelogTimer(client, intervalMs = 60 * 1000) {
   return setInterval(() => {
     checkSteamChangelogs(client).catch((error) => logger.error('Steam changelog timer failure', error));
   }, intervalMs);
