@@ -229,6 +229,14 @@ async function seedGuardianConfigMessage(channel) {
   await channel.send(`Guardian Configuration: ce salon #${channel.name} est pret et configure.`);
 }
 
+async function seedServerManagementPlaceholder(channel) {
+  if (channel.lastMessageId) {
+    return;
+  }
+
+  await channel.send('Guardian Placeholder: ce salon est reserve au futur bot Pterodactyl pour la gestion serveurs.');
+}
+
 async function createInformationsArea(guild, roleMap) {
   const informationsCategory = await ensureCategory(guild, CATEGORIES.informations, [
     { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
@@ -329,12 +337,36 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     {
       name: CHANNELS.configLogs,
       permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
+    },
+    {
+      name: CHANNELS.guardian,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
+    },
+    {
+      name: CHANNELS.behavior,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
+    },
+    {
+      name: CHANNELS.autoModeration,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
+    },
+    {
+      name: CHANNELS.roles,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
+    },
+    {
+      name: CHANNELS.serverManagement,
+      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
     }
   ];
 
   for (const item of channels) {
     const channel = await ensureTextChannel(guild, configurationCategory.id, item.name, item.permissions);
-    await seedGuardianConfigMessage(channel);
+    if (item.name === CHANNELS.serverManagement) {
+      await seedServerManagementPlaceholder(channel);
+    } else {
+      await seedGuardianConfigMessage(channel);
+    }
   }
 }
 

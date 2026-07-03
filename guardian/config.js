@@ -37,11 +37,14 @@ const CHANNELS = Object.freeze({
   reports: 'signalements',
   autoModeration: 'auto-moderation',
   behavior: 'comportement',
+  guardian: 'guardian',
+  roles: 'roles',
   moderationLogs: 'logs-mod',
   gameChannels: 'mes-channels',
   gameList: 'ma-gamelist',
   voiceCreate: 'créer-un-channel',
   serverList: 'liste-serveurs',
+  serverManagement: 'gestion-serveurs',
   configLogs: 'logs-config'
 });
 
@@ -57,11 +60,14 @@ const CHANNEL_NAMES = Object.freeze({
   reports: CHANNELS.reports,
   autoModeration: CHANNELS.autoModeration,
   behavior: CHANNELS.behavior,
+  guardian: CHANNELS.guardian,
+  roles: CHANNELS.roles,
   moderationLogs: CHANNELS.moderationLogs,
   gameChannels: CHANNELS.gameChannels,
   gameList: CHANNELS.gameList,
   voiceCreate: CHANNELS.voiceCreate,
   serverList: CHANNELS.serverList,
+  serverManagement: CHANNELS.serverManagement,
   configLogs: CHANNELS.configLogs
 });
 
