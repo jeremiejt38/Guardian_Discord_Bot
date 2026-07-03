@@ -1,6 +1,9 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { getDb } = require('../../database/db');
 const { GRADE_NAMES, CHANNEL_NAMES } = require('../../config');
+const { IDS } = require('./promotion');
 const logger = require('../logs/logger');
+const { t } = require('../../locales');
 
 function getGradeRoleId(guildId, gradeName) {
   const db = getDb();
@@ -17,7 +20,19 @@ async function handleNewMember(member) {
 
     const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNEL_NAMES.welcome);
     if (welcomeChannel?.isTextBased()) {
-      await welcomeChannel.send(`Bienvenue ${member} ! Clique sur le bouton de demande pour devenir membre.`);
+      const actions = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(IDS.request)
+          .setStyle(ButtonStyle.Success)
+          .setLabel(t('promotion.requestButton', {}, { guildId: member.guild.id }))
+      );
+
+      await welcomeChannel.send(
+        {
+          content: t('members.welcomePrompt', { member: String(member) }, { guildId: member.guild.id }),
+          components: [actions]
+        }
+      );
     }
 
     const db = getDb();
