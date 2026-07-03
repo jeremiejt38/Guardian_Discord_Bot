@@ -17,9 +17,17 @@ if (!DISCORD_TOKEN) {
   throw new Error(`No Discord token configured for NODE_ENV=${NODE_ENV}`);
 }
 
-const CHANNEL_NAMES = Object.freeze({
-  setupCategory: 'guardian-setup',
-  setupChannel: 'setup',
+const CATEGORIES = Object.freeze({
+  setup: 'guardian-setup',
+  informations: 'informations',
+  communaute: 'communaute',
+  vocaux: 'vocaux',
+  moderation: 'moderation',
+  configuration: 'configuration'
+});
+
+const CHANNELS = Object.freeze({
+  setup: 'setup',
   welcome: 'bienvenue',
   requests: 'demandes',
   moderationLogs: 'logs-mod',
@@ -28,6 +36,19 @@ const CHANNEL_NAMES = Object.freeze({
   voiceCreate: 'créer-un-channel',
   serverList: 'liste-serveurs',
   configLogs: 'logs-config'
+});
+
+const CHANNEL_NAMES = Object.freeze({
+  setupCategory: CATEGORIES.setup,
+  setupChannel: CHANNELS.setup,
+  welcome: CHANNELS.welcome,
+  requests: CHANNELS.requests,
+  moderationLogs: CHANNELS.moderationLogs,
+  gameChannels: CHANNELS.gameChannels,
+  gameList: CHANNELS.gameList,
+  voiceCreate: CHANNELS.voiceCreate,
+  serverList: CHANNELS.serverList,
+  configLogs: CHANNELS.configLogs
 });
 
 const GRADE_NAMES = Object.freeze({
@@ -43,6 +64,8 @@ module.exports = {
   DISCORD_TOKEN,
   CLIENT_ID: process.env.CLIENT_ID,
   DATABASE_PATH: path.resolve(process.cwd(), process.env.DATABASE_PATH || './data/guardian.db'),
+  CATEGORIES,
+  CHANNELS,
   CHANNEL_NAMES,
   GRADE_NAMES
 };

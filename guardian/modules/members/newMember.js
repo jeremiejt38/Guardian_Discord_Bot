@@ -1,5 +1,5 @@
 const { getDb } = require('../../database/db');
-const { GRADE_NAMES, CHANNEL_NAMES } = require('../../config');
+const { GRADE_NAMES, CHANNELS } = require('../../config');
 const logger = require('../logs/logger');
 
 function getGradeRoleId(guildId, gradeName) {
@@ -15,7 +15,7 @@ async function handleNewMember(member) {
       await member.roles.add(inviteRoleId);
     }
 
-    const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNEL_NAMES.welcome);
+    const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
       await welcomeChannel.send(`Bienvenue ${member} ! Clique sur le bouton de demande pour devenir membre.`);
     }

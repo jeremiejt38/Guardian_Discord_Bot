@@ -1,5 +1,5 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
-const { CHANNEL_NAMES } = require('../../config');
+const { CATEGORIES, CHANNELS } = require('../../config');
 const { markGuildInstalled } = require('./checkInstall');
 const logger = require('../logs/logger');
 
@@ -8,7 +8,7 @@ async function createSetupArea(guild) {
     const owner = await guild.fetchOwner();
 
     const category = await guild.channels.create({
-      name: CHANNEL_NAMES.setupCategory,
+      name: CATEGORIES.setup,
       type: ChannelType.GuildCategory,
       permissionOverwrites: [
         { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -17,7 +17,7 @@ async function createSetupArea(guild) {
     });
 
     const channel = await guild.channels.create({
-      name: CHANNEL_NAMES.setupChannel,
+      name: CHANNELS.setup,
       type: ChannelType.GuildText,
       parent: category.id,
       permissionOverwrites: [

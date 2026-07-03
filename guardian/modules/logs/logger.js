@@ -1,4 +1,4 @@
-const { CHANNEL_NAMES } = require('../../config');
+const { CHANNELS } = require('../../config');
 
 const LEVELS = Object.freeze({
   debug: 10,
@@ -58,7 +58,7 @@ async function logToDiscord(guild, content) {
     return;
   }
 
-  const channelName = CHANNEL_NAMES?.moderationLogs || 'logs-mod';
+  const channelName = CHANNELS.moderationLogs;
   const channel = guild.channels.cache.find((item) => item.name === channelName && item.isTextBased?.());
 
   if (!channel) {
