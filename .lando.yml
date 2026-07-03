@@ -1,0 +1,33 @@
+name: guardian-discord-bot
+
+services:
+  app:
+    type: node:20
+    scanner: false
+    overrides:
+      working_dir: /app/guardian
+      environment:
+        NODE_ENV: test
+        DISCORD_TOKEN: test-token
+        DISCORD_TOKEN_TEST: test-token
+        CLIENT_ID: test-client-id
+
+tooling:
+  npm:
+    service: app
+  install:
+    service: app
+    cmd: npm install
+  test:
+    service: app
+    cmd: npm test
+  start-bot:
+    service: app
+    cmd: npm start
+  deploy-commands:
+    service: app
+    cmd: npm run deploy:commands
+
+events:
+  post-start:
+    - app: npm install
