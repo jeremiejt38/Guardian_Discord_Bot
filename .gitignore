@@ -1,5 +1,7 @@
 # Logs
 logs
+!guardian/modules/logs/
+!guardian/modules/logs/logger.js
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -70,6 +72,30 @@ web_modules/
 .env.*
 !.env.example
 guardian/data/guardian.db
+guardian/data/*.db
+guardian/data/*.db-shm
+guardian/data/*.db-wal
+
+# Lando local overrides and runtime metadata
+.lando.local.yml
+.lando.base.yml
+.lando/
+
+# VS Code and OS artifacts
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Generic temp files
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

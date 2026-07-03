@@ -5,12 +5,13 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
+    "run": "npm run start",
+    "dev": "node --watch index.js",
     "start": "node index.js",
     "deploy:commands": "node deploy-commands.js",
     "test": "node --test"
   },
   "dependencies": {
-    "better-sqlite3": "^12.11.1",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2"
   }
