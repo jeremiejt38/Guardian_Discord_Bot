@@ -56,6 +56,27 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
   });
 }
 
+async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
+  const existing = guild.channels.cache.find(
+    (channel) => channel.type === ChannelType.GuildVoice && channel.name === name && channel.parentId === parentId
+  );
+
+  if (existing) {
+    await existing.edit({
+      parent: parentId,
+      permissionOverwrites
+    });
+    return existing;
+  }
+
+  return guild.channels.create({
+    name,
+    type: ChannelType.GuildVoice,
+    parent: parentId,
+    permissionOverwrites
+  });
+}
+
 function buildGeneralPermissions(guild, roleMap) {
   const permissions = [
     {
@@ -134,6 +155,14 @@ async function seedFaqMessages(channel) {
   }
 }
 
+async function seedVoiceCreateMessage(channel) {
+  if (channel.lastMessageId) {
+    return;
+  }
+
+  await channel.send('Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.');
+}
+
 async function createInformationsArea(guild, roleMap) {
   const informationsCategory = await ensureCategory(guild, CATEGORIES.informations, [
     { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
@@ -172,6 +201,39 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions);
 }
 
+async function createVocalArea(guild, ownerId) {
+  const vocauxCategory = await ensureCategory(guild, CATEGORIES.vocaux, [
+    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
+  ]);
+
+  const voiceCreateChannel = await ensureTextChannel(guild, vocauxCategory.id, CHANNELS.voiceCreate, [
+    {
+      id: guild.roles.everyone.id,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+    }
+  ]);
+
+  await ensureVoiceChannel(guild, vocauxCategory.id, CHANNELS.voiceGeneral, [
+    {
+      id: guild.roles.everyone.id,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak]
+    }
+  ]);
+
+  const afkEnabled = getGuildSetting(guild.id, 'vocaux', 'afk_enabled', true);
+  const afkPermissions = afkEnabled
+    ? [
+        {
+          id: guild.roles.everyone.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak]
+        }
+      ]
+    : buildHiddenPermissions(guild, ownerId);
+
+  await ensureVoiceChannel(guild, vocauxCategory.id, CHANNELS.voiceAfk, afkPermissions);
+  await seedVoiceCreateMessage(voiceCreateChannel);
+}
+
 async function createSetupArea(guild) {
   try {
     const owner = await guild.fetchOwner();
@@ -188,7 +250,8 @@ async function createSetupArea(guild) {
     ]);
 
     await createInformationsArea(guild, roleMap);
-  await createCommunauteArea(guild, roleMap, owner.id);
+    await createCommunauteArea(guild, roleMap, owner.id);
+    await createVocalArea(guild, owner.id);
 
     await channel.send('Bienvenue dans Guardian setup. Le wizard complet peut être branché ici module par module.');
     finalizeInstall(guild);
