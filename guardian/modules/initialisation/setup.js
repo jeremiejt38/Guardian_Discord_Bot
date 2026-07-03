@@ -1,6 +1,7 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getDb } = require('../../database/db');
 const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
+const { getGuildSetting } = require('../config/settings');
 const { markGuildInstalled } = require('./checkInstall');
 const logger = require('../logs/logger');
 
@@ -40,6 +41,10 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
   );
 
   if (existing) {
+    await existing.edit({
+      parent: parentId,
+      permissionOverwrites
+    });
     return existing;
   }
 
@@ -49,6 +54,33 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
     parent: parentId,
     permissionOverwrites
   });
+}
+
+function buildGeneralPermissions(guild, roleMap) {
+  const permissions = [
+    {
+      id: guild.roles.everyone.id,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+    }
+  ];
+
+  const inviteRoleId = roleMap[GRADE_NAMES.invite];
+  if (inviteRoleId) {
+    permissions.push({
+      id: inviteRoleId,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+      deny: [PermissionFlagsBits.ReadMessageHistory]
+    });
+  }
+
+  return permissions;
+}
+
+function buildHiddenPermissions(guild, ownerId) {
+  return [
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+    { id: ownerId, allow: [PermissionFlagsBits.ViewChannel] }
+  ];
 }
 
 function buildRequestsPermissions(guild, roleMap) {
@@ -127,6 +159,19 @@ async function createInformationsArea(guild, roleMap) {
   await seedFaqMessages(faqChannel);
 }
 
+async function createCommunauteArea(guild, roleMap, ownerId) {
+  const communauteCategory = await ensureCategory(guild, CATEGORIES.communaute, [
+    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
+  ]);
+
+  const generalEnabled = getGuildSetting(guild.id, 'communaute', 'general_enabled', true);
+  const permissions = generalEnabled
+    ? buildGeneralPermissions(guild, roleMap)
+    : buildHiddenPermissions(guild, ownerId);
+
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions);
+}
+
 async function createSetupArea(guild) {
   try {
     const owner = await guild.fetchOwner();
@@ -143,6 +188,7 @@ async function createSetupArea(guild) {
     ]);
 
     await createInformationsArea(guild, roleMap);
+  await createCommunauteArea(guild, roleMap, owner.id);
 
     await channel.send('Bienvenue dans Guardian setup. Le wizard complet peut être branché ici module par module.');
     finalizeInstall(guild);
