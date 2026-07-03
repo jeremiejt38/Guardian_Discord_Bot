@@ -1,5 +1,6 @@
 const { getDb } = require('../database/db');
 const { untrackTempVoice } = require('../modules/games/gamesVocal');
+const { getGuildSetting } = require('../modules/config/settings');
 
 const deletionTimers = new Map();
 
@@ -33,7 +34,8 @@ module.exports = {
       }
 
       if (channel.members.size === 0) {
-        scheduleDeletion(channel, 5 * 60 * 1000);
+        const delayMinutes = Math.max(1, Number(getGuildSetting(channel.guild.id, 'vocaux', 'empty_delete_minutes', 5)));
+        scheduleDeletion(channel, delayMinutes * 60 * 1000);
       } else if (deletionTimers.has(channel.id)) {
         clearTimeout(deletionTimers.get(channel.id));
         deletionTimers.delete(channel.id);
