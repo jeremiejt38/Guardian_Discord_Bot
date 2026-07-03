@@ -3,6 +3,7 @@ const { getDb } = require('../../database/db');
 const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const { markGuildInstalled } = require('./checkInstall');
+const { provisionGuildGameStructures } = require('../games/gameList');
 const logger = require('../logs/logger');
 
 function getGradeRoleMap(guildId) {
@@ -390,6 +391,7 @@ async function createSetupArea(guild) {
     await createVocalArea(guild, owner.id);
     await createModerationArea(guild, roleMap, owner.id);
     await createConfigurationArea(guild, roleMap, owner.id);
+    await provisionGuildGameStructures(guild);
 
     await channel.send('Bienvenue dans Guardian setup. Le wizard complet peut être branché ici module par module.');
     finalizeInstall(guild);
