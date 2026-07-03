@@ -1,5 +1,13 @@
 const { getDb } = require('../../database/db');
-const { ChannelType, PermissionFlagsBits } = require('discord.js');
+const {
+  ChannelType,
+  PermissionFlagsBits,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder
+} = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
 const logger = require('../logs/logger');
 
@@ -198,10 +206,82 @@ function setMemberGames(guildId, userId, gameIds) {
   tx(gameIds);
 }
 
+function buildGamesEmbed(guildId, userId) {
+  const games = getGuildGames(guildId);
+  const selectedIds = new Set(getMemberGames(guildId, userId).map((row) => row.game_id));
+  const lines = games.length
+    ? games.map((game) => `• ${selectedIds.has(game.game_id) ? '✅' : '⬜'} ${game.name}`).join('\n')
+    : 'Aucun jeu configure sur ce serveur.';
+
+  return new EmbedBuilder()
+    .setTitle('Guardian - Ma game list')
+    .setDescription(lines);
+}
+
+function buildGameSelectRow(guildId, userId) {
+  const games = getGuildGames(guildId);
+  const selectedIds = new Set(getMemberGames(guildId, userId).map((row) => String(row.game_id)));
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId('gamelist:select')
+    .setPlaceholder('Selectionne tes jeux')
+    .setMinValues(0)
+    .setMaxValues(Math.max(games.length, 1));
+
+  if (games.length === 0) {
+    menu.addOptions([{ label: 'Aucun jeu disponible', value: 'none' }]).setMaxValues(1);
+  } else {
+    menu.addOptions(
+      games.slice(0, 25).map((game) => ({
+        label: game.name.slice(0, 100),
+        value: String(game.game_id),
+        default: selectedIds.has(String(game.game_id))
+      }))
+    );
+    menu.setMaxValues(Math.min(games.length, 25));
+  }
+
+  return new ActionRowBuilder().addComponents(menu);
+}
+
+function buildOpenButtonRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('gamelist:open')
+      .setLabel('Ouvrir ma game list')
+      .setStyle(ButtonStyle.Primary)
+  );
+}
+
+async function handleOpenGameList(interaction) {
+  const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
+  const selectRow = buildGameSelectRow(interaction.guildId, interaction.user.id);
+  await interaction.reply({
+    embeds: [embed],
+    components: [selectRow],
+    ephemeral: true
+  });
+}
+
+async function handleGameListSelection(interaction) {
+  const values = interaction.values.filter((value) => value !== 'none');
+  const selectedIds = values.map((value) => Number.parseInt(value, 10)).filter((value) => Number.isFinite(value));
+  setMemberGames(interaction.guildId, interaction.user.id, selectedIds);
+
+  const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
+  const selectRow = buildGameSelectRow(interaction.guildId, interaction.user.id);
+  await interaction.update({
+    embeds: [embed],
+    components: [selectRow]
+  });
+}
+
 module.exports = {
   provisionGameStructure,
   provisionGuildGameStructures,
   getGuildGames,
   getMemberGames,
-  setMemberGames
+  setMemberGames,
+  buildOpenButtonRow,
+  handleOpenGameList,
+  handleGameListSelection
 };

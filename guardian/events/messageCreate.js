@@ -1,4 +1,4 @@
-const { evaluateSpam } = require('../modules/moderation/autoMod');
+const { evaluateSpam, evaluateBlacklist } = require('../modules/moderation/autoMod');
 
 module.exports = {
   name: 'messageCreate',
@@ -8,9 +8,14 @@ module.exports = {
     }
 
     const spamDetected = evaluateSpam(message);
-    if (spamDetected) {
+    const blacklistDetected = evaluateBlacklist(message);
+
+    if (spamDetected || blacklistDetected) {
       await message.delete().catch(() => undefined);
-      await message.channel.send({ content: `${message.author}, ralentis svp.` }).catch(() => undefined);
+      const content = spamDetected
+        ? `${message.author}, ralentis svp.`
+        : `${message.author}, ce message contient un mot interdit.`;
+      await message.channel.send({ content }).catch(() => undefined);
     }
   }
 };

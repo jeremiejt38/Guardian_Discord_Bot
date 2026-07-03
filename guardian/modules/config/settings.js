@@ -1,4 +1,5 @@
 const { getDb } = require('../../database/db');
+const { CHANNELS } = require('../../config');
 
 function setGuildSetting(guildId, moduleName, key, value) {
   const db = getDb();
@@ -27,7 +28,40 @@ function getGuildSetting(guildId, moduleName, key, fallback = null) {
   }
 }
 
+async function ensureChannelMessage(channel, content) {
+  if (!channel?.isTextBased?.()) {
+    return;
+  }
+
+  if (!channel.lastMessageId) {
+    await channel.send(content);
+  }
+}
+
+async function ensureMemberGameInterfaces(guild) {
+  const gameChannelsChannel = guild.channels.cache.find((channel) => channel.name === CHANNELS.gameChannels);
+  const gameListChannel = guild.channels.cache.find((channel) => channel.name === CHANNELS.gameList);
+
+  await ensureChannelMessage(
+    gameChannelsChannel,
+    'Guardian Interface: utilise le bouton **gamelist:open** pour configurer tes channels de jeux.'
+  );
+  await ensureChannelMessage(
+    gameListChannel,
+    'Guardian Interface: clique sur **gamelist:open** puis selectionne tes jeux opt-in.'
+  );
+}
+
+function getBehaviorInterfaceData(guildId, fallbackThresholds = []) {
+  return {
+    thresholds: getGuildSetting(guildId, 'behavior', 'thresholds', fallbackThresholds),
+    pageSize: getGuildSetting(guildId, 'behavior', 'page_size', 10)
+  };
+}
+
 module.exports = {
   setGuildSetting,
-  getGuildSetting
+  getGuildSetting,
+  ensureMemberGameInterfaces,
+  getBehaviorInterfaceData
 };

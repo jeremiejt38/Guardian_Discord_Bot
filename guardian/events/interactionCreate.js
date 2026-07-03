@@ -1,5 +1,6 @@
 const { markReportHandled } = require('../modules/moderation/reports');
 const { handleHistoriquePagination } = require('../commands/historique');
+const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 
 module.exports = {
   name: 'interactionCreate',
@@ -21,6 +22,16 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId.startsWith('historique:')) {
       await handleHistoriquePagination(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === 'gamelist:open') {
+      await handleOpenGameList(interaction);
+      return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId === 'gamelist:select') {
+      await handleGameListSelection(interaction);
       return;
     }
 

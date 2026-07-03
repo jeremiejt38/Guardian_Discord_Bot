@@ -32,6 +32,41 @@ async function handleNewMember(member) {
   }
 }
 
+function canPromoteInvite(record, options = {}) {
+  const {
+    minDays = 0,
+    bioRequired = false,
+    parrainRequired = false,
+    now = new Date()
+  } = options;
+
+  if (!record?.join_date) {
+    return false;
+  }
+
+  const joinDate = new Date(record.join_date);
+  if (Number.isNaN(joinDate.getTime())) {
+    return false;
+  }
+
+  const ageMs = now.getTime() - joinDate.getTime();
+  const minAgeMs = minDays * 24 * 60 * 60 * 1000;
+  if (ageMs < minAgeMs) {
+    return false;
+  }
+
+  if (bioRequired && !String(record.bio || '').trim()) {
+    return false;
+  }
+
+  if (parrainRequired && !String(record.parrain_id || '').trim()) {
+    return false;
+  }
+
+  return true;
+}
+
 module.exports = {
-  handleNewMember
+  handleNewMember,
+  canPromoteInvite
 };

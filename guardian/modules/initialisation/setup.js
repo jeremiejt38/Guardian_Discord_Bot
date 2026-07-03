@@ -3,7 +3,7 @@ const { getDb } = require('../../database/db');
 const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const { markGuildInstalled } = require('./checkInstall');
-const { provisionGuildGameStructures } = require('../games/gameList');
+const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/gameList');
 const logger = require('../logs/logger');
 
 function getGradeRoleMap(guildId) {
@@ -222,12 +222,20 @@ async function seedVoiceCreateMessage(channel) {
   await channel.send('Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.');
 }
 
-async function seedGuardianConfigMessage(channel) {
+async function seedGuardianConfigMessage(channel, options = {}) {
   if (channel.lastMessageId) {
     return;
   }
 
-  await channel.send(`Guardian Configuration: ce salon #${channel.name} est pret et configure.`);
+  const payload = {
+    content: `Guardian Configuration: ce salon #${channel.name} est pret et configure.`
+  };
+
+  if (options.withGameListButton) {
+    payload.components = [buildOpenButtonRow()];
+  }
+
+  await channel.send(payload);
 }
 
 async function seedServerManagementPlaceholder(channel) {
@@ -366,7 +374,8 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     if (item.name === CHANNELS.serverManagement) {
       await seedServerManagementPlaceholder(channel);
     } else {
-      await seedGuardianConfigMessage(channel);
+      const withGameListButton = item.name === CHANNELS.gameChannels || item.name === CHANNELS.gameList;
+      await seedGuardianConfigMessage(channel, { withGameListButton });
     }
   }
 }
