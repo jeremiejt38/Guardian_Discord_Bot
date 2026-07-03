@@ -104,6 +104,35 @@ function buildHiddenPermissions(guild, ownerId) {
   ];
 }
 
+function buildModerationPermissions(guild, roleMap, ownerId) {
+  const permissions = [
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }
+  ];
+
+  const modPlusRoleIds = [
+    roleMap[GRADE_NAMES.moderateur],
+    roleMap[GRADE_NAMES.manager],
+    roleMap[GRADE_NAMES.owner]
+  ].filter(Boolean);
+
+  if (modPlusRoleIds.length === 0) {
+    permissions.push({
+      id: ownerId,
+      allow: [PermissionFlagsBits.ViewChannel]
+    });
+    return permissions;
+  }
+
+  for (const roleId of modPlusRoleIds) {
+    permissions.push({
+      id: roleId,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+    });
+  }
+
+  return permissions;
+}
+
 function buildRequestsPermissions(guild, roleMap) {
   const gradeRoleIds = [
     roleMap[GRADE_NAMES.invite],
@@ -234,6 +263,16 @@ async function createVocalArea(guild, ownerId) {
   await seedVoiceCreateMessage(voiceCreateChannel);
 }
 
+async function createModerationArea(guild, roleMap, ownerId) {
+  const moderationPermissions = buildModerationPermissions(guild, roleMap, ownerId);
+  const moderationCategory = await ensureCategory(guild, CATEGORIES.moderation, moderationPermissions);
+
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.reports, moderationPermissions);
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.autoModeration, moderationPermissions);
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.behavior, moderationPermissions);
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderationLogs, moderationPermissions);
+}
+
 async function createSetupArea(guild) {
   try {
     const owner = await guild.fetchOwner();
@@ -252,6 +291,7 @@ async function createSetupArea(guild) {
     await createInformationsArea(guild, roleMap);
     await createCommunauteArea(guild, roleMap, owner.id);
     await createVocalArea(guild, owner.id);
+    await createModerationArea(guild, roleMap, owner.id);
 
     await channel.send('Bienvenue dans Guardian setup. Le wizard complet peut être branché ici module par module.');
     finalizeInstall(guild);
