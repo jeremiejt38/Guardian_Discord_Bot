@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getDb } = require('../../database/db');
+const { getConfig, setConfig } = require('../../database/db');
 
 const LOCALES_DIR = path.resolve(__dirname, '../../locales');
 const DEFAULT_LANGUAGE = 'fr';
@@ -88,23 +88,14 @@ function getGuildLanguage(guildId) {
   }
 
   try {
-    const db = getDb();
-    const current = db
-      .prepare('SELECT value FROM guild_config WHERE guild_id = ? AND module = ? AND key = ?')
-      .get(guildId, 'i18n', 'language');
-
-    if (current?.value) {
-      const parsed = JSON.parse(current.value);
-      return normalizeLanguage(parsed);
+    const current = getConfig(guildId, 'i18n', 'language', null);
+    if (current) {
+      return normalizeLanguage(current);
     }
 
-    const legacy = db
-      .prepare('SELECT value FROM guild_config WHERE guild_id = ? AND module = ? AND key = ?')
-      .get(guildId, 'initialisation', 'language');
-
-    if (legacy?.value) {
-      const parsed = JSON.parse(legacy.value);
-      return normalizeLanguage(parsed);
+    const legacy = getConfig(guildId, 'initialisation', 'language', null);
+    if (legacy) {
+      return normalizeLanguage(legacy);
     }
   } catch {
     return normalizeLanguage(DEFAULT_LANGUAGE);
@@ -114,16 +105,8 @@ function getGuildLanguage(guildId) {
 }
 
 function setGuildLanguage(guildId, language) {
-  const db = getDb();
   const normalized = normalizeLanguage(language);
-
-  db.prepare(
-    `INSERT INTO guild_config (guild_id, module, key, value)
-     VALUES (?, 'i18n', 'language', ?)
-     ON CONFLICT(guild_id, module, key)
-     DO UPDATE SET value = excluded.value`
-  ).run(guildId, JSON.stringify(normalized));
-
+  setConfig(guildId, 'i18n', 'language', normalized);
   return normalized;
 }
 
@@ -149,6 +132,10 @@ function t(guildId, key, variables = {}) {
   return tForLanguage(getGuildLanguage(guildId), key, variables);
 }
 
+function describe(key) {
+  return tForLanguage(DEFAULT_LANGUAGE, key);
+}
+
 module.exports = {
   DEFAULT_LANGUAGE,
   getAvailableLanguages,
@@ -156,5 +143,6 @@ module.exports = {
   getGuildLanguage,
   setGuildLanguage,
   t,
-  tForLanguage
+  tForLanguage,
+  describe
 };

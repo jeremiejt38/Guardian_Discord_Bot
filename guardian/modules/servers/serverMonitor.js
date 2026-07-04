@@ -3,9 +3,11 @@ const { EmbedBuilder } = require('discord.js');
 const { getDb } = require('../../database/db');
 const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { resolveTextChannel } = require('../utils/channels');
+const { createGuildRunTracker } = require('../utils/scheduling');
 const logger = require('../logs/logger');
 
-const lastRunByGuild = new Map();
+const runTracker = createGuildRunTracker();
 
 function checkTcpServer(ip, port, timeoutMs = 3000) {
   return new Promise((resolve) => {
@@ -38,18 +40,11 @@ function renderStatus(status) {
   return '❌ Hors ligne';
 }
 
-async function resolveServerListChannel(guild) {
+function resolveServerListChannel(guild) {
   const configuredId = getGuildSetting(guild.id, 'channels', 'server_list_channel_id', null);
-  if (configuredId) {
-    const byId = await guild.channels.fetch(configuredId).catch(() => null);
-    if (byId?.isTextBased()) {
-      return byId;
-    }
-
+  return resolveTextChannel(guild, configuredId, CHANNEL_NAMES.serverList, () => {
     logger.warn(`Configured server list channel not found for guild ${guild.id}, fallback by name`);
-  }
-
-  return guild.channels.cache.find((channel) => channel.name === CHANNEL_NAMES.serverList && channel.isTextBased()) || null;
+  });
 }
 
 function buildServerEmbed(server, status, checkedAtIso) {
@@ -80,11 +75,6 @@ async function upsertStatusMessage(channel, server, status, checkedAtIso) {
   db.prepare('UPDATE servers_jeu SET status_message_id = ? WHERE server_id = ?').run(created.id, server.server_id);
 }
 
-function shouldRunGuild(guildId, nowMs, intervalMinutes) {
-  const last = lastRunByGuild.get(guildId) || 0;
-  return nowMs - last >= intervalMinutes * 60 * 1000;
-}
-
 async function monitorServers(client) {
   const db = getDb();
   const servers = db
@@ -103,7 +93,7 @@ async function monitorServers(client) {
 
   for (const [guildId, guildServers] of serversByGuild) {
     const intervalMinutes = Math.max(1, Number(getGuildSetting(guildId, 'servers', 'monitor_interval_minutes', 5)));
-    if (!shouldRunGuild(guildId, nowMs, intervalMinutes)) {
+    if (!runTracker.shouldRun(guildId, nowMs, intervalMinutes)) {
       continue;
     }
 
@@ -127,7 +117,7 @@ async function monitorServers(client) {
       });
     }
 
-    lastRunByGuild.set(guildId, nowMs);
+    runTracker.markRun(guildId, nowMs);
   }
 }
 

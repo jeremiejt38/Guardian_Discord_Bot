@@ -9,6 +9,7 @@ const {
   EmbedBuilder
 } = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
+const { findCategoryByName, findGuildTextChannelByName } = require('../utils/channels');
 const { t } = require('../i18n');
 const logger = require('../logs/logger');
 
@@ -58,9 +59,7 @@ async function ensureCategory(guild, gameName, permissionOverwrites, existingId)
     return existingById;
   }
 
-  const existingByName = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildCategory && channel.name === gameName
-  );
+  const existingByName = findCategoryByName(guild, gameName);
   if (existingByName) {
     await existingByName.edit({ permissionOverwrites });
     return existingByName;
@@ -80,9 +79,7 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
     return existingById;
   }
 
-  const existingByName = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildText && channel.parentId === parentId && channel.name === channelName
-  );
+  const existingByName = findGuildTextChannelByName(guild, channelName, parentId);
   if (existingByName) {
     await existingByName.edit({ parent: parentId, permissionOverwrites });
     return existingByName;

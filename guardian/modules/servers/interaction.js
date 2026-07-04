@@ -1,7 +1,8 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { addServer } = require('./servers');
 const { getDb } = require('../../database/db');
 const { CHANNELS } = require('../../config');
+const { findGuildTextChannelByName } = require('../utils/channels');
 const { t } = require('../i18n');
 
 async function handleAddServerButton(interaction) {
@@ -50,7 +51,7 @@ async function handleServerModalSubmit(interaction) {
   }
 
   // create proposal message in approve channel
-  const approveChannel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.approveGames && c.type === ChannelType.GuildText);
+  const approveChannel = findGuildTextChannelByName(interaction.guild, CHANNELS.approveGames);
   const embed = new EmbedBuilder().setTitle(`Proposition de serveur: ${name}`).addFields(
     { name: 'Jeu', value: game, inline: true },
     { name: 'IP:Port', value: `${ip}:${port}`, inline: true }

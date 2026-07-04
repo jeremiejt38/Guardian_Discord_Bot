@@ -1,32 +1,14 @@
-const { getDb } = require('../../database/db');
+const { setConfig, getConfig } = require('../../database/db');
 const { CHANNELS } = require('../../config');
 const { t } = require('../i18n');
+const { findChannelByName } = require('../utils/channels');
 
 function setGuildSetting(guildId, moduleName, key, value) {
-  const db = getDb();
-  db.prepare(
-    `INSERT INTO guild_config (guild_id, module, key, value)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(guild_id, module, key)
-     DO UPDATE SET value = excluded.value`
-  ).run(guildId, moduleName, key, JSON.stringify(value));
+  setConfig(guildId, moduleName, key, value);
 }
 
 function getGuildSetting(guildId, moduleName, key, fallback = null) {
-  const db = getDb();
-  const row = db
-    .prepare('SELECT value FROM guild_config WHERE guild_id = ? AND module = ? AND key = ?')
-    .get(guildId, moduleName, key);
-
-  if (!row) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(row.value);
-  } catch {
-    return fallback;
-  }
+  return getConfig(guildId, moduleName, key, fallback);
 }
 
 async function ensureChannelMessage(channel, content) {
@@ -40,8 +22,8 @@ async function ensureChannelMessage(channel, content) {
 }
 
 async function ensureMemberGameInterfaces(guild) {
-  const gameChannelsChannel = guild.channels.cache.find((channel) => channel.name === CHANNELS.gameChannels);
-  const gameListChannel = guild.channels.cache.find((channel) => channel.name === CHANNELS.gameList);
+  const gameChannelsChannel = findChannelByName(guild, CHANNELS.gameChannels);
+  const gameListChannel = findChannelByName(guild, CHANNELS.gameList);
 
   await ensureChannelMessage(
     gameChannelsChannel,
