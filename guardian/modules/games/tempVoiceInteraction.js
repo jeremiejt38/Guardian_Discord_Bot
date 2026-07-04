@@ -2,6 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectM
 const { getDb } = require('../../database/db');
 const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { findTextChannelByName } = require('../utils/channels');
 const { getGuildGames } = require('./gameList');
 const { createTemporaryVoice, trackTempVoice } = require('./gamesVocal');
 const { t } = require('../../locales');
@@ -71,7 +72,7 @@ function buildGameSelect(guildId, games) {
 }
 
 async function ensureTempVoicePanelForGuild(guild) {
-  const channel = guild.channels.cache.find((item) => item.name === CHANNEL_NAMES.voiceCreate && item.isTextBased());
+  const channel = findTextChannelByName(guild, CHANNEL_NAMES.voiceCreate);
   if (!channel) {
     return;
   }

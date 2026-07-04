@@ -1,22 +1,17 @@
-const { getDb } = require('../../database/db');
+const { getDb, getGrade } = require('../../database/db');
 const { GRADE_NAMES, CHANNELS } = require('../../config');
 const { t } = require('../i18n');
+const { findChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
-
-function getGradeRoleId(guildId, gradeName) {
-  const db = getDb();
-  const row = db.prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name = ?').get(guildId, gradeName);
-  return row?.role_id;
-}
 
 async function handleNewMember(member) {
   try {
-    const inviteRoleId = getGradeRoleId(member.guild.id, GRADE_NAMES.invite);
+    const inviteRoleId = getGrade(member.guild.id, GRADE_NAMES.invite);
     if (inviteRoleId) {
       await member.roles.add(inviteRoleId);
     }
 
-    const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNELS.welcome);
+    const welcomeChannel = findChannelByName(member.guild, CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
       await welcomeChannel.send(t(member.guild.id, 'members.welcome', { member: member.toString() }));
     }
