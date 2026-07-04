@@ -152,6 +152,7 @@ function initDatabase(customPath = DATABASE_PATH) {
       ip TEXT NOT NULL,
       port INTEGER NOT NULL,
       password TEXT,
+      approved INTEGER NOT NULL DEFAULT 1,
       last_status TEXT CHECK (last_status IN ('online', 'offline', 'unstable')),
       last_check TEXT
     );
@@ -175,6 +176,21 @@ function initDatabase(customPath = DATABASE_PATH) {
 
   return db;
 }
+
+// run migrations for existing DB
+function migrateDatabase() {
+  const conn = getDb();
+  const cols = conn.prepare(`PRAGMA table_info(servers_jeu)`).all();
+  const names = cols.map((c) => c.name);
+  if (!names.includes('approved')) {
+    try {
+      conn.exec('ALTER TABLE servers_jeu ADD COLUMN approved INTEGER NOT NULL DEFAULT 1');
+    } catch (e) {
+      // ignore migration errors
+    }
+  }
+}
+
 
 function getDb() {
   if (!db) {

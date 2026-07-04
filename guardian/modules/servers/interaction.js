@@ -1,5 +1,7 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType } = require('discord.js');
 const { addServer } = require('./servers');
+const { getDb } = require('../../database/db');
+const { CHANNELS } = require('../../config');
 const { t } = require('../i18n');
 
 async function handleAddServerButton(interaction) {
@@ -30,9 +32,42 @@ async function handleServerModalSubmit(interaction) {
   const port = interaction.fields.getTextInputValue('server_port');
   const pwd = interaction.fields.getTextInputValue('server_pwd');
 
-  addServer(guildId, name, game, ip, Number(port), pwd || null);
+  const db = getDb();
+  const modRoles = db
+    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
+    .all(guildId, 'moderateur', 'manager', 'owner')
+    .map((r) => r.role_id)
+    .filter(Boolean);
 
-  await interaction.reply({ content: t(guildId, 'init.serverAdded', { name }), ephemeral: true });
+  const member = interaction.member;
+  const isAutoApproved = modRoles.some((roleId) => member.roles.cache.has(roleId));
+
+  const serverId = addServer(guildId, name, game, ip, Number(port), pwd || null, interaction.user.id, isAutoApproved ? 1 : 0);
+
+  if (isAutoApproved) {
+    await interaction.reply({ content: t(guildId, 'init.serverAdded', { name }), ephemeral: true });
+    return;
+  }
+
+  // create proposal message in approve channel
+  const approveChannel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.approveGames && c.type === ChannelType.GuildText);
+  const embed = new EmbedBuilder().setTitle(`Proposition de serveur: ${name}`).addFields(
+    { name: 'Jeu', value: game, inline: true },
+    { name: 'IP:Port', value: `${ip}:${port}`, inline: true }
+  );
+  if (pwd) embed.addFields({ name: 'Mot de passe', value: pwd, inline: true });
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`servers:approve:${serverId}`).setLabel('Approve').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`servers:reject:${serverId}`).setLabel('Reject').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`servers:connect:${serverId}`).setLabel('Connect').setStyle(ButtonStyle.Secondary)
+  );
+
+  if (approveChannel) {
+    await approveChannel.send({ embeds: [embed], components: [row] });
+  }
+
+  await interaction.reply({ content: t(guildId, 'init.serverProposed', { name }), ephemeral: true });
 }
 
 module.exports = { handleAddServerButton, handleServerModalSubmit };

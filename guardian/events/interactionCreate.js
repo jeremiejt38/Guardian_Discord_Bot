@@ -9,6 +9,9 @@ const {
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
 const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
+const { getDb } = require('../database/db');
+const { decrypt } = require('../modules/crypto/secrets');
+const { CHANNELS } = require('../config');
 
 module.exports = {
   name: 'interactionCreate',
@@ -78,6 +81,62 @@ module.exports = {
 
     if (interaction.isModalSubmit && interaction.customId === 'servers:add:modal') {
       await handleServerModalSubmit(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('servers:approve:')) {
+      const parts = interaction.customId.split(':');
+      const serverId = Number(parts[2]);
+      const db = getDb();
+      db.prepare('UPDATE servers_jeu SET approved = 1 WHERE server_id = ?').run(serverId);
+
+      const row = db.prepare('SELECT name, game, ip, port, password FROM servers_jeu WHERE server_id = ?').get(serverId);
+      const channel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.serverList && c.type === 0);
+      if (channel) {
+        const embed = {
+          title: `Serveur ajouté: ${row.name}`,
+          fields: [
+            { name: 'Jeu', value: String(row.game), inline: true },
+            { name: 'IP:Port', value: `${row.ip}:${row.port}`, inline: true }
+          ]
+        };
+        if (row.password) {
+          let pwd = row.password;
+          try {
+            pwd = decrypt(row.password);
+          } catch (e) {}
+          embed.fields.push({ name: 'Mot de passe', value: String(pwd), inline: true });
+        }
+        await channel.send({ embeds: [embed] });
+      }
+
+      await interaction.update({ content: `Approved by ${interaction.user.tag}`, components: [] });
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('servers:reject:')) {
+      const parts = interaction.customId.split(':');
+      const serverId = Number(parts[2]);
+      const db = getDb();
+      db.prepare('DELETE FROM servers_jeu WHERE server_id = ?').run(serverId);
+      await interaction.update({ content: `Rejected by ${interaction.user.tag}`, components: [] });
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('servers:connect:')) {
+      const parts = interaction.customId.split(':');
+      const serverId = Number(parts[2]);
+      const db = getDb();
+      const row = db.prepare('SELECT ip, port, password FROM servers_jeu WHERE server_id = ?').get(serverId);
+      if (!row) {
+        await interaction.reply({ content: 'Server not found', ephemeral: true });
+        return;
+      }
+      let pwd = row.password;
+      try {
+        pwd = decrypt(row.password);
+      } catch (e) {}
+      await interaction.reply({ content: `Connect: ${row.ip}:${row.port}${pwd ? ` (pwd: ${pwd})` : ''}`, ephemeral: true });
       return;
     }
 
