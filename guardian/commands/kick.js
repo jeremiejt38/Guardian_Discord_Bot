@@ -1,14 +1,15 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { saveSanction } = require('../modules/moderation/moderation');
-const { DEFAULT_LANGUAGE, t, tForLanguage } = require('../modules/i18n');
+const { t, describe } = require('../modules/i18n');
+const { replyEphemeral } = require('../modules/utils/interactions');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('kick')
-    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.kick.description'))
+    .setDescription(describe('commands.kick.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
-    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.kick.memberOption')).setRequired(true))
-    .addStringOption((option) => option.setName('raison').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.kick.reasonOption')).setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(describe('commands.kick.memberOption')).setRequired(true))
+    .addStringOption((option) => option.setName('raison').setDescription(describe('commands.kick.reasonOption')).setRequired(true)),
   async execute(interaction) {
     const member = interaction.options.getMember('membre', true);
     const reason = interaction.options.getString('raison', true);
@@ -28,9 +29,9 @@ module.exports = {
       member
     });
 
-    await interaction.reply({
-      content: t(interaction.guildId, 'commands.kick.success', { member: member.toString() }),
-      ephemeral: true
-    });
+    await replyEphemeral(
+      interaction,
+      t(interaction.guildId, 'commands.kick.success', { member: member.toString() })
+    );
   }
 };

@@ -7,9 +7,10 @@ const {
   TextInputBuilder,
   TextInputStyle
 } = require('discord.js');
-const { getDb } = require('../../database/db');
+const { getDb, getGrade } = require('../../database/db');
 const { GRADE_NAMES, CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { findTextChannelByName } = require('../utils/channels');
 const { getSponsorship } = require('./parrainage');
 const logger = require('../logs/logger');
 const { t } = require('../../locales');
@@ -33,8 +34,7 @@ const ORDERED_GRADES = Object.freeze([
 ]);
 
 function getGradeRole(guildId, gradeName) {
-  const db = getDb();
-  return db.prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name = ?').get(guildId, gradeName)?.role_id;
+  return getGrade(guildId, gradeName);
 }
 
 function getMemberRecord(guildId, userId) {
@@ -136,7 +136,7 @@ function parseHoursSince(dateIso) {
 }
 
 async function postPromotionRequest(guild, user, payload) {
-  const channel = guild.channels.cache.find((item) => item.name === CHANNEL_NAMES.requests && item.isTextBased());
+  const channel = findTextChannelByName(guild, CHANNEL_NAMES.requests);
   if (!channel) {
     return null;
   }
@@ -276,7 +276,7 @@ async function disableRequestMessageById(guild, messageId, content) {
     return;
   }
 
-  const channel = guild.channels.cache.find((item) => item.name === CHANNEL_NAMES.requests && item.isTextBased());
+  const channel = findTextChannelByName(guild, CHANNEL_NAMES.requests);
   if (!channel) {
     return;
   }
@@ -353,7 +353,7 @@ async function handleDecision(interaction, action, requestId) {
     setMemberGrade(guildId, targetUserId, GRADE_NAMES.membre);
     markPromotionRequestReviewed(request.request_id, 'accepted', interaction.user.id, null);
 
-    const general = guild.channels.cache.find((item) => item.name === 'general' && item.isTextBased());
+    const general = findTextChannelByName(guild, 'general');
     if (general) {
       await general.send(t('promotion.welcomeGeneral', { user: `<@${targetUserId}>` }, { guildId }));
     }

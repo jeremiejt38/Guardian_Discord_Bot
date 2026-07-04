@@ -19,6 +19,11 @@ const {
 } = require('../i18n');
 const { markGuildInstalled } = require('./checkInstall');
 const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/gameList');
+const {
+  findCategoryByName,
+  findGuildTextChannelByName,
+  findGuildVoiceChannelByName
+} = require('../utils/channels');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
@@ -39,9 +44,7 @@ function getGradeRoleMap(guildId) {
 }
 
 async function ensureCategory(guild, name, permissionOverwrites) {
-  const existing = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildCategory && channel.name === name
-  );
+  const existing = findCategoryByName(guild, name);
 
   if (existing) {
     return existing;
@@ -55,9 +58,7 @@ async function ensureCategory(guild, name, permissionOverwrites) {
 }
 
 async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
-  const existing = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildText && channel.name === name && channel.parentId === parentId
-  );
+  const existing = findGuildTextChannelByName(guild, name, parentId);
 
   if (existing) {
     await existing.edit({
@@ -76,9 +77,7 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
 }
 
 async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
-  const existing = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildVoice && channel.name === name && channel.parentId === parentId
-  );
+  const existing = findGuildVoiceChannelByName(guild, name, parentId);
 
   if (existing) {
     await existing.edit({
@@ -524,17 +523,13 @@ function getSetupMessageContent(language) {
 }
 
 async function ensureSetupInstallPrompt(guild) {
-  const setupCategory = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildCategory && channel.name === CATEGORIES.setup
-  );
+  const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
 
   if (!setupCategory) {
     return;
   }
 
-  const setupChannel = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildText && channel.name === CHANNELS.setup && channel.parentId === setupCategory.id
-  );
+  const setupChannel = findGuildTextChannelByName(guild, CHANNELS.setup, setupCategory.id);
 
   if (!setupChannel) {
     return;

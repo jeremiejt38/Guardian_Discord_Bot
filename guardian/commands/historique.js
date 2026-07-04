@@ -9,7 +9,8 @@ const {
 const { getDb } = require('../database/db');
 const { GRADE_NAMES } = require('../config');
 const { getSanctionsHistory, getBehaviorScore } = require('../modules/moderation/moderation');
-const { DEFAULT_LANGUAGE, getGuildLanguage, t, tForLanguage } = require('../modules/i18n');
+const { getGuildLanguage, t, describe } = require('../modules/i18n');
+const { replyEphemeral } = require('../modules/utils/interactions');
 
 const PAGE_SIZE = 10;
 
@@ -93,10 +94,7 @@ function hasModeratorAccess(member) {
 
 async function renderHistorique(interaction, targetUserId, actorId, page) {
   if (interaction.user.id !== actorId) {
-    await interaction.reply({
-      content: t(interaction.guildId, 'commands.historique.forbiddenPagination'),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t(interaction.guildId, 'commands.historique.forbiddenPagination'));
     return;
   }
 
@@ -127,16 +125,13 @@ async function handleHistoriquePagination(interaction) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('historique')
-    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.historique.description'))
+    .setDescription(describe('commands.historique.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.historique.memberOption')).setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(describe('commands.historique.memberOption')).setRequired(true)),
   async execute(interaction) {
     const actorMember = await interaction.guild.members.fetch(interaction.user.id);
     if (!hasModeratorAccess(actorMember)) {
-      await interaction.reply({
-        content: t(interaction.guildId, 'commands.historique.moderatorOnly'),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t(interaction.guildId, 'commands.historique.moderatorOnly'));
       return;
     }
 
