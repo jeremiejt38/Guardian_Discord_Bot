@@ -7,6 +7,7 @@ const {
   ButtonStyle
 } = require('discord.js');
 const { getModerationRoleIds } = require('../database/db');
+const { memberHasAnyRole } = require('../modules/utils/roles');
 const { getSanctionsHistory, getBehaviorScore } = require('../modules/moderation/moderation');
 const { getGuildLanguage, t, describe } = require('../modules/i18n');
 const { replyEphemeral } = require('../modules/utils/interactions');
@@ -81,7 +82,7 @@ function hasModeratorAccess(member) {
   const modRoleIds = getModerationRoleIds(member.guild.id);
 
   if (modRoleIds.length > 0) {
-    return modRoleIds.some((roleId) => member.roles.cache.has(roleId));
+    return memberHasAnyRole(member, modRoleIds);
   }
 
   return member.permissions.has(PermissionFlagsBits.ModerateMembers);

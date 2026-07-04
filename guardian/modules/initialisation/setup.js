@@ -25,24 +25,11 @@ const {
   findGuildVoiceChannelByName
 } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
+const { getGradeMappings } = require('./gradeMapping');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
 const SETUP_LANGUAGE_SELECT_ID = 'setup:language';
-
-function getGradeRoleMap(guildId) {
-  const db = getDb();
-  const rows = db.prepare('SELECT grade_name, role_id FROM grades WHERE guild_id = ?').all(guildId);
-  const roles = {};
-
-  for (const row of rows) {
-    if (row?.grade_name && row?.role_id) {
-      roles[row.grade_name] = row.role_id;
-    }
-  }
-
-  return roles;
-}
 
 async function ensureCategory(guild, name, permissionOverwrites) {
   const existing = findCategoryByName(guild, name);
@@ -556,7 +543,7 @@ function buildSetupInstallMessagePayloadForGuild(language) {
 }
 
 async function runSetupInstallationPhases(guild, ownerId) {
-  const roleMap = getGradeRoleMap(guild.id);
+  const roleMap = getGradeMappings(guild.id);
 
   await createInformationsArea(guild, roleMap);
   await createCommunauteArea(guild, roleMap, ownerId);
