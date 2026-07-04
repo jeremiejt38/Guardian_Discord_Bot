@@ -9,65 +9,69 @@ const {
 const { getDb } = require('../database/db');
 const { GRADE_NAMES } = require('../config');
 const { getSanctionsHistory, getBehaviorScore } = require('../modules/moderation/moderation');
+const { DEFAULT_LANGUAGE, getGuildLanguage, t, tForLanguage } = require('../modules/i18n');
 
 const PAGE_SIZE = 10;
 
-function formatDate(iso) {
+function formatDate(iso, language) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
 
-  return date.toLocaleString('fr-FR');
+  return date.toLocaleString(language === 'en' ? 'en-US' : 'fr-FR');
 }
 
-function formatEntry(entry) {
+function formatEntry(guildId, entry) {
+  const language = getGuildLanguage(guildId);
   return [
-    `Type: ${entry.type}`,
-    `Raison: ${entry.reason}`,
-    `Date: ${formatDate(entry.timestamp)}`,
-    `Applique par: <@${entry.applied_by}>`,
-    `Duree: ${entry.duration || '-'}`,
-    `Auto: ${entry.auto ? 'oui' : 'non'}`
+    t(guildId, 'commands.historique.entryType', { value: entry.type }),
+    t(guildId, 'commands.historique.entryReason', { value: entry.reason }),
+    t(guildId, 'commands.historique.entryDate', { value: formatDate(entry.timestamp, language) }),
+    t(guildId, 'commands.historique.entryAppliedBy', { value: entry.applied_by }),
+    t(guildId, 'commands.historique.entryDuration', { value: entry.duration || '-' }),
+    t(guildId, 'commands.historique.entryAuto', {
+      value: entry.auto ? t(guildId, 'commands.historique.autoYes') : t(guildId, 'commands.historique.autoNo')
+    })
   ].join('\n');
 }
 
-function buildPageEmbed(member, history, page, score) {
+function buildPageEmbed(guildId, member, history, page, score) {
   const start = page * PAGE_SIZE;
   const pageEntries = history.slice(start, start + PAGE_SIZE);
   const maxPage = Math.max(Math.ceil(history.length / PAGE_SIZE) - 1, 0);
 
   const embed = new EmbedBuilder()
-    .setTitle(`Historique — ${member.tag}`)
+    .setTitle(t(guildId, 'commands.historique.title', { memberTag: member.tag }))
     .setFooter({
-      text: `Score comportemental: ${score} • Page ${page + 1}/${maxPage + 1}`
+      text: t(guildId, 'commands.historique.footer', { score, page: page + 1, maxPage: maxPage + 1 })
     });
 
   if (pageEntries.length === 0) {
-    embed.setDescription('Aucune sanction enregistree');
+    embed.setDescription(t(guildId, 'commands.historique.empty'));
     return embed;
   }
 
   embed.addFields(
     pageEntries.map((entry, index) => ({
-      name: `Sanction #${start + index + 1}`,
-      value: formatEntry(entry)
+      name: t(guildId, 'commands.historique.fieldName', { index: start + index + 1 }),
+      value: formatEntry(guildId, entry)
     }))
   );
 
   return embed;
 }
 
-function buildPaginationRow(targetUserId, actorId, page, maxPage) {
+function buildPaginationRow(guildId, targetUserId, actorId, page, maxPage) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`historique:${targetUserId}:${actorId}:${Math.max(page - 1, 0)}`)
-      .setLabel('Precedent')
+      .setLabel(t(guildId, 'commands.historique.prev'))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page <= 0),
     new ButtonBuilder()
       .setCustomId(`historique:${targetUserId}:${actorId}:${Math.min(page + 1, maxPage)}`)
-      .setLabel('Suivant')
+      .setLabel(t(guildId, 'commands.historique.next'))
       .setStyle(ButtonStyle.Primary)
       .setDisabled(page >= maxPage)
   );
@@ -90,7 +94,7 @@ function hasModeratorAccess(member) {
 async function renderHistorique(interaction, targetUserId, actorId, page) {
   if (interaction.user.id !== actorId) {
     await interaction.reply({
-      content: 'Tu ne peux pas manipuler cette pagination.',
+      content: t(interaction.guildId, 'commands.historique.forbiddenPagination'),
       ephemeral: true
     });
     return;
@@ -101,9 +105,9 @@ async function renderHistorique(interaction, targetUserId, actorId, page) {
   const score = getBehaviorScore(interaction.guildId, targetUserId);
   const maxPage = Math.max(Math.ceil(history.length / PAGE_SIZE) - 1, 0);
   const safePage = Math.min(Math.max(page, 0), maxPage);
-  const embed = buildPageEmbed(targetUser, history, safePage, score);
+  const embed = buildPageEmbed(interaction.guildId, targetUser, history, safePage, score);
   const components = history.length > PAGE_SIZE
-    ? [buildPaginationRow(targetUserId, actorId, safePage, maxPage)]
+    ? [buildPaginationRow(interaction.guildId, targetUserId, actorId, safePage, maxPage)]
     : [];
 
   if (interaction.isButton()) {
@@ -123,14 +127,14 @@ async function handleHistoriquePagination(interaction) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('historique')
-    .setDescription('Historique des sanctions d\'un membre')
+    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.historique.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) => option.setName('membre').setDescription('Membre ciblé').setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.historique.memberOption')).setRequired(true)),
   async execute(interaction) {
     const actorMember = await interaction.guild.members.fetch(interaction.user.id);
     if (!hasModeratorAccess(actorMember)) {
       await interaction.reply({
-        content: 'Commande reservee a Moderateur+.',
+        content: t(interaction.guildId, 'commands.historique.moderatorOnly'),
         ephemeral: true
       });
       return;

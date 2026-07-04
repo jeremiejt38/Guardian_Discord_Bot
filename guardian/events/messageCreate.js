@@ -1,4 +1,5 @@
 const { evaluateSpam, evaluateBlacklist } = require('../modules/moderation/autoMod');
+const { t } = require('../modules/i18n');
 
 module.exports = {
   name: 'messageCreate',
@@ -13,8 +14,8 @@ module.exports = {
     if (spamDetected || blacklistDetected) {
       await message.delete().catch(() => undefined);
       const content = spamDetected
-        ? `${message.author}, ralentis svp.`
-        : `${message.author}, ce message contient un mot interdit.`;
+        ? t(message.guild.id, 'messageCreate.slowDown', { user: message.author.toString() })
+        : t(message.guild.id, 'messageCreate.forbiddenWord', { user: message.author.toString() });
       await message.channel.send({ content }).catch(() => undefined);
     }
   }

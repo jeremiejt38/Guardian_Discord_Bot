@@ -9,6 +9,7 @@ const {
   EmbedBuilder
 } = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
+const { t } = require('../i18n');
 const logger = require('../logs/logger');
 
 function toChannelSlug(name) {
@@ -211,10 +212,10 @@ function buildGamesEmbed(guildId, userId) {
   const selectedIds = new Set(getMemberGames(guildId, userId).map((row) => row.game_id));
   const lines = games.length
     ? games.map((game) => `• ${selectedIds.has(game.game_id) ? '✅' : '⬜'} ${game.name}`).join('\n')
-    : 'Aucun jeu configure sur ce serveur.';
+    : t(guildId, 'games.noneConfigured');
 
   return new EmbedBuilder()
-    .setTitle('Guardian - Ma game list')
+    .setTitle(t(guildId, 'games.title'))
     .setDescription(lines);
 }
 
@@ -223,12 +224,12 @@ function buildGameSelectRow(guildId, userId) {
   const selectedIds = new Set(getMemberGames(guildId, userId).map((row) => String(row.game_id)));
   const menu = new StringSelectMenuBuilder()
     .setCustomId('gamelist:select')
-    .setPlaceholder('Selectionne tes jeux')
+    .setPlaceholder(t(guildId, 'games.selectPlaceholder'))
     .setMinValues(0)
     .setMaxValues(Math.max(games.length, 1));
 
   if (games.length === 0) {
-    menu.addOptions([{ label: 'Aucun jeu disponible', value: 'none' }]).setMaxValues(1);
+    menu.addOptions([{ label: t(guildId, 'games.noneAvailable'), value: 'none' }]).setMaxValues(1);
   } else {
     menu.addOptions(
       games.slice(0, 25).map((game) => ({
@@ -243,11 +244,11 @@ function buildGameSelectRow(guildId, userId) {
   return new ActionRowBuilder().addComponents(menu);
 }
 
-function buildOpenButtonRow() {
+function buildOpenButtonRow(guildId = null) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('gamelist:open')
-      .setLabel('Ouvrir ma game list')
+      .setLabel(t(guildId, 'games.openButton'))
       .setStyle(ButtonStyle.Primary)
   );
 }

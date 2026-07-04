@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "nativeName": "English"
+  },
+  "setup": {
+    "languagePlaceholder": "Choose installation language",
+    "installButton": "Run installation",
+    "welcome": "Welcome to Guardian setup.",
+    "instructions": "Choose the installation language from the menu, then click the button to run setup phases.",
+    "currentLanguage": "Current language: {{language}}.",
+    "inGuildOnly": "This action can only be used in a server.",
+    "adminOnlyLanguage": "Only the server owner or an administrator can change the installation language.",
+    "adminOnlyInstall": "Only the server owner or an administrator can rerun the installation.",
+    "installSuccess": "Guardian installation rerun successfully.",
+    "installError": "Error while rerunning installation. Check bot logs.",
+    "languageUpdated": "Installation language updated: {{language}}."
+  },
+  "interaction": {
+    "unsupported": "Unsupported interaction."
+  },
+  "messageCreate": {
+    "slowDown": "{{user}}, please slow down.",
+    "forbiddenWord": "{{user}}, this message contains a forbidden word."
+  },
+  "members": {
+    "welcome": "Welcome {{member}}! Click the request button to become a member."
+  },
+  "reports": {
+    "handled": "Report marked as handled."
+  },
+  "games": {
+    "title": "Guardian - My game list",
+    "noneConfigured": "No games configured on this server.",
+    "selectPlaceholder": "Select your games",
+    "noneAvailable": "No game available",
+    "openButton": "Open my game list"
+  },
+  "settings": {
+    "gameChannelsHint": "Guardian Interface: use the **gamelist:open** button to configure your game channels.",
+    "gameListHint": "Guardian Interface: click **gamelist:open** then select your opt-in games."
+  },
+  "init": {
+    "faq1": "Guardian FAQ: use the setup channel to initialize server modules.",
+    "faq2": "Guardian FAQ: Invite/Member/Moderator/Manager/Owner roles drive permissions.",
+    "faq3": "Guardian FAQ: for support, open a request in #demandes.",
+    "voiceCreate": "Guardian Voice: join this text channel to create your temporary voice channel.",
+    "configReady": "Guardian Configuration: channel #{{channel}} is ready and configured.",
+    "serverPlaceholder": "Guardian Placeholder: this channel is reserved for the future Pterodactyl server management bot."
+  },
+  "commands": {
+    "ban": {
+      "description": "Ban a member",
+      "memberOption": "Member to ban",
+      "reasonOption": "Reason",
+      "success": "{{memberTag}} has been banned."
+    },
+    "kick": {
+      "description": "Kick a member",
+      "memberOption": "Member to kick",
+      "reasonOption": "Reason",
+      "success": "{{member}} has been kicked."
+    },
+    "mute": {
+      "description": "Mute a member",
+      "memberOption": "Member to mute",
+      "durationOption": "Duration e.g. 1h",
+      "reasonOption": "Reason",
+      "success": "Mute recorded for {{member}}."
+    },
+    "parrainer": {
+      "description": "Sponsor an invite",
+      "inviteOption": "Invite to sponsor",
+      "success": "{{invite}} has been sponsored."
+    },
+    "warn": {
+      "description": "Warn a member",
+      "memberOption": "Member to warn",
+      "reasonOption": "Reason",
+      "success": "Warn recorded for {{member}}."
+    },
+    "historique": {
+      "description": "Show member sanctions history",
+      "memberOption": "Target member",
+      "title": "History - {{memberTag}}",
+      "empty": "No sanctions recorded",
+      "footer": "Behavior score: {{score}} | Page {{page}}/{{maxPage}}",
+      "fieldName": "Sanction #{{index}}",
+      "entryType": "Type: {{value}}",
+      "entryReason": "Reason: {{value}}",
+      "entryDate": "Date: {{value}}",
+      "entryAppliedBy": "Applied by: <@{{value}}>",
+      "entryDuration": "Duration: {{value}}",
+      "entryAuto": "Auto: {{value}}",
+      "autoYes": "yes",
+      "autoNo": "no",
+      "prev": "Previous",
+      "next": "Next",
+      "forbiddenPagination": "You cannot control this pagination.",
+      "moderatorOnly": "Command restricted to Moderator+."
+    },
+    "langue": {
+      "description": "Change bot language",
+      "optionCode": "Language code",
+      "updated": "Bot language updated: {{language}}."
+    },
+    "langues": {
+      "description": "List available languages",
+      "title": "Available languages",
+      "current": "Current language: {{language}} ({{code}}).",
+      "item": "- {{language}} ({{code}})"
+    }
+  }
+}

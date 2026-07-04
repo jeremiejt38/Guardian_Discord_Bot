@@ -1,14 +1,15 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { saveSanction } = require('../modules/moderation/moderation');
+const { DEFAULT_LANGUAGE, t, tForLanguage } = require('../modules/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('mute')
-    .setDescription('Mute un membre')
+    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.mute.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) => option.setName('membre').setDescription('Membre à mute').setRequired(true))
-    .addStringOption((option) => option.setName('duree').setDescription('Durée ex: 1h').setRequired(true))
-    .addStringOption((option) => option.setName('raison').setDescription('Raison').setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.mute.memberOption')).setRequired(true))
+    .addStringOption((option) => option.setName('duree').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.mute.durationOption')).setRequired(true))
+    .addStringOption((option) => option.setName('raison').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.mute.reasonOption')).setRequired(true)),
   async execute(interaction) {
     const member = interaction.options.getMember('membre', true);
     const reason = interaction.options.getString('raison', true);
@@ -24,6 +25,9 @@ module.exports = {
       auto: 0
     });
 
-    await interaction.reply({ content: `Mute enregistré pour ${member}.`, ephemeral: true });
+    await interaction.reply({
+      content: t(interaction.guildId, 'commands.mute.success', { member: member.toString() }),
+      ephemeral: true
+    });
   }
 };

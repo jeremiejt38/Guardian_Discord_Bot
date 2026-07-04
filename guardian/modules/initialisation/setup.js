@@ -1,10 +1,28 @@
-const { ChannelType, PermissionFlagsBits } = require('discord.js');
+const {
+  ChannelType,
+  PermissionFlagsBits,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder
+} = require('discord.js');
 const { getDb } = require('../../database/db');
 const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const {
+  getAvailableLanguages,
+  getLanguageLabel,
+  getGuildLanguage,
+  setGuildLanguage,
+  t,
+  tForLanguage
+} = require('../i18n');
 const { markGuildInstalled } = require('./checkInstall');
 const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/gameList');
 const logger = require('../logs/logger');
+
+const SETUP_INSTALL_BUTTON_ID = 'setup:install';
+const SETUP_LANGUAGE_SELECT_ID = 'setup:language';
 
 function getGradeRoleMap(guildId) {
   const db = getDb();
@@ -203,10 +221,11 @@ async function seedFaqMessages(channel) {
     return;
   }
 
+  const language = getGuildLanguage(channel.guild.id);
   const defaultMessages = [
-    'FAQ Guardian: utilise le channel setup pour initialiser les modules serveur.',
-    'FAQ Guardian: les roles Invité/Membre/Modérateur/Manager/Owner pilotent les permissions.',
-    'FAQ Guardian: pour support, ouvre une demande dans #demandes.'
+    tForLanguage(language, 'init.faq1'),
+    tForLanguage(language, 'init.faq2'),
+    tForLanguage(language, 'init.faq3')
   ];
 
   for (const message of defaultMessages) {
@@ -219,7 +238,7 @@ async function seedVoiceCreateMessage(channel) {
     return;
   }
 
-  await channel.send('Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.');
+  await channel.send(t(channel.guild.id, 'init.voiceCreate'));
 }
 
 async function seedGuardianConfigMessage(channel, options = {}) {
@@ -228,11 +247,11 @@ async function seedGuardianConfigMessage(channel, options = {}) {
   }
 
   const payload = {
-    content: `Guardian Configuration: ce salon #${channel.name} est pret et configure.`
+    content: t(channel.guild.id, 'init.configReady', { channel: channel.name })
   };
 
   if (options.withGameListButton) {
-    payload.components = [buildOpenButtonRow()];
+    payload.components = [buildOpenButtonRow(channel.guild.id)];
   }
 
   await channel.send(payload);
@@ -243,7 +262,7 @@ async function seedServerManagementPlaceholder(channel) {
     return;
   }
 
-  await channel.send('Guardian Placeholder: ce salon est reserve au futur bot Pterodactyl pour la gestion serveurs.');
+  await channel.send(t(channel.guild.id, 'init.serverPlaceholder'));
 }
 
 async function createInformationsArea(guild, roleMap) {
@@ -380,10 +399,103 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
   }
 }
 
+function buildSetupInstallButtonRow(language) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(SETUP_INSTALL_BUTTON_ID)
+      .setLabel(tForLanguage(language, 'setup.installButton'))
+      .setStyle(ButtonStyle.Primary)
+  );
+}
+
+function buildSetupLanguageSelectRow(language) {
+  const options = getAvailableLanguages().map((code) => ({
+    label: getLanguageLabel(code).slice(0, 100),
+    value: code,
+    default: code === language
+  }));
+
+  if (options.length === 0) {
+    options.push({
+      label: 'fr',
+      value: 'fr',
+      default: true
+    });
+  }
+
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(SETUP_LANGUAGE_SELECT_ID)
+      .setPlaceholder(tForLanguage(language, 'setup.languagePlaceholder'))
+      .addOptions(options)
+  );
+}
+
+function resolveSetupLanguage(guildId) {
+  return getGuildLanguage(guildId);
+}
+
+function getSetupMessageContent(language) {
+  const languageLabel = getLanguageLabel(language);
+  return [
+    tForLanguage(language, 'setup.welcome'),
+    tForLanguage(language, 'setup.instructions'),
+    tForLanguage(language, 'setup.currentLanguage', { language: languageLabel })
+  ].join(' ');
+}
+
+async function ensureSetupInstallPrompt(guild) {
+  const setupCategory = guild.channels.cache.find(
+    (channel) => channel.type === ChannelType.GuildCategory && channel.name === CATEGORIES.setup
+  );
+
+  if (!setupCategory) {
+    return;
+  }
+
+  const setupChannel = guild.channels.cache.find(
+    (channel) => channel.type === ChannelType.GuildText && channel.name === CHANNELS.setup && channel.parentId === setupCategory.id
+  );
+
+  if (!setupChannel) {
+    return;
+  }
+
+  const messages = await setupChannel.messages.fetch({ limit: 20 });
+  const hasInstallButton = messages.some((message) =>
+    message.author?.id === guild.client.user.id
+    && message.components?.some((row) => row.components?.some((component) => component.customId === SETUP_INSTALL_BUTTON_ID))
+  );
+
+  if (!hasInstallButton) {
+    const language = resolveSetupLanguage(guild.id);
+    await setupChannel.send(buildSetupInstallMessagePayloadForGuild(language));
+  }
+}
+
+function buildSetupInstallMessagePayloadForGuild(language) {
+  return {
+    content: getSetupMessageContent(language),
+    components: [buildSetupLanguageSelectRow(language), buildSetupInstallButtonRow(language)]
+  };
+}
+
+async function runSetupInstallationPhases(guild, ownerId) {
+  const roleMap = getGradeRoleMap(guild.id);
+
+  await createInformationsArea(guild, roleMap);
+  await createCommunauteArea(guild, roleMap, ownerId);
+  await createVocalArea(guild, ownerId);
+  await createModerationArea(guild, roleMap, ownerId);
+  await createConfigurationArea(guild, roleMap, ownerId);
+  await provisionGuildGameStructures(guild);
+
+  markGuildInstalled(guild.id, ownerId);
+}
+
 async function createSetupArea(guild) {
   try {
     const owner = await guild.fetchOwner();
-    const roleMap = getGradeRoleMap(guild.id);
 
     const category = await ensureCategory(guild, CATEGORIES.setup, [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -395,19 +507,65 @@ async function createSetupArea(guild) {
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
     ]);
 
-    await createInformationsArea(guild, roleMap);
-    await createCommunauteArea(guild, roleMap, owner.id);
-    await createVocalArea(guild, owner.id);
-    await createModerationArea(guild, roleMap, owner.id);
-    await createConfigurationArea(guild, roleMap, owner.id);
-    await provisionGuildGameStructures(guild);
+    await runSetupInstallationPhases(guild, owner.id);
 
-    await channel.send('Bienvenue dans Guardian setup. Le wizard complet peut être branché ici module par module.');
-    finalizeInstall(guild);
+    const language = resolveSetupLanguage(guild.id);
+    await channel.send(buildSetupInstallMessagePayloadForGuild(language));
     return { category, channel };
   } catch (error) {
     logger.error('Failed to create setup area', error);
     throw error;
+  }
+}
+
+async function handleSetupLanguageSelection(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) {
+    await interaction.reply({ content: t(interaction.guildId, 'setup.inGuildOnly'), ephemeral: true });
+    return;
+  }
+
+  const isOwner = interaction.user.id === interaction.guild.ownerId;
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+  if (!isOwner && !isAdmin) {
+    await interaction.reply({
+      content: t(interaction.guildId, 'setup.adminOnlyLanguage'),
+      ephemeral: true
+    });
+    return;
+  }
+
+  const selectedLanguage = setGuildLanguage(interaction.guild.id, interaction.values?.[0]);
+
+  await interaction.update(buildSetupInstallMessagePayloadForGuild(selectedLanguage));
+}
+
+async function handleSetupInstallButton(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) {
+    await interaction.reply({ content: t(interaction.guildId, 'setup.inGuildOnly'), ephemeral: true });
+    return;
+  }
+
+  const isOwner = interaction.user.id === interaction.guild.ownerId;
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+  if (!isOwner && !isAdmin) {
+    await interaction.reply({
+      content: t(interaction.guildId, 'setup.adminOnlyInstall'),
+      ephemeral: true
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const owner = await interaction.guild.fetchOwner();
+    await runSetupInstallationPhases(interaction.guild, owner.id);
+    await interaction.editReply(t(interaction.guildId, 'setup.installSuccess'));
+  } catch (error) {
+    logger.error('Failed setup install button execution', error);
+    await interaction.editReply(t(interaction.guildId, 'setup.installError'));
   }
 }
 
@@ -416,6 +574,11 @@ function finalizeInstall(guild) {
 }
 
 module.exports = {
+  SETUP_INSTALL_BUTTON_ID,
+  SETUP_LANGUAGE_SELECT_ID,
   createSetupArea,
-  finalizeInstall
+  ensureSetupInstallPrompt,
+  finalizeInstall,
+  handleSetupLanguageSelection,
+  handleSetupInstallButton
 };

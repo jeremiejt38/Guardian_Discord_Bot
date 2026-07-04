@@ -1,0 +1,160 @@
+const fs = require('fs');
+const path = require('path');
+const { getDb } = require('../../database/db');
+
+const LOCALES_DIR = path.resolve(__dirname, '../../locales');
+const DEFAULT_LANGUAGE = 'fr';
+
+let cache = null;
+
+function deepGet(object, dottedPath) {
+  return String(dottedPath || '')
+    .split('.')
+    .reduce((acc, key) => (acc && Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : undefined), object);
+}
+
+function interpolate(template, variables = {}) {
+  if (typeof template !== 'string') {
+    return template;
+  }
+
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, name) => {
+    const value = variables[name];
+    return value === undefined || value === null ? '' : String(value);
+  });
+}
+
+function loadLocales() {
+  const locales = {};
+
+  if (!fs.existsSync(LOCALES_DIR)) {
+    return locales;
+  }
+
+  for (const fileName of fs.readdirSync(LOCALES_DIR)) {
+    if (!fileName.endsWith('.json')) {
+      continue;
+    }
+
+    const language = path.basename(fileName, '.json');
+    const filePath = path.join(LOCALES_DIR, fileName);
+
+    try {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      locales[language] = parsed;
+    } catch {
+      // Ignore malformed locale files; they simply won't be offered.
+    }
+  }
+
+  return locales;
+}
+
+function getLocales() {
+  if (!cache) {
+    cache = loadLocales();
+  }
+
+  return cache;
+}
+
+function normalizeLanguage(language) {
+  const locales = getLocales();
+  if (language && locales[language]) {
+    return language;
+  }
+
+  if (locales[DEFAULT_LANGUAGE]) {
+    return DEFAULT_LANGUAGE;
+  }
+
+  const first = Object.keys(locales)[0];
+  return first || DEFAULT_LANGUAGE;
+}
+
+function getAvailableLanguages() {
+  return Object.keys(getLocales()).sort();
+}
+
+function getLanguageLabel(language) {
+  const locale = getLocales()[language] || {};
+  const nativeName = deepGet(locale, 'meta.nativeName');
+  return nativeName || language;
+}
+
+function getGuildLanguage(guildId) {
+  if (!guildId) {
+    return normalizeLanguage(DEFAULT_LANGUAGE);
+  }
+
+  try {
+    const db = getDb();
+    const current = db
+      .prepare('SELECT value FROM guild_config WHERE guild_id = ? AND module = ? AND key = ?')
+      .get(guildId, 'i18n', 'language');
+
+    if (current?.value) {
+      const parsed = JSON.parse(current.value);
+      return normalizeLanguage(parsed);
+    }
+
+    const legacy = db
+      .prepare('SELECT value FROM guild_config WHERE guild_id = ? AND module = ? AND key = ?')
+      .get(guildId, 'initialisation', 'language');
+
+    if (legacy?.value) {
+      const parsed = JSON.parse(legacy.value);
+      return normalizeLanguage(parsed);
+    }
+  } catch {
+    return normalizeLanguage(DEFAULT_LANGUAGE);
+  }
+
+  return normalizeLanguage(DEFAULT_LANGUAGE);
+}
+
+function setGuildLanguage(guildId, language) {
+  const db = getDb();
+  const normalized = normalizeLanguage(language);
+
+  db.prepare(
+    `INSERT INTO guild_config (guild_id, module, key, value)
+     VALUES (?, 'i18n', 'language', ?)
+     ON CONFLICT(guild_id, module, key)
+     DO UPDATE SET value = excluded.value`
+  ).run(guildId, JSON.stringify(normalized));
+
+  return normalized;
+}
+
+function tForLanguage(language, key, variables = {}) {
+  const locales = getLocales();
+  const currentLanguage = normalizeLanguage(language);
+  const fallbackLanguage = normalizeLanguage(DEFAULT_LANGUAGE);
+
+  const current = deepGet(locales[currentLanguage], key);
+  if (typeof current === 'string') {
+    return interpolate(current, variables);
+  }
+
+  const fallback = deepGet(locales[fallbackLanguage], key);
+  if (typeof fallback === 'string') {
+    return interpolate(fallback, variables);
+  }
+
+  return key;
+}
+
+function t(guildId, key, variables = {}) {
+  return tForLanguage(getGuildLanguage(guildId), key, variables);
+}
+
+module.exports = {
+  DEFAULT_LANGUAGE,
+  getAvailableLanguages,
+  getLanguageLabel,
+  getGuildLanguage,
+  setGuildLanguage,
+  t,
+  tForLanguage
+};

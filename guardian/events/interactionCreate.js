@@ -1,6 +1,13 @@
 const { markReportHandled } = require('../modules/moderation/reports');
 const { handleHistoriquePagination } = require('../commands/historique');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
+const { t } = require('../modules/i18n');
+const {
+  SETUP_INSTALL_BUTTON_ID,
+  SETUP_LANGUAGE_SELECT_ID,
+  handleSetupInstallButton,
+  handleSetupLanguageSelection
+} = require('../modules/initialisation/setup');
 
 module.exports = {
   name: 'interactionCreate',
@@ -30,13 +37,23 @@ module.exports = {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId === SETUP_INSTALL_BUTTON_ID) {
+      await handleSetupInstallButton(interaction);
+      return;
+    }
+
     if (interaction.isStringSelectMenu() && interaction.customId === 'gamelist:select') {
       await handleGameListSelection(interaction);
       return;
     }
 
+    if (interaction.isStringSelectMenu() && interaction.customId === SETUP_LANGUAGE_SELECT_ID) {
+      await handleSetupLanguageSelection(interaction);
+      return;
+    }
+
     if (interaction.isRepliable()) {
-      await interaction.reply({ content: 'Interaction non prise en charge.', ephemeral: true });
+      await interaction.reply({ content: t(interaction.guildId, 'interaction.unsupported'), ephemeral: true });
     }
   }
 };

@@ -1,5 +1,6 @@
 const { getDb } = require('../../database/db');
 const { CHANNELS } = require('../../config');
+const { t } = require('../i18n');
 
 function setGuildSetting(guildId, moduleName, key, value) {
   const db = getDb();
@@ -44,11 +45,11 @@ async function ensureMemberGameInterfaces(guild) {
 
   await ensureChannelMessage(
     gameChannelsChannel,
-    'Guardian Interface: utilise le bouton **gamelist:open** pour configurer tes channels de jeux.'
+    t(guild.id, 'settings.gameChannelsHint')
   );
   await ensureChannelMessage(
     gameListChannel,
-    'Guardian Interface: clique sur **gamelist:open** puis selectionne tes jeux opt-in.'
+    t(guild.id, 'settings.gameListHint')
   );
 }
 
