@@ -16,7 +16,8 @@
     "languageUpdated": "Langue d'installation mise a jour: {{language}}."
   },
   "interaction": {
-    "unsupported": "Interaction non prise en charge."
+    "unsupported": "Interaction non prise en charge.",
+    "error": "Une erreur est survenue lors du traitement de cette interaction. Consulte les logs du bot."
   },
   "messageCreate": {
     "slowDown": "{{user}}, ralentis svp.",

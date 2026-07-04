@@ -29,8 +29,8 @@ module.exports = {
     }
 
     startInviteExpulsionJob(client);
-    startChangelogTimer();
+    startChangelogTimer(client);
     // run server monitor every 60s for responsive server status updates
-    startServerMonitor(60 * 1000);
+    startServerMonitor(client, 60 * 1000);
   }
 };

@@ -13,8 +13,12 @@ const TOKENS_BY_ENV = Object.freeze({
 
 const DISCORD_TOKEN = TOKENS_BY_ENV[NODE_ENV];
 
-if (!DISCORD_TOKEN) {
-  throw new Error(`No Discord token configured for NODE_ENV=${NODE_ENV}`);
+function assertDiscordTokenConfigured() {
+  if (!DISCORD_TOKEN) {
+    throw new Error(`No Discord token configured for NODE_ENV=${NODE_ENV}`);
+  }
+
+  return DISCORD_TOKEN;
 }
 
 const CATEGORIES = Object.freeze({
@@ -106,6 +110,7 @@ const GRADE_NAMES = Object.freeze({
 module.exports = {
   NODE_ENV,
   DISCORD_TOKEN,
+  assertDiscordTokenConfigured,
   CLIENT_ID: process.env.CLIENT_ID,
   DATABASE_PATH: path.resolve(process.cwd(), process.env.DATABASE_PATH || './data/guardian.db'),
   CATEGORIES,

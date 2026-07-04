@@ -12,10 +12,39 @@ const { handleAddServerButton, handleServerModalSubmit } = require('../modules/s
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
+const logger = require('../modules/logs/logger');
+
+async function notifyInteractionError(interaction) {
+  if (!interaction.isRepliable()) {
+    return;
+  }
+
+  const payload = { content: t(interaction.guildId, 'interaction.error'), ephemeral: true };
+
+  try {
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp(payload);
+    } else {
+      await interaction.reply(payload);
+    }
+  } catch (error) {
+    logger.error('Failed to notify user about interaction error', error);
+  }
+}
 
 module.exports = {
   name: 'interactionCreate',
   async execute(client, interaction) {
+    try {
+      await dispatchInteraction(client, interaction);
+    } catch (error) {
+      logger.error('Failed to handle interaction', error);
+      await notifyInteractionError(interaction);
+    }
+  }
+};
+
+async function dispatchInteraction(client, interaction) {
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
@@ -101,11 +130,15 @@ module.exports = {
           ]
         };
         if (row.password) {
-          let pwd = row.password;
+          let pwd = null;
           try {
             pwd = decrypt(row.password);
-          } catch (e) {}
-          embed.fields.push({ name: 'Mot de passe', value: String(pwd), inline: true });
+          } catch (error) {
+            logger.warn(`Failed to decrypt server password for server_id=${serverId}`, error);
+          }
+          if (pwd) {
+            embed.fields.push({ name: 'Mot de passe', value: String(pwd), inline: true });
+          }
         }
         await channel.send({ embeds: [embed] });
       }
@@ -132,10 +165,12 @@ module.exports = {
         await interaction.reply({ content: 'Server not found', ephemeral: true });
         return;
       }
-      let pwd = row.password;
+      let pwd = null;
       try {
         pwd = decrypt(row.password);
-      } catch (e) {}
+      } catch (error) {
+        logger.warn(`Failed to decrypt server password for server_id=${serverId}`, error);
+      }
       await interaction.reply({ content: `Connect: ${row.ip}:${row.port}${pwd ? ` (pwd: ${pwd})` : ''}`, ephemeral: true });
       return;
     }
@@ -143,5 +178,4 @@ module.exports = {
     if (interaction.isRepliable()) {
       await interaction.reply({ content: t(interaction.guildId, 'interaction.unsupported'), ephemeral: true });
     }
-  }
-};
+}

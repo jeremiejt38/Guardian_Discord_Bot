@@ -6,8 +6,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 function startInviteExpulsionJob(client, intervalMs = DAY_MS) {
   return setInterval(async () => {
-    const db = getDb();
-    const rows = db.prepare("SELECT guild_id, user_id, join_date FROM members WHERE grade = 'invite'").all();
+    let rows;
+    try {
+      const db = getDb();
+      rows = db.prepare("SELECT guild_id, user_id, join_date FROM members WHERE grade = 'invite'").all();
+    } catch (error) {
+      logger.error('Failed to load invites for expulsion cycle', error);
+      return;
+    }
 
     for (const row of rows) {
       try {

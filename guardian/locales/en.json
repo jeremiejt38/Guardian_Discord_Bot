@@ -16,7 +16,8 @@
     "languageUpdated": "Installation language updated: {{language}}."
   },
   "interaction": {
-    "unsupported": "Unsupported interaction."
+    "unsupported": "Unsupported interaction.",
+    "error": "Something went wrong while handling this interaction. Check the bot logs."
   },
   "messageCreate": {
     "slowDown": "{{user}}, please slow down.",

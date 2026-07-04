@@ -40,13 +40,29 @@ function loadEvents() {
       continue;
     }
 
+    const handler = async (...args) => {
+      try {
+        await event.execute(client, ...args);
+      } catch (error) {
+        logger.error(`Unhandled error in "${event.name}" event handler`, error);
+      }
+    };
+
     if (event.once) {
-      client.once(event.name, (...args) => event.execute(client, ...args));
+      client.once(event.name, handler);
     } else {
-      client.on(event.name, (...args) => event.execute(client, ...args));
+      client.on(event.name, handler);
     }
   }
 }
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception', error);
+});
 
 (async () => {
   try {

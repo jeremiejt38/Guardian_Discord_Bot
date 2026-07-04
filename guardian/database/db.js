@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 const { DATABASE_PATH } = require('../config');
+const logger = require('../modules/logs/logger');
 
 let db;
 
@@ -210,8 +211,9 @@ function initDatabase(customPath = DATABASE_PATH) {
   `);
   try {
     db.exec('ALTER TABLE servers_jeu ADD COLUMN status_message_id TEXT');
-  } catch {
-    // Column already exists on upgraded databases.
+  } catch (error) {
+    // Expected when the column already exists on upgraded databases.
+    logger.debug('Skipped adding servers_jeu.status_message_id column', error);
   }
   db.prepare('INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (1, ?)').run(new Date().toISOString());
 
@@ -226,8 +228,8 @@ function migrateDatabase() {
   if (!names.includes('approved')) {
     try {
       conn.exec('ALTER TABLE servers_jeu ADD COLUMN approved INTEGER NOT NULL DEFAULT 1');
-    } catch (e) {
-      // ignore migration errors
+    } catch (error) {
+      logger.warn('Failed to add servers_jeu.approved column during migration', error);
     }
   }
 }
