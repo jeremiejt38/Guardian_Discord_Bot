@@ -296,7 +296,11 @@ async function seedVoiceCreateMessage(channel) {
     return;
   }
 
-  await channel.send(t(channel.guild.id, 'init.voiceCreate'));
+  const button = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('creer:open').setLabel(t(channel.guild.id, 'init.createChannel')).setStyle(ButtonStyle.Primary)
+  );
+
+  await channel.send({ content: t(channel.guild.id, 'init.voiceCreate'), components: [button] });
 }
 
 async function seedGuardianConfigMessage(channel, options = {}) {

@@ -33,7 +33,7 @@ module.exports = {
       }
 
       if (channel.members.size === 0) {
-        scheduleDeletion(channel, 5 * 60 * 1000);
+        scheduleDeletion(channel, 0);
       } else if (deletionTimers.has(channel.id)) {
         clearTimeout(deletionTimers.get(channel.id));
         deletionTimers.delete(channel.id);

@@ -253,6 +253,87 @@ function buildOpenButtonRow(guildId = null) {
   );
 }
 
+function buildCreateChannelSelectRow(guildId, page = 0) {
+  const games = getGuildGames(guildId);
+  const start = page * 25;
+  const slice = games.slice(start, start + 25);
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`creer:select:${page}`)
+    .setPlaceholder(t(guildId, 'games.selectPlaceholder'))
+    .setMinValues(1)
+    .setMaxValues(1);
+
+  if (slice.length === 0) {
+    menu.addOptions([{ label: t(guildId, 'games.noneAvailable'), value: 'none' }]).setMaxValues(1);
+  } else {
+    menu.addOptions(
+      slice.map((game) => ({ label: game.name.slice(0, 100), value: String(game.game_id) }))
+    );
+  }
+
+  return new ActionRowBuilder().addComponents(menu);
+}
+
+async function handleCreateOpen(interaction) {
+  const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
+  const selectRow = buildCreateChannelSelectRow(interaction.guildId, 0);
+  const nav = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('creer:next:0').setLabel('Suivant').setStyle(ButtonStyle.Secondary)
+  );
+  await interaction.reply({ embeds: [embed], components: [selectRow, nav], ephemeral: true });
+}
+
+async function handleCreateSelection(interaction) {
+  const custom = interaction.customId; // creer:select:page
+  const parts = custom.split(':');
+  const page = Number(parts[2] || 0);
+  const value = interaction.values[0];
+  if (value === 'none') {
+    await interaction.update({ content: t(interaction.guildId, 'games.noneAvailable'), components: [] });
+    return;
+  }
+
+  const gameId = Number(value);
+  const db = getDb();
+  const game = db.prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(interaction.guildId, gameId);
+  if (!game) {
+    await interaction.update({ content: t(interaction.guildId, 'games.noneAvailable'), components: [] });
+    return;
+  }
+
+  const btnRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`creer:validate:${game.game_id}`).setLabel(t(interaction.guildId, 'games.createValidate')).setStyle(ButtonStyle.Success)
+  );
+
+  await interaction.update({ content: `Créer channel vocal pour **${game.name}** ?`, components: [btnRow] });
+}
+
+async function handleCreateValidate(interaction) {
+  const parts = interaction.customId.split(':');
+  const gameId = Number(parts[2]);
+  const db = getDb();
+  const game = db.prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(interaction.guildId, gameId);
+  if (!game) {
+    await interaction.reply({ content: t(interaction.guildId, 'games.noneAvailable'), ephemeral: true });
+    return;
+  }
+
+  // create temporary voice channel with game name, append number if exists
+  const desiredName = game.name;
+  const existing = interaction.guild.channels.cache.filter((c) => c.type === ChannelType.GuildVoice && c.name.startsWith(desiredName));
+  let name = desiredName;
+  if (existing.size > 0) {
+    name = `${desiredName} ${existing.size + 1}`;
+  }
+
+  const { createTemporaryVoice, trackTempVoice } = require('../games/gamesVocal');
+  const channel = await createTemporaryVoice(interaction.guild, name);
+  trackTempVoice(channel.id, interaction.guildId, game.game_id, interaction.user.id);
+
+  await interaction.reply({ content: t(interaction.guildId, 'games.createdVoice', { name }), ephemeral: true });
+}
+
 async function handleOpenGameList(interaction) {
   const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
   const selectRow = buildGameSelectRow(interaction.guildId, interaction.user.id);
