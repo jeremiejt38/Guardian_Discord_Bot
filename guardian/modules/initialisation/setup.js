@@ -181,6 +181,64 @@ function buildConfigPermissions(guild, roleMap, ownerId, minimumGrade) {
   return permissions;
 }
 
+function buildViewThenActionPermissions(guild, roleMap, ownerId, viewMinimumGrade, actionMinimumGrade) {
+  const order = [
+    GRADE_NAMES.invite,
+    GRADE_NAMES.membre,
+    GRADE_NAMES.moderateur,
+    GRADE_NAMES.manager,
+    GRADE_NAMES.owner
+  ];
+
+  const viewIndex = Math.max(order.indexOf(viewMinimumGrade), 0);
+  const actionIndex = Math.max(order.indexOf(actionMinimumGrade), 0);
+
+  const viewRoleIds = order.slice(viewIndex).map((g) => roleMap[g]).filter(Boolean);
+  const actionRoleIds = order.slice(actionIndex).map((g) => roleMap[g]).filter(Boolean);
+
+  const permissions = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }];
+
+  // allow view for viewRoleIds
+  for (const roleId of viewRoleIds) {
+    permissions.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel] });
+  }
+
+  // allow send for actionRoleIds (also need view)
+  for (const roleId of actionRoleIds) {
+    permissions.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] });
+  }
+
+  if (viewRoleIds.length === 0 && actionRoleIds.length === 0) {
+    permissions.push({ id: ownerId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] });
+  }
+
+  return permissions;
+}
+
+function buildViewOnlyPermissions(guild, roleMap, ownerId, viewMinimumGrade) {
+  const order = [
+    GRADE_NAMES.invite,
+    GRADE_NAMES.membre,
+    GRADE_NAMES.moderateur,
+    GRADE_NAMES.manager,
+    GRADE_NAMES.owner
+  ];
+
+  const viewIndex = Math.max(order.indexOf(viewMinimumGrade), 0);
+  const viewRoleIds = order.slice(viewIndex).map((g) => roleMap[g]).filter(Boolean);
+
+  const permissions = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }];
+  for (const roleId of viewRoleIds) {
+    permissions.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel] });
+  }
+
+  if (viewRoleIds.length === 0) {
+    permissions.push({ id: ownerId, allow: [PermissionFlagsBits.ViewChannel] });
+  }
+
+  return permissions;
+}
+
 function buildRequestsPermissions(guild, roleMap) {
   const gradeRoleIds = [
     roleMap[GRADE_NAMES.invite],
@@ -350,42 +408,35 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
   const configurationCategory = await ensureCategory(guild, CATEGORIES.configuration, buildHiddenPermissions(guild, ownerId));
 
   const channels = [
-    {
-      name: CHANNELS.gameChannels,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre)
-    },
-    {
-      name: CHANNELS.gameList,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre)
-    },
-    {
-      name: CHANNELS.serverList,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur)
-    },
-    {
-      name: CHANNELS.configLogs,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
-    },
-    {
-      name: CHANNELS.guardian,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
-    },
-    {
-      name: CHANNELS.behavior,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
-    },
-    {
-      name: CHANNELS.autoModeration,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
-    },
-    {
-      name: CHANNELS.roles,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
-    },
-    {
-      name: CHANNELS.serverManagement,
-      permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner)
-    }
+    // visible to members (opt-in features)
+    { name: CHANNELS.gameChannels, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre) },
+    { name: CHANNELS.gameList, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre) },
+
+    // servers listing and management
+    { name: CHANNELS.jeuxServeur, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
+    { name: CHANNELS.serverList, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur) },
+
+    // bot & status
+    { name: CHANNELS.statutBot, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
+    { name: CHANNELS.botConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+
+    // admin configuration channels
+    { name: CHANNELS.membres, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.channelsConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.vocauxConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.jeux, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.changelogs, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.suggestions, permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.approveGames, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
+    { name: CHANNELS.annonces, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.serveursJeu, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+
+    // logs and guardian config
+    { name: CHANNELS.configLogs, permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.guardian, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+
+    // legacy management channel (future Pterodactyl control)
+    { name: CHANNELS.serverManagement, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner) }
   ];
 
   for (const item of channels) {

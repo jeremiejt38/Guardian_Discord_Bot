@@ -42,10 +42,22 @@ const CHANNELS = Object.freeze({
   moderationLogs: 'logs-mod',
   gameChannels: 'mes-channels',
   gameList: 'ma-gamelist',
-  voiceCreate: 'créer-un-channel',
+  voiceCreate: 'creer-channel',
   serverList: 'liste-serveurs',
   serverManagement: 'gestion-serveurs',
-  configLogs: 'logs-config'
+  configLogs: 'guardian-logs',
+  statutBot: 'statut-bot',
+  botConfig: 'bot',
+  jeuxServeur: 'jeux-serveur',
+  membres: 'membres',
+  channelsConfig: 'channels',
+  vocauxConfig: 'vocaux',
+  jeux: 'jeux',
+  changelogs: 'changelogs',
+  suggestions: 'suggestions',
+  annonces: 'annonces',
+  serveursJeu: 'serveurs-jeu',
+  approveGames: 'approve-games'
 });
 
 const CHANNEL_NAMES = Object.freeze({
@@ -68,7 +80,19 @@ const CHANNEL_NAMES = Object.freeze({
   voiceCreate: CHANNELS.voiceCreate,
   serverList: CHANNELS.serverList,
   serverManagement: CHANNELS.serverManagement,
-  configLogs: CHANNELS.configLogs
+  configLogs: CHANNELS.configLogs,
+  statutBot: CHANNELS.statutBot,
+  botConfig: CHANNELS.botConfig,
+  jeuxServeur: CHANNELS.jeuxServeur,
+  membres: CHANNELS.membres,
+  channelsConfig: CHANNELS.channelsConfig,
+  vocauxConfig: CHANNELS.vocauxConfig,
+  jeux: CHANNELS.jeux,
+  changelogs: CHANNELS.changelogs,
+  suggestions: CHANNELS.suggestions,
+  annonces: CHANNELS.annonces,
+  serveursJeu: CHANNELS.serveursJeu,
+  approveGames: CHANNELS.approveGames
 });
 
 const GRADE_NAMES = Object.freeze({
