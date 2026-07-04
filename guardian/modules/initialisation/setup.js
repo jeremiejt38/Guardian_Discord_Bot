@@ -323,6 +323,28 @@ async function seedServerManagementPlaceholder(channel) {
   await channel.send(t(channel.guild.id, 'init.serverPlaceholder'));
 }
 
+async function seedServeursListMessage(channel) {
+  if (channel.lastMessageId) return;
+
+  const db = getDb();
+  const rows = db.prepare('SELECT server_id, name, game, ip, port, last_status FROM servers_jeu WHERE guild_id = ?').all(channel.guild.id);
+
+  let content = '**Liste des serveurs communautaires**\n';
+  if (rows.length === 0) {
+    content += '_Aucun serveur ajouté._\n';
+  } else {
+    for (const r of rows) {
+      content += `• **${r.name}** (${r.game}) — ${r.ip}:${r.port} — Status: ${r.last_status || 'unknown'}\n`;
+    }
+  }
+
+  const addButton = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('servers:add').setLabel(t(channel.guild.id, 'init.addServer')).setStyle(ButtonStyle.Primary)
+  );
+
+  await channel.send({ content, components: [addButton] });
+}
+
 async function createInformationsArea(guild, roleMap) {
   const informationsCategory = await ensureCategory(guild, CATEGORIES.informations, [
     { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
@@ -443,6 +465,8 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     const channel = await ensureTextChannel(guild, configurationCategory.id, item.name, item.permissions);
     if (item.name === CHANNELS.serverManagement) {
       await seedServerManagementPlaceholder(channel);
+    } else if (item.name === CHANNELS.jeuxServeur) {
+      await seedServeursListMessage(channel);
     } else {
       const withGameListButton = item.name === CHANNELS.gameChannels || item.name === CHANNELS.gameList;
       await seedGuardianConfigMessage(channel, { withGameListButton });
