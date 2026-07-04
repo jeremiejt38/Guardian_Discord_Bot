@@ -1,31 +1,30 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { saveSanction } = require('../modules/moderation/moderation');
+const { DEFAULT_LANGUAGE, t, tForLanguage } = require('../modules/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('warn')
-    .setDescription('Avertir un membre')
+    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.warn.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) => option.setName('membre').setDescription('Membre à avertir').setRequired(true))
-    .addStringOption((option) => option.setName('raison').setDescription('Raison').setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.warn.memberOption')).setRequired(true))
+    .addStringOption((option) => option.setName('raison').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.warn.reasonOption')).setRequired(true)),
   async execute(interaction) {
-    const user = interaction.options.getUser('membre', true);
-    const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+    const member = interaction.options.getUser('membre', true);
     const reason = interaction.options.getString('raison', true);
 
-    await saveSanction({
+    saveSanction({
       guildId: interaction.guildId,
-      userId: user.id,
+      userId: member.id,
       type: 'warn',
       reason,
       appliedBy: interaction.user.id,
-      auto: 0,
-      guild: interaction.guild,
-      member
+      auto: 0
     });
 
-    await user.send(`Tu as reçu un avertissement: ${reason}`).catch(() => undefined);
-
-    await interaction.reply({ content: `Warn enregistré pour ${user}.`, ephemeral: true });
+    await interaction.reply({
+      content: t(interaction.guildId, 'commands.warn.success', { member: member.toString() }),
+      ephemeral: true
+    });
   }
 };

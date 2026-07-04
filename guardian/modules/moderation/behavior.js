@@ -1,97 +1,94 @@
 const { getDb } = require('../../database/db');
-const { getGuildSetting } = require('../config/settings');
+const { getGuildSetting, setGuildSetting } = require('../config/settings');
+const logger = require('../logs/logger');
 
-function ensureMemberRow(guildId, userId) {
+function incrementBehaviorScore(guildId, userId, delta = 1) {
   const db = getDb();
   db.prepare(
-    `INSERT INTO members (guild_id, user_id, grade, join_date, score_comportement)
-     VALUES (?, ?, 'invite', ?, ?)
-     ON CONFLICT(guild_id, user_id) DO NOTHING`
-  ).run(guildId, userId, new Date().toISOString(), 200);
+    `UPDATE members
+     SET score_comportement = score_comportement + ?
+     WHERE guild_id = ? AND user_id = ?`
+  ).run(delta, guildId, userId);
+
+  const row = db
+    .prepare('SELECT score_comportement FROM members WHERE guild_id = ? AND user_id = ?')
+    .get(guildId, userId);
+
+  return row?.score_comportement ?? 0;
 }
 
-function getBehaviorConfig(guildId) {
+function getBehaviorThresholds(guildId) {
+  return getGuildSetting(guildId, 'behavior', 'thresholds', []);
+}
+
+function setBehaviorThresholds(guildId, thresholds) {
+  const normalized = (thresholds || [])
+    .map((item) => ({ score: Number(item.score) || 0, sanction: String(item.sanction || 'warn') }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => a.score - b.score);
+  setGuildSetting(guildId, 'behavior', 'thresholds', normalized);
+  return normalized;
+}
+
+function upsertBehaviorThreshold(guildId, score, sanction) {
+  const thresholds = getBehaviorThresholds(guildId);
+  const safeScore = Number(score) || 0;
+  const next = thresholds.filter((item) => item.score !== safeScore);
+  next.push({ score: safeScore, sanction: String(sanction || 'warn') });
+  return setBehaviorThresholds(guildId, next);
+}
+
+function removeBehaviorThreshold(guildId, score) {
+  const safeScore = Number(score) || 0;
+  const thresholds = getBehaviorThresholds(guildId).filter((item) => item.score !== safeScore);
+  return setBehaviorThresholds(guildId, thresholds);
+}
+
+function listBehaviorScores(guildId, page = 0, pageSize = 10) {
+  const db = getDb();
+  const offset = Math.max(page, 0) * pageSize;
+  const rows = db
+    .prepare(
+      `SELECT user_id, score_comportement
+       FROM members
+       WHERE guild_id = ?
+       ORDER BY score_comportement DESC, user_id ASC
+       LIMIT ? OFFSET ?`
+    )
+    .all(guildId, pageSize, offset);
+
+  const total = db
+    .prepare('SELECT COUNT(*) as count FROM members WHERE guild_id = ?')
+    .get(guildId)?.count || 0;
+
   return {
-    enabled: Boolean(getGuildSetting(guildId, 'moderation', 'behavior_score_enabled', false)),
-    scoreMax: Math.max(50, Number(getGuildSetting(guildId, 'behavior', 'score_max', 350))),
-    scoreDefault: Math.max(0, Number(getGuildSetting(guildId, 'behavior', 'score_default', 200))),
-    scoreFloor: Math.max(0, Number(getGuildSetting(guildId, 'behavior', 'score_floor', 0))),
-    alertThreshold: Math.max(0, Number(getGuildSetting(guildId, 'behavior', 'alert_threshold', 150))),
-    restrictionThreshold: Math.max(0, Number(getGuildSetting(guildId, 'behavior', 'restriction_threshold', 100))),
-    sanctionThreshold: Math.max(0, Number(getGuildSetting(guildId, 'behavior', 'sanction_threshold', 50))),
-    banThreshold: Math.max(0, Number(getGuildSetting(guildId, 'behavior', 'ban_threshold', 20))),
-    muteDurationMinutes: Math.max(1, Number(getGuildSetting(guildId, 'behavior', 'auto_mute_minutes', 60))),
-    penalties: {
-      warn: Math.max(1, Number(getGuildSetting(guildId, 'behavior', 'penalty_warn', 10))),
-      mute: Math.max(1, Number(getGuildSetting(guildId, 'behavior', 'penalty_mute', 20))),
-      kick: Math.max(1, Number(getGuildSetting(guildId, 'behavior', 'penalty_kick', 80))),
-      ban: Math.max(1, Number(getGuildSetting(guildId, 'behavior', 'penalty_ban', 120))),
-      auto_spam: Math.max(1, Number(getGuildSetting(guildId, 'behavior', 'penalty_auto_spam', 8)))
-    }
+    rows,
+    page,
+    pageSize,
+    total
   };
 }
 
-function getCurrentBehaviorScore(guildId, userId) {
+function resetBehaviorScore(guild, userId, actorId) {
   const db = getDb();
-  const config = getBehaviorConfig(guildId);
-  ensureMemberRow(guildId, userId);
-
-  const row = db.prepare('SELECT score_comportement FROM members WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
-  let current = Number(row?.score_comportement);
-  if (!Number.isFinite(current) || current <= 0) {
-    current = config.scoreDefault;
-    db.prepare('UPDATE members SET score_comportement = ? WHERE guild_id = ? AND user_id = ?').run(current, guildId, userId);
-  }
-
-  return current;
-}
-
-function applyBehaviorPenalty(guildId, userId, penaltyPoints) {
-  const db = getDb();
-  const config = getBehaviorConfig(guildId);
-  ensureMemberRow(guildId, userId);
-
-  const previous = getCurrentBehaviorScore(guildId, userId);
-  const next = Math.max(config.scoreFloor, previous - Math.max(0, Number(penaltyPoints || 0)));
-
   db.prepare(
     `UPDATE members
-     SET score_comportement = ?
+     SET score_comportement = 0
      WHERE guild_id = ? AND user_id = ?`
-  ).run(next, guildId, userId);
+  ).run(guild.id, userId);
 
-  return { previous, next };
-}
-
-function getPenaltyForSanctionType(guildId, sanctionType) {
-  const config = getBehaviorConfig(guildId);
-  const key = String(sanctionType || '').toLowerCase();
-  return config.penalties[key] || config.penalties.warn;
-}
-
-function computeBehaviorOutcome(guildId, score) {
-  const config = getBehaviorConfig(guildId);
-
-  if (score < config.banThreshold) {
-    return { level: 'ban' };
-  }
-  if (score < config.sanctionThreshold) {
-    return { level: 'kick' };
-  }
-  if (score < config.restrictionThreshold) {
-    return { level: 'mute', durationMs: config.muteDurationMinutes * 60 * 1000 };
-  }
-  if (score < config.alertThreshold) {
-    return { level: 'alert' };
-  }
-
-  return { level: 'none' };
+  logger.logToDiscord(
+    guild,
+    `Reset score comportement: <@${userId}> par <@${actorId}>`
+  );
 }
 
 module.exports = {
-  getBehaviorConfig,
-  getCurrentBehaviorScore,
-  applyBehaviorPenalty,
-  getPenaltyForSanctionType,
-  computeBehaviorOutcome
+  incrementBehaviorScore,
+  getBehaviorThresholds,
+  setBehaviorThresholds,
+  upsertBehaviorThreshold,
+  removeBehaviorThreshold,
+  listBehaviorScores,
+  resetBehaviorScore
 };

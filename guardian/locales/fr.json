@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "nativeName": "Francais"
+  },
+  "setup": {
+    "languagePlaceholder": "Choisir la langue d'installation",
+    "installButton": "Lancer l'installation",
+    "welcome": "Bienvenue dans Guardian setup.",
+    "instructions": "Choisis la langue d'installation dans le menu puis clique sur le bouton pour lancer les phases.",
+    "currentLanguage": "Langue actuelle: {{language}}.",
+    "inGuildOnly": "Cette action doit etre utilisee dans un serveur.",
+    "adminOnlyLanguage": "Seul le proprietaire du serveur ou un administrateur peut changer la langue d'installation.",
+    "adminOnlyInstall": "Seul le proprietaire du serveur ou un administrateur peut relancer l'installation.",
+    "installSuccess": "Installation Guardian relancee avec succes.",
+    "installError": "Erreur pendant la relance de l'installation. Consulte les logs du bot.",
+    "languageUpdated": "Langue d'installation mise a jour: {{language}}."
+  },
+  "interaction": {
+    "unsupported": "Interaction non prise en charge."
+  },
+  "messageCreate": {
+    "slowDown": "{{user}}, ralentis svp.",
+    "forbiddenWord": "{{user}}, ce message contient un mot interdit."
+  },
+  "members": {
+    "welcome": "Bienvenue {{member}} ! Clique sur le bouton de demande pour devenir membre."
+  },
+  "reports": {
+    "handled": "Rapport marque comme traite."
+  },
+  "games": {
+    "title": "Guardian - Ma game list",
+    "noneConfigured": "Aucun jeu configure sur ce serveur.",
+    "selectPlaceholder": "Selectionne tes jeux",
+    "noneAvailable": "Aucun jeu disponible",
+    "openButton": "Ouvrir ma game list"
+  },
+  "settings": {
+    "gameChannelsHint": "Guardian Interface: utilise le bouton **gamelist:open** pour configurer tes channels de jeux.",
+    "gameListHint": "Guardian Interface: clique sur **gamelist:open** puis selectionne tes jeux opt-in."
+  },
+  "init": {
+    "faq1": "FAQ Guardian: utilise le channel setup pour initialiser les modules serveur.",
+    "faq2": "FAQ Guardian: les roles Invite/Membre/Moderateur/Manager/Owner pilotent les permissions.",
+    "faq3": "FAQ Guardian: pour support, ouvre une demande dans #demandes.",
+    "voiceCreate": "Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.",
+    "configReady": "Guardian Configuration: ce salon #{{channel}} est pret et configure.",
+    "serverPlaceholder": "Guardian Placeholder: ce salon est reserve au futur bot Pterodactyl pour la gestion serveurs."
+  },
+  "commands": {
+    "ban": {
+      "description": "Ban un membre",
+      "memberOption": "Membre a ban",
+      "reasonOption": "Raison",
+      "success": "{{memberTag}} a ete banni."
+    },
+    "kick": {
+      "description": "Kick un membre",
+      "memberOption": "Membre a kick",
+      "reasonOption": "Raison",
+      "success": "{{member}} a ete expulse."
+    },
+    "mute": {
+      "description": "Mute un membre",
+      "memberOption": "Membre a mute",
+      "durationOption": "Duree ex: 1h",
+      "reasonOption": "Raison",
+      "success": "Mute enregistre pour {{member}}."
+    },
+    "parrainer": {
+      "description": "Parrainer un invite",
+      "inviteOption": "Invite a parrainer",
+      "success": "{{invite}} a bien ete parraine."
+    },
+    "warn": {
+      "description": "Avertir un membre",
+      "memberOption": "Membre a avertir",
+      "reasonOption": "Raison",
+      "success": "Warn enregistre pour {{member}}."
+    },
+    "historique": {
+      "description": "Historique des sanctions d'un membre",
+      "memberOption": "Membre cible",
+      "title": "Historique - {{memberTag}}",
+      "empty": "Aucune sanction enregistree",
+      "footer": "Score comportemental: {{score}} | Page {{page}}/{{maxPage}}",
+      "fieldName": "Sanction #{{index}}",
+      "entryType": "Type: {{value}}",
+      "entryReason": "Raison: {{value}}",
+      "entryDate": "Date: {{value}}",
+      "entryAppliedBy": "Applique par: <@{{value}}>",
+      "entryDuration": "Duree: {{value}}",
+      "entryAuto": "Auto: {{value}}",
+      "autoYes": "oui",
+      "autoNo": "non",
+      "prev": "Precedent",
+      "next": "Suivant",
+      "forbiddenPagination": "Tu ne peux pas manipuler cette pagination.",
+      "moderatorOnly": "Commande reservee a Moderateur+."
+    },
+    "langue": {
+      "description": "Changer la langue du bot",
+      "optionCode": "Code langue",
+      "updated": "Langue du bot mise a jour: {{language}}."
+    },
+    "langues": {
+      "description": "Lister les langues disponibles",
+      "title": "Langues disponibles",
+      "current": "Langue active: {{language}} ({{code}}).",
+      "item": "- {{language}} ({{code}})"
+    }
+  }
+}

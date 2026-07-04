@@ -1,9 +1,63 @@
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const { DATABASE_PATH } = require('../config');
 
 let db;
+
+class StatementCompat {
+  constructor(statement) {
+    this.statement = statement;
+  }
+
+  run(...params) {
+    return this.statement.run(...params);
+  }
+
+  get(...params) {
+    return this.statement.get(...params);
+  }
+
+  all(...params) {
+    return this.statement.all(...params);
+  }
+}
+
+class DatabaseCompat {
+  constructor(filePath) {
+    this.db = new DatabaseSync(filePath);
+  }
+
+  pragma(query) {
+    this.db.exec(`PRAGMA ${query}`);
+  }
+
+  exec(sql) {
+    this.db.exec(sql);
+  }
+
+  prepare(sql) {
+    return new StatementCompat(this.db.prepare(sql));
+  }
+
+  transaction(fn) {
+    return (...args) => {
+      this.db.exec('BEGIN IMMEDIATE');
+      try {
+        const result = fn(...args);
+        this.db.exec('COMMIT');
+        return result;
+      } catch (error) {
+        this.db.exec('ROLLBACK');
+        throw error;
+      }
+    };
+  }
+
+  close() {
+    this.db.close();
+  }
+}
 
 function initDatabase(customPath = DATABASE_PATH) {
   if (db) {
@@ -15,7 +69,7 @@ function initDatabase(customPath = DATABASE_PATH) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  db = new Database(customPath);
+  db = new DatabaseCompat(customPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(`
@@ -103,6 +157,8 @@ function initDatabase(customPath = DATABASE_PATH) {
       game TEXT NOT NULL,
       ip TEXT NOT NULL,
       port INTEGER NOT NULL,
+      password TEXT,
+      approved INTEGER NOT NULL DEFAULT 1,
       last_status TEXT CHECK (last_status IN ('online', 'offline', 'unstable')),
       last_check TEXT,
       status_message_id TEXT
@@ -162,6 +218,21 @@ function initDatabase(customPath = DATABASE_PATH) {
   return db;
 }
 
+// run migrations for existing DB
+function migrateDatabase() {
+  const conn = getDb();
+  const cols = conn.prepare(`PRAGMA table_info(servers_jeu)`).all();
+  const names = cols.map((c) => c.name);
+  if (!names.includes('approved')) {
+    try {
+      conn.exec('ALTER TABLE servers_jeu ADD COLUMN approved INTEGER NOT NULL DEFAULT 1');
+    } catch (e) {
+      // ignore migration errors
+    }
+  }
+}
+
+
 function getDb() {
   if (!db) {
     throw new Error('Database is not initialized. Call initDatabase() first.');
@@ -170,7 +241,57 @@ function getDb() {
   return db;
 }
 
+function setConfig(guildId, moduleName, key, value) {
+  const conn = getDb();
+  conn.prepare(
+    `INSERT INTO guild_config (guild_id, module, key, value)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(guild_id, module, key)
+     DO UPDATE SET value = excluded.value`
+  ).run(guildId, moduleName, key, JSON.stringify(value));
+}
+
+function getConfig(guildId, moduleName, key, fallback = null) {
+  const conn = getDb();
+  const row = conn
+    .prepare('SELECT value FROM guild_config WHERE guild_id = ? AND module = ? AND key = ?')
+    .get(guildId, moduleName, key);
+
+  if (!row) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(row.value);
+  } catch {
+    return fallback;
+  }
+}
+
+function setGrade(guildId, gradeName, roleId) {
+  const conn = getDb();
+  conn.prepare(
+    `INSERT INTO grades (guild_id, grade_name, role_id)
+     VALUES (?, ?, ?)
+     ON CONFLICT(guild_id, grade_name)
+     DO UPDATE SET role_id = excluded.role_id`
+  ).run(guildId, gradeName, roleId);
+}
+
+function getGrade(guildId, gradeName) {
+  const conn = getDb();
+  const row = conn
+    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name = ?')
+    .get(guildId, gradeName);
+
+  return row?.role_id || null;
+}
+
 module.exports = {
   initDatabase,
-  getDb
+  getDb,
+  setConfig,
+  getConfig,
+  setGrade,
+  getGrade
 };

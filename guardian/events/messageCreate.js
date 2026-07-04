@@ -1,4 +1,5 @@
-const { evaluateSpam } = require('../modules/moderation/autoMod');
+const { evaluateSpam, evaluateBlacklist } = require('../modules/moderation/autoMod');
+const { t } = require('../modules/i18n');
 
 module.exports = {
   name: 'messageCreate',
@@ -7,10 +8,15 @@ module.exports = {
       return;
     }
 
-    const spamDetected = await evaluateSpam(message);
-    if (spamDetected) {
+    const spamDetected = evaluateSpam(message);
+    const blacklistDetected = evaluateBlacklist(message);
+
+    if (spamDetected || blacklistDetected) {
       await message.delete().catch(() => undefined);
-      await message.channel.send({ content: `${message.author}, ralentis svp.` }).catch(() => undefined);
+      const content = spamDetected
+        ? t(message.guild.id, 'messageCreate.slowDown', { user: message.author.toString() })
+        : t(message.guild.id, 'messageCreate.forbiddenWord', { user: message.author.toString() });
+      await message.channel.send({ content }).catch(() => undefined);
     }
   }
 };
