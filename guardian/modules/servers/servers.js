@@ -13,7 +13,7 @@ function addServer(guildId, name, game, ip, port, passwordPlain, addedBy = null,
   }
   db.prepare(
     `INSERT INTO servers_jeu (guild_id, name, game, ip, port, password, approved, last_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(guildId, name, game, ip, port, encrypted, approved, 'unknown');
+  ).run(guildId, name, game, ip, port, encrypted, approved, null);
   const res = db.prepare('SELECT last_insert_rowid() as id').get();
   return res.id;
 }
