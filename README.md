@@ -46,3 +46,7 @@ This repository includes `.lando.yml` for a dedicated Node 22 test environment.
 
 - If startup fails after dependency changes, run `lando rebuild -y`.
 - If Docker is not running, start Docker and rerun `lando start`.
+
+## Changelog
+
+- 2026-07-04 — feat(init): added interactive setup, seeds, onboarding channels, servers management and i18n support (feature/init-setup)
