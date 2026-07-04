@@ -1,6 +1,7 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
 const { getGradeMappings } = require('./gradeMapping');
+const { findCategoryByName } = require('../utils/channels');
 const logger = require('../logs/logger');
 
 const CATEGORY_NAMES = Object.freeze({
@@ -117,9 +118,7 @@ function buildOverwrites(guild, gradeMappings, policy) {
 }
 
 async function setCategoryPermissions(guild, gradeMappings, categoryName, policy) {
-  const category = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildCategory && channel.name === categoryName
-  );
+  const category = findCategoryByName(guild, categoryName);
   if (!category) {
     return;
   }

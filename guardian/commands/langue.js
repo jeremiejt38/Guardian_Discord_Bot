@@ -1,12 +1,12 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const {
-  DEFAULT_LANGUAGE,
   getAvailableLanguages,
   getLanguageLabel,
   setGuildLanguage,
   t,
-  tForLanguage
+  describe
 } = require('../modules/i18n');
+const { replyEphemeral } = require('../modules/utils/interactions');
 
 const MAX_CHOICES = 25;
 
@@ -19,12 +19,12 @@ function buildLanguageChoices() {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('langue')
-    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.langue.description'))
+    .setDescription(describe('commands.langue.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addStringOption((option) => {
       const withChoices = option
         .setName('code')
-        .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.langue.optionCode'))
+        .setDescription(describe('commands.langue.optionCode'))
         .setRequired(true);
 
       const choices = buildLanguageChoices();
@@ -39,9 +39,9 @@ module.exports = {
     const language = setGuildLanguage(interaction.guildId, selectedCode);
     const label = getLanguageLabel(language);
 
-    await interaction.reply({
-      content: t(interaction.guildId, 'commands.langue.updated', { language: label }),
-      ephemeral: true
-    });
+    await replyEphemeral(
+      interaction,
+      t(interaction.guildId, 'commands.langue.updated', { language: label })
+    );
   }
 };

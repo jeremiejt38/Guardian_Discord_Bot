@@ -1,9 +1,11 @@
 const { getDb } = require('../../database/db');
 const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { resolveTextChannel } = require('../utils/channels');
+const { createGuildRunTracker } = require('../utils/scheduling');
 const logger = require('../logs/logger');
 
-const lastRunByGuild = new Map();
+const runTracker = createGuildRunTracker();
 
 function formatChangelogMessage(gameName, item) {
   const date = item?.date ? new Date(item.date * 1000).toLocaleString('fr-FR') : 'date inconnue';
@@ -37,26 +39,10 @@ async function postIfTextChannel(channel, content) {
   }
 }
 
-async function resolveTextChannel(guild, preferredId, fallbackName, context) {
-  if (preferredId) {
-    const byId = await guild.channels.fetch(preferredId).catch(() => null);
-    if (byId?.isTextBased()) {
-      return byId;
-    }
-
+function resolveGuildTextChannel(guild, preferredId, fallbackName, context) {
+  return resolveTextChannel(guild, preferredId, fallbackName, () => {
     logger.warn(`Configured channel ID missing for ${context} in guild ${guild.id}, falling back by name`);
-  }
-
-  if (!fallbackName) {
-    return null;
-  }
-
-  return guild.channels.cache.find((channel) => channel.name === fallbackName && channel.isTextBased()) || null;
-}
-
-function shouldRunGuild(guildId, nowMs, intervalMinutes) {
-  const last = lastRunByGuild.get(guildId) || 0;
-  return nowMs - last >= intervalMinutes * 60 * 1000;
+  });
 }
 
 async function publishChangelog(client, game, item) {
@@ -70,7 +56,7 @@ async function publishChangelog(client, game, item) {
   }
 
   const message = formatChangelogMessage(game.name, item);
-  const perGameChannel = await resolveTextChannel(guild, game.channel_changelog_id, null, `game ${game.game_id}`);
+  const perGameChannel = await resolveGuildTextChannel(guild, game.channel_changelog_id, null, `game ${game.game_id}`);
 
   if (game.changelog_enabled && perGameChannel) {
     await postIfTextChannel(perGameChannel, message);
@@ -81,7 +67,7 @@ async function publishChangelog(client, game, item) {
     return;
   }
 
-  const aggregateChannel = await resolveTextChannel(
+  const aggregateChannel = await resolveGuildTextChannel(
     guild,
     getGuildSetting(game.guild_id, 'channels', 'game_updates_channel_id', null),
     CHANNEL_NAMES.gameUpdates,
@@ -114,7 +100,7 @@ async function checkSteamChangelogs(client) {
 
     for (const [guildId, games] of byGuild) {
       const intervalMinutes = Math.max(1, Number(getGuildSetting(guildId, 'changelogs', 'check_interval_minutes', 60)));
-      if (!shouldRunGuild(guildId, nowMs, intervalMinutes)) {
+      if (!runTracker.shouldRun(guildId, nowMs, intervalMinutes)) {
         continue;
       }
 
@@ -142,7 +128,7 @@ async function checkSteamChangelogs(client) {
         }
       }
 
-      lastRunByGuild.set(guildId, nowMs);
+      runTracker.markRun(guildId, nowMs);
     }
   } catch (error) {
     logger.error('Failed Steam changelog cycle', error);

@@ -1,6 +1,11 @@
 const { ChannelType } = require('discord.js');
 const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const {
+  findCategoryByName,
+  findGuildTextChannelByName,
+  findGuildVoiceChannelByName
+} = require('../utils/channels');
 const logger = require('../logs/logger');
 
 const CATEGORIES = Object.freeze({
@@ -12,9 +17,7 @@ const CATEGORIES = Object.freeze({
 });
 
 async function ensureCategory(guild, name) {
-  const existing = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildCategory && channel.name === name
-  );
+  const existing = findCategoryByName(guild, name);
   if (existing) {
     return existing;
   }
@@ -26,9 +29,7 @@ async function ensureCategory(guild, name) {
 }
 
 async function ensureTextChannel(guild, name, categoryId) {
-  const existing = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildText && channel.name === name && channel.parentId === categoryId
-  );
+  const existing = findGuildTextChannelByName(guild, name, categoryId);
   if (existing) {
     return existing;
   }
@@ -41,9 +42,7 @@ async function ensureTextChannel(guild, name, categoryId) {
 }
 
 async function ensureVoiceChannel(guild, name, categoryId) {
-  const existing = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildVoice && channel.name === name && channel.parentId === categoryId
-  );
+  const existing = findGuildVoiceChannelByName(guild, name, categoryId);
   if (existing) {
     return existing;
   }

@@ -1,4 +1,5 @@
 const { CHANNELS } = require('../../config');
+const { findTextChannelByName } = require('../utils/channels');
 
 const LEVELS = Object.freeze({
   debug: 10,
@@ -59,7 +60,7 @@ async function logToDiscord(guild, content) {
   }
 
   const channelName = CHANNELS.moderationLogs;
-  const channel = guild.channels.cache.find((item) => item.name === channelName && item.isTextBased?.());
+  const channel = findTextChannelByName(guild, channelName);
 
   if (!channel) {
     write('warn', 'Discord log channel not found', { guildId: guild.id, channelName });

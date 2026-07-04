@@ -1,14 +1,15 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { saveSanction } = require('../modules/moderation/moderation');
-const { DEFAULT_LANGUAGE, t, tForLanguage } = require('../modules/i18n');
+const { t, describe } = require('../modules/i18n');
+const { replyEphemeral } = require('../modules/utils/interactions');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('warn')
-    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.warn.description'))
+    .setDescription(describe('commands.warn.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.warn.memberOption')).setRequired(true))
-    .addStringOption((option) => option.setName('raison').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.warn.reasonOption')).setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(describe('commands.warn.memberOption')).setRequired(true))
+    .addStringOption((option) => option.setName('raison').setDescription(describe('commands.warn.reasonOption')).setRequired(true)),
   async execute(interaction) {
     const member = interaction.options.getUser('membre', true);
     const reason = interaction.options.getString('raison', true);
@@ -22,9 +23,9 @@ module.exports = {
       auto: 0
     });
 
-    await interaction.reply({
-      content: t(interaction.guildId, 'commands.warn.success', { member: member.toString() }),
-      ephemeral: true
-    });
+    await replyEphemeral(
+      interaction,
+      t(interaction.guildId, 'commands.warn.success', { member: member.toString() })
+    );
   }
 };

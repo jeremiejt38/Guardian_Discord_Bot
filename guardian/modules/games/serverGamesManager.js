@@ -12,6 +12,7 @@ const {
 const { getDb } = require('../../database/db');
 const { GRADE_NAMES } = require('../../config');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
+const { findTextChannelByName } = require('../utils/channels');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
@@ -124,7 +125,7 @@ function deleteGame(guildId, gameId) {
 }
 
 async function ensureServerGamesPanelForGuild(guild) {
-  const channel = guild.channels.cache.find((item) => item.name === 'jeux-serveur' && item.isTextBased());
+  const channel = findTextChannelByName(guild, 'jeux-serveur');
   if (!channel) {
     return;
   }

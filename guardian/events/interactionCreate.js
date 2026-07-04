@@ -12,6 +12,7 @@ const { handleAddServerButton, handleServerModalSubmit } = require('../modules/s
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
+const { findGuildTextChannelByName } = require('../modules/utils/channels');
 
 module.exports = {
   name: 'interactionCreate',
@@ -91,7 +92,7 @@ module.exports = {
       db.prepare('UPDATE servers_jeu SET approved = 1 WHERE server_id = ?').run(serverId);
 
       const row = db.prepare('SELECT name, game, ip, port, password FROM servers_jeu WHERE server_id = ?').get(serverId);
-      const channel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.serverList && c.type === 0);
+      const channel = findGuildTextChannelByName(interaction.guild, CHANNELS.serverList);
       if (channel) {
         const embed = {
           title: `Serveur ajouté: ${row.name}`,
