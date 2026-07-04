@@ -11,6 +11,7 @@ const { getDb, getGrade } = require('../../database/db');
 const { GRADE_NAMES, CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const { findTextChannelByName } = require('../utils/channels');
+const { replyEphemeral } = require('../utils/interactions');
 const { getSponsorship } = require('./parrainage');
 const logger = require('../logs/logger');
 const { t } = require('../../locales');
@@ -177,39 +178,27 @@ async function processPromotionRequest(interaction, bio = null) {
   const memberRecord = getMemberRecord(guildId, userId);
 
   if (!memberRecord || memberRecord.grade !== GRADE_NAMES.invite) {
-    await interaction.reply({
-      content: t('promotion.notInvite', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.notInvite', {}, { guildId }));
     return true;
   }
 
   const minDelayHours = Number(getGuildSetting(guildId, 'members', 'promotion_delay_hours', 48));
   const joinedHours = parseHoursSince(memberRecord.join_date);
   if (joinedHours < minDelayHours) {
-    await interaction.reply({
-      content: t('promotion.delayNotReached', { remaining: minDelayHours - joinedHours }, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.delayNotReached', { remaining: minDelayHours - joinedHours }, { guildId }));
     return true;
   }
 
   const sponsorshipRequired = Boolean(getGuildSetting(guildId, 'members', 'sponsorship_required', false));
   const sponsorship = getSponsorship(guildId, userId);
   if (sponsorshipRequired && !sponsorship) {
-    await interaction.reply({
-      content: t('promotion.sponsorshipRequired', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.sponsorshipRequired', {}, { guildId }));
     return true;
   }
 
   const pending = getPendingPromotionRequestForUser(guildId, userId);
   if (pending) {
-    await interaction.reply({
-      content: t('promotion.pendingExists', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.pendingExists', {}, { guildId }));
     return true;
   }
 
@@ -224,10 +213,7 @@ async function processPromotionRequest(interaction, bio = null) {
 
   if (!requestMessage) {
     deletePromotionRequest(request.request_id);
-    await interaction.reply({
-      content: t('promotion.requestsChannelMissing', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.requestsChannelMissing', {}, { guildId }));
     return true;
   }
 
@@ -237,10 +223,7 @@ async function processPromotionRequest(interaction, bio = null) {
     setMemberGrade(guildId, userId, GRADE_NAMES.invite, bio);
   }
 
-  await interaction.reply({
-    content: t('promotion.requestSubmitted', {}, { guildId }),
-    ephemeral: true
-  });
+  await replyEphemeral(interaction, t('promotion.requestSubmitted', {}, { guildId }));
 
   return true;
 }
@@ -302,27 +285,18 @@ async function handleDecision(interaction, action, requestId) {
   const requiredGrade = getGuildSetting(guildId, 'members', 'promotion_review_grade', GRADE_NAMES.moderateur);
 
   if (!hasRequiredReviewerGrade(interaction.member, guildId, requiredGrade)) {
-    await interaction.reply({
-      content: t('promotion.reviewerForbidden', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.reviewerForbidden', {}, { guildId }));
     return true;
   }
 
   const request = getPromotionRequestById(requestId);
   if (!request || request.guild_id !== guildId) {
-    await interaction.reply({
-      content: t('promotion.requestNotFound', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.requestNotFound', {}, { guildId }));
     return true;
   }
 
   if (request.status !== 'pending') {
-    await interaction.reply({
-      content: t('promotion.requestAlreadyHandled', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.requestAlreadyHandled', {}, { guildId }));
     return true;
   }
 
@@ -332,10 +306,7 @@ async function handleDecision(interaction, action, requestId) {
     const guild = interaction.guild;
     const member = await guild.members.fetch(targetUserId).catch(() => null);
     if (!member) {
-      await interaction.reply({
-        content: t('promotion.targetMissing', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('promotion.targetMissing', {}, { guildId }));
       return true;
     }
 
@@ -458,18 +429,12 @@ async function handlePromotionInteraction(interaction) {
     }
     const request = getPromotionRequestById(requestId);
     if (!request || request.guild_id !== guildId) {
-      await interaction.reply({
-        content: t('promotion.requestNotFound', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('promotion.requestNotFound', {}, { guildId }));
       return true;
     }
 
     if (request.status !== 'pending') {
-      await interaction.reply({
-        content: t('promotion.requestAlreadyHandled', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('promotion.requestAlreadyHandled', {}, { guildId }));
       return true;
     }
 
@@ -492,10 +457,7 @@ async function handlePromotionInteraction(interaction) {
       t('promotion.rejectedPublic', { user: `<@${targetUserId}>` }, { guildId })
     );
 
-    await interaction.reply({
-      content: t('promotion.rejectedPublic', { user: `<@${targetUserId}>` }, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.rejectedPublic', { user: `<@${targetUserId}>` }, { guildId }));
     return true;
   }
 
@@ -507,10 +469,7 @@ async function handlePromotionInteraction(interaction) {
 
     const request = getPromotionRequestById(requestId);
     if (!request || request.guild_id !== guildId) {
-      await interaction.reply({
-        content: t('promotion.requestNotFound', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('promotion.requestNotFound', {}, { guildId }));
       return true;
     }
 
@@ -522,10 +481,7 @@ async function handlePromotionInteraction(interaction) {
       await member.send(message).catch(() => undefined);
     }
 
-    await interaction.reply({
-      content: t('promotion.replySent', { user: `<@${targetUserId}>` }, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('promotion.replySent', { user: `<@${targetUserId}>` }, { guildId }));
     return true;
   }
 

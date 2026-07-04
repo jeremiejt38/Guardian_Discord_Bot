@@ -6,8 +6,8 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const { getDb } = require('../database/db');
-const { GRADE_NAMES } = require('../config');
+const { getModerationRoleIds } = require('../database/db');
+const { memberHasAnyRole } = require('../modules/utils/roles');
 const { getSanctionsHistory, getBehaviorScore } = require('../modules/moderation/moderation');
 const { getGuildLanguage, t, describe } = require('../modules/i18n');
 const { replyEphemeral } = require('../modules/utils/interactions');
@@ -79,14 +79,10 @@ function buildPaginationRow(guildId, targetUserId, actorId, page, maxPage) {
 }
 
 function hasModeratorAccess(member) {
-  const db = getDb();
-  const rows = db
-    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
-    .all(member.guild.id, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner);
-  const modRoleIds = rows.map((row) => row.role_id).filter(Boolean);
+  const modRoleIds = getModerationRoleIds(member.guild.id);
 
   if (modRoleIds.length > 0) {
-    return modRoleIds.some((roleId) => member.roles.cache.has(roleId));
+    return memberHasAnyRole(member, modRoleIds);
   }
 
   return member.permissions.has(PermissionFlagsBits.ModerateMembers);

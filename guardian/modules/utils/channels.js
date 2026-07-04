@@ -38,6 +38,15 @@ function findGuildVoiceChannelByName(guild, name, parentId) {
   ) ?? null;
 }
 
+function findGuildForumChannelByName(guild, name, parentId) {
+  return getChannelCache(guild)?.find(
+    (channel) =>
+      channel.type === ChannelType.GuildForum &&
+      channel.name === name &&
+      (parentId === undefined || channel.parentId === parentId)
+  ) ?? null;
+}
+
 async function resolveTextChannel(guild, preferredId, fallbackName, onFallback) {
   if (preferredId) {
     const byId = await guild.channels.fetch(preferredId).catch(() => null);
@@ -63,5 +72,6 @@ module.exports = {
   findCategoryByName,
   findGuildTextChannelByName,
   findGuildVoiceChannelByName,
+  findGuildForumChannelByName,
   resolveTextChannel
 };

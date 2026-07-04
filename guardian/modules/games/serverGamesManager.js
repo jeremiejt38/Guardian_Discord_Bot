@@ -13,6 +13,8 @@ const { getDb } = require('../../database/db');
 const { GRADE_NAMES } = require('../../config');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { findTextChannelByName } = require('../utils/channels');
+const { replyEphemeral } = require('../utils/interactions');
+const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
@@ -64,7 +66,7 @@ function canManageServerGames(member, guildId) {
     return false;
   }
 
-  return member.roles.cache.has(managerRole) || member.roles.cache.has(ownerRole);
+  return memberHasAnyRole(member, [managerRole, ownerRole]);
 }
 
 function getGames(guildId) {
@@ -289,10 +291,7 @@ async function handleServerGamesInteraction(interaction) {
 
   if (interaction.isButton() && interaction.customId === IDS.addButton) {
     if (!canManageServerGames(interaction.member, interaction.guildId)) {
-      await interaction.reply({
-        content: t('serverGames.forbidden', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.forbidden', {}, { guildId: interaction.guildId }));
       return true;
     }
 
@@ -341,19 +340,13 @@ async function handleServerGamesInteraction(interaction) {
 
   if (interaction.isButton() && interaction.customId === IDS.removeButton) {
     if (!canManageServerGames(interaction.member, interaction.guildId)) {
-      await interaction.reply({
-        content: t('serverGames.forbidden', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.forbidden', {}, { guildId: interaction.guildId }));
       return true;
     }
 
     const games = getGames(interaction.guildId);
     if (!games.length) {
-      await interaction.reply({
-        content: t('serverGames.noGames', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.noGames', {}, { guildId: interaction.guildId }));
       return true;
     }
 
@@ -367,10 +360,7 @@ async function handleServerGamesInteraction(interaction) {
 
   if (interaction.isModalSubmit() && interaction.customId === IDS.addModal) {
     if (!canManageServerGames(interaction.member, interaction.guildId)) {
-      await interaction.reply({
-        content: t('serverGames.forbidden', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.forbidden', {}, { guildId: interaction.guildId }));
       return true;
     }
 
@@ -381,10 +371,7 @@ async function handleServerGamesInteraction(interaction) {
 
     const existing = getGames(interaction.guildId).find((game) => game.name.toLowerCase() === name.toLowerCase());
     if (existing) {
-      await interaction.reply({
-        content: t('serverGames.alreadyExists', { name }, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.alreadyExists', { name }, { guildId: interaction.guildId }));
       return true;
     }
 
@@ -403,16 +390,10 @@ async function handleServerGamesInteraction(interaction) {
         changelogEnabled
       });
 
-      await interaction.reply({
-        content: t('serverGames.created', { name }, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.created', { name }, { guildId: interaction.guildId }));
     } catch (error) {
       logger.error('Failed to create server game', error);
-      await interaction.reply({
-        content: t('serverGames.creationFailed', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.creationFailed', {}, { guildId: interaction.guildId }));
     }
 
     return true;
@@ -420,10 +401,7 @@ async function handleServerGamesInteraction(interaction) {
 
   if (interaction.isStringSelectMenu() && interaction.customId === IDS.removeSelect) {
     if (!canManageServerGames(interaction.member, interaction.guildId)) {
-      await interaction.reply({
-        content: t('serverGames.forbidden', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('serverGames.forbidden', {}, { guildId: interaction.guildId }));
       return true;
     }
 

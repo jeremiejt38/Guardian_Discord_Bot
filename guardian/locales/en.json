@@ -13,7 +13,9 @@
     "adminOnlyInstall": "Only the server owner or an administrator can rerun the installation.",
     "installSuccess": "Guardian installation rerun successfully.",
     "installError": "Error while rerunning installation. Check bot logs.",
-    "languageUpdated": "Installation language updated: {{language}}."
+    "languageUpdated": "Installation language updated: {{language}}.",
+    "startButton": "Start configuration",
+    "summary": "Guardian setup complete for **{{guild}}**. Guests can be promoted to members after {{delay}}h. Check #regles and #faq to get started."
   },
   "interaction": {
     "unsupported": "Unsupported interaction.",
@@ -24,7 +26,7 @@
     "forbiddenWord": "{{user}}, this message contains a forbidden word."
   },
   "members": {
-    "welcome": "Welcome {{member}}! Click the request button to become a member."
+    "welcome": "Welcome {{member}} to **{{guild}}**! Click the request button to become a member. You can be promoted after {{delay}}h."
   },
   "reports": {
     "handled": "Report marked as handled."
@@ -46,7 +48,13 @@
     "faq3": "Guardian FAQ: for support, open a request in #demandes.",
     "voiceCreate": "Guardian Voice: join this text channel to create your temporary voice channel.",
     "configReady": "Guardian Configuration: channel #{{channel}} is ready and configured.",
-    "serverPlaceholder": "Guardian Placeholder: this channel is reserved for the future Pterodactyl server management bot."
+    "serverPlaceholder": "Guardian Placeholder: this channel is reserved for the future Pterodactyl server management bot.",
+    "faqPostTitle": "FAQ #{{index}}",
+    "welcomeInfo": "Welcome to the server! Read #regles, check the #faq and open a request in #demandes to become a member.",
+    "rules": "**Server rules**\n1. Stay courteous and respectful.\n2. No spam or forbidden content.\n3. Follow the guidance of Moderators and Managers.",
+    "announcements": "**Announcements**\nOfficial server announcements will be posted here.",
+    "suggestionsPostTitle": "Suggestions",
+    "suggestionsIntro": "Share your ideas to improve the server by creating a new post."
   },
   "commands": {
     "ban": {

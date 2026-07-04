@@ -29,6 +29,7 @@ const CATEGORIES = Object.freeze({
 const CHANNELS = Object.freeze({
   setup: 'setup',
   welcome: 'bienvenue',
+  rules: 'regles',
   faq: 'faq',
   requests: 'demandes',
   general: 'general',
@@ -64,6 +65,7 @@ const CHANNEL_NAMES = Object.freeze({
   setupCategory: CATEGORIES.setup,
   setupChannel: CHANNELS.setup,
   welcome: CHANNELS.welcome,
+  rules: CHANNELS.rules,
   faq: CHANNELS.faq,
   requests: CHANNELS.requests,
   general: CHANNELS.general,
