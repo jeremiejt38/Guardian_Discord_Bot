@@ -81,12 +81,15 @@ guardian/data/*.db-wal
 .lando.base.yml
 .lando/
 
+# Local GitHub Copilot agent metadata
+.github/agents/
+.github/copilot-instructions.md
+
 # VS Code and OS artifacts
 .DS_Store
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 
