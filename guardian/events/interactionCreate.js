@@ -8,6 +8,7 @@ const {
   handleSetupInstallButton,
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
+const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
 
 module.exports = {
   name: 'interactionCreate',
@@ -49,6 +50,16 @@ module.exports = {
 
     if (interaction.isStringSelectMenu() && interaction.customId === SETUP_LANGUAGE_SELECT_ID) {
       await handleSetupLanguageSelection(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === 'servers:add') {
+      await handleAddServerButton(interaction);
+      return;
+    }
+
+    if (interaction.isModalSubmit && interaction.customId === 'servers:add:modal') {
+      await handleServerModalSubmit(interaction);
       return;
     }
 

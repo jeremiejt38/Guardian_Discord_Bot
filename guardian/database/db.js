@@ -151,6 +151,7 @@ function initDatabase(customPath = DATABASE_PATH) {
       game TEXT NOT NULL,
       ip TEXT NOT NULL,
       port INTEGER NOT NULL,
+      password TEXT,
       last_status TEXT CHECK (last_status IN ('online', 'offline', 'unstable')),
       last_check TEXT
     );
