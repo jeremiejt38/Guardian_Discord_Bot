@@ -24,6 +24,7 @@ const {
   findGuildTextChannelByName,
   findGuildVoiceChannelByName
 } = require('../utils/channels');
+const { replyEphemeral } = require('../utils/interactions');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
@@ -594,7 +595,7 @@ async function createSetupArea(guild) {
 
 async function handleSetupLanguageSelection(interaction) {
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply({ content: t(interaction.guildId, 'setup.inGuildOnly'), ephemeral: true });
+    await replyEphemeral(interaction, t(interaction.guildId, 'setup.inGuildOnly'));
     return;
   }
 
@@ -602,10 +603,7 @@ async function handleSetupLanguageSelection(interaction) {
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
 
   if (!isOwner && !isAdmin) {
-    await interaction.reply({
-      content: t(interaction.guildId, 'setup.adminOnlyLanguage'),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t(interaction.guildId, 'setup.adminOnlyLanguage'));
     return;
   }
 
@@ -616,7 +614,7 @@ async function handleSetupLanguageSelection(interaction) {
 
 async function handleSetupInstallButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply({ content: t(interaction.guildId, 'setup.inGuildOnly'), ephemeral: true });
+    await replyEphemeral(interaction, t(interaction.guildId, 'setup.inGuildOnly'));
     return;
   }
 
@@ -624,10 +622,7 @@ async function handleSetupInstallButton(interaction) {
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
 
   if (!isOwner && !isAdmin) {
-    await interaction.reply({
-      content: t(interaction.guildId, 'setup.adminOnlyInstall'),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t(interaction.guildId, 'setup.adminOnlyInstall'));
     return;
   }
 

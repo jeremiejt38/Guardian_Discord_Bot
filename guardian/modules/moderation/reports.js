@@ -1,7 +1,8 @@
 const { t } = require('../i18n');
+const { replyEphemeral } = require('../utils/interactions');
 
 async function markReportHandled(interaction) {
-  await interaction.reply({ content: t(interaction.guildId, 'reports.handled'), ephemeral: true });
+  await replyEphemeral(interaction, t(interaction.guildId, 'reports.handled'));
 }
 
 module.exports = {

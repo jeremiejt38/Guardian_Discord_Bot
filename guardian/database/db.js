@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
-const { DATABASE_PATH } = require('../config');
+const { DATABASE_PATH, GRADE_NAMES } = require('../config');
 const logger = require('../modules/logs/logger');
 
 let db;
@@ -289,11 +289,21 @@ function getGrade(guildId, gradeName) {
   return row?.role_id || null;
 }
 
+function getModerationRoleIds(guildId) {
+  const conn = getDb();
+  const rows = conn
+    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
+    .all(guildId, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner);
+
+  return rows.map((row) => row.role_id).filter(Boolean);
+}
+
 module.exports = {
   initDatabase,
   getDb,
   setConfig,
   getConfig,
   setGrade,
-  getGrade
+  getGrade,
+  getModerationRoleIds
 };
