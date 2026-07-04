@@ -1,6 +1,7 @@
 const { getDb, getGrade } = require('../../database/db');
 const { GRADE_NAMES, CHANNELS } = require('../../config');
 const { t } = require('../i18n');
+const { getGuildSetting } = require('../config/settings');
 const { findChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
 
@@ -13,7 +14,14 @@ async function handleNewMember(member) {
 
     const welcomeChannel = findChannelByName(member.guild, CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
-      await welcomeChannel.send(t(member.guild.id, 'members.welcome', { member: member.toString() }));
+      const delayHours = Number(getGuildSetting(member.guild.id, 'members', 'promotion_delay_hours', 48));
+      await welcomeChannel.send(
+        t(member.guild.id, 'members.welcome', {
+          member: member.toString(),
+          guild: member.guild.name,
+          delay: delayHours
+        })
+      );
     }
 
     const db = getDb();

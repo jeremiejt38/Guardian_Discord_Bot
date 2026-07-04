@@ -13,13 +13,13 @@ async function seedGuildMessages(guild) {
     }
 
     // Game updates / changelogs
-    const gameUpdates = findGuildTextChannelByName(guild, CHANNEL_NAMES.gameUpdates || 'game-updates');
+    const gameUpdates = findGuildTextChannelByName(guild, CHANNEL_NAMES.changelogs);
     if (gameUpdates && !gameUpdates.lastMessageId) {
       await gameUpdates.send(t('setup.gameUpdatesPlaceholder', {}, { guildId: guild.id }) || '🎮 MISES À JOUR DES JEUX\nCe channel affichera les changelogs des jeux suivis.');
     }
 
     // Suggestions forum placeholder
-    const suggestions = findGuildTextChannelByName(guild, 'suggestions');
+    const suggestions = findGuildTextChannelByName(guild, CHANNEL_NAMES.suggestions);
     if (suggestions && !suggestions.lastMessageId) {
       await suggestions.send(t('setup.suggestionsPlaceholder', {}, { guildId: guild.id }) || '💡 SUGGESTIONS & IDÉES\nProposez vos idées ici en créant un nouveau post !');
     }
@@ -32,7 +32,7 @@ async function seedGuildMessages(guild) {
 
     // Voice create seed button is handled by setup.createSetupArea when needed
     // Ensure creer-channel has a button to open the Create-Channel flow
-    const voiceCreate = findGuildTextChannelByName(guild, CHANNEL_NAMES.voiceCreate || 'creer-channel');
+    const voiceCreate = findGuildTextChannelByName(guild, CHANNEL_NAMES.voiceCreate);
     if (voiceCreate && !voiceCreate.lastMessageId) {
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('creer:open').setLabel(t('tempVoice.createButton', {}, { guildId: guild.id }) || 'Créer un vocal').setStyle(ButtonStyle.Primary)
