@@ -16,7 +16,8 @@
     "languageUpdated": "Langue d'installation mise a jour: {{language}}."
   },
   "interaction": {
-    "unsupported": "Interaction non prise en charge."
+    "unsupported": "Interaction non prise en charge.",
+    "forbidden": "Tu n'as pas la permission d'effectuer cette action."
   },
   "messageCreate": {
     "slowDown": "{{user}}, ralentis svp.",

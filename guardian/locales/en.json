@@ -16,7 +16,8 @@
     "languageUpdated": "Installation language updated: {{language}}."
   },
   "interaction": {
-    "unsupported": "Unsupported interaction."
+    "unsupported": "Unsupported interaction.",
+    "forbidden": "You do not have permission to perform this action."
   },
   "messageCreate": {
     "slowDown": "{{user}}, please slow down.",
