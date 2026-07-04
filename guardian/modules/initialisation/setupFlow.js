@@ -20,6 +20,7 @@ const {
   updateSetupGame
 } = require('./setupGames');
 const { t } = require('../../locales');
+const logger = require('../logs/logger');
 
 const CUSTOM_IDS = Object.freeze({
   start: 'setup:start',
@@ -870,9 +871,16 @@ async function handleSetupInteraction(interaction) {
       return true;
     }
 
-    const { finalizeInstall } = require('./setup');
-    await finalizeInstall(interaction.guild);
-    await replyEphemeral(interaction, t('setup.finalized', {}, { guildId }));
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      const { completeGuildSetup } = require('./setup');
+      await completeGuildSetup(interaction.guild);
+      await interaction.editReply(t('setup.finalized', {}, { guildId }));
+    } catch (error) {
+      logger.error('Failed to complete guild setup', error);
+      await interaction.editReply(t('setup.validationGenericError', {}, { guildId }));
+    }
     return true;
   }
 

@@ -8,6 +8,7 @@ const {
   handleSetupInstallButton,
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
+const { handleSetupInteraction } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
@@ -55,6 +56,18 @@ module.exports = {
     if (interaction.isStringSelectMenu() && interaction.customId === SETUP_LANGUAGE_SELECT_ID) {
       await handleSetupLanguageSelection(interaction);
       return;
+    }
+
+    if (
+      typeof interaction.customId === 'string'
+      && interaction.customId.startsWith('setup:')
+      && interaction.customId !== SETUP_INSTALL_BUTTON_ID
+      && interaction.customId !== SETUP_LANGUAGE_SELECT_ID
+    ) {
+      const handled = await handleSetupInteraction(interaction);
+      if (handled) {
+        return;
+      }
     }
 
     if (interaction.isButton() && interaction.customId === 'servers:add') {

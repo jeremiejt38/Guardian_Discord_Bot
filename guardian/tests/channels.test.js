@@ -8,6 +8,7 @@ const {
   findCategoryByName,
   findGuildTextChannelByName,
   findGuildVoiceChannelByName,
+  findGuildForumChannelByName,
   resolveTextChannel
 } = require('../modules/utils/channels');
 
@@ -48,6 +49,18 @@ test('findCategory / findGuildText / findGuildVoice filter by type (and parent)'
 
   assert.equal(findGuildVoiceChannelByName(guild, 'talk', 'cat1'), voice);
   assert.equal(findGuildVoiceChannelByName(guild, 'talk', 'cat2'), null);
+});
+
+test('findGuildForumChannelByName filters by forum type and parent', () => {
+  const forumA = { name: 'faq', type: ChannelType.GuildForum, parentId: 'cat1' };
+  const forumB = { name: 'faq', type: ChannelType.GuildForum, parentId: 'cat2' };
+  const text = { name: 'faq', type: ChannelType.GuildText, parentId: 'cat1' };
+  const guild = makeGuild([text, forumA, forumB]);
+
+  assert.equal(findGuildForumChannelByName(guild, 'faq'), forumA);
+  assert.equal(findGuildForumChannelByName(guild, 'faq', 'cat2'), forumB);
+  assert.equal(findGuildForumChannelByName(guild, 'faq', 'nope'), null);
+  assert.equal(findGuildForumChannelByName(guild, 'missing'), null);
 });
 
 test('utils tolerate a guild with no channel cache', () => {
