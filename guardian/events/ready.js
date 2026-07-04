@@ -1,5 +1,5 @@
 const { isGuildInstalled } = require('../modules/initialisation/checkInstall');
-const { createSetupArea } = require('../modules/initialisation/setup');
+const { createSetupArea, ensureSetupInstallPrompt } = require('../modules/initialisation/setup');
 const { startInviteExpulsionJob } = require('../modules/members/expulsion');
 const { startChangelogTimer } = require('../modules/games/gamesNotification');
 const { startServerMonitor } = require('../modules/servers/serverMonitor');
@@ -18,6 +18,8 @@ module.exports = {
         if (!isGuildInstalled(guild.id)) {
           await createSetupArea(guild);
         }
+
+        await ensureSetupInstallPrompt(guild);
 
         await applyPersistedSlowModeForGuild(guild);
         await ensureMemberGameInterfaces(guild);
