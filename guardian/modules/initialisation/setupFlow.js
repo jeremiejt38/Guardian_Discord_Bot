@@ -6,6 +6,7 @@ const {
 } = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
+const { replyEphemeral } = require('../utils/interactions');
 const {
   ORDERED_GRADES,
   setGradeRole,
@@ -561,10 +562,7 @@ async function handleSetupInteraction(interaction) {
   const setupOwnerId = getGuildSetting(guildId, 'setup', 'owner_id', null);
   if (setupOwnerId && interaction.user.id !== setupOwnerId) {
     if (interaction.isRepliable()) {
-      await interaction.reply({
-        content: t('setup.forbiddenNotOwner', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('setup.forbiddenNotOwner', {}, { guildId }));
     }
     return true;
   }
@@ -797,10 +795,7 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith(`${CUSTOM_IDS.selectRolePrefix}:`)) {
     const gradeName = interaction.customId.split(':').pop();
     if (!ORDERED_GRADES.includes(gradeName)) {
-      await interaction.reply({
-        content: t('setup.validationGenericError', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('setup.validationGenericError', {}, { guildId }));
       return true;
     }
 
@@ -817,10 +812,7 @@ async function handleSetupInteraction(interaction) {
     if (currentStep === 1 && interaction.guild) {
       const validation = validateStepOneMappings(interaction.guild);
       if (!validation.ok) {
-        await interaction.reply({
-          content: explainStepOneValidation(guildId, validation),
-          ephemeral: true
-        });
+        await replyEphemeral(interaction, explainStepOneValidation(guildId, validation));
         return true;
       }
     }
@@ -870,10 +862,7 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.finalize) {
     if (getCurrentStep(guildId) < 5) {
-      await interaction.reply({
-        content: t('setup.step5NotReady', {}, { guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('setup.step5NotReady', {}, { guildId }));
       return true;
     }
 
@@ -883,10 +872,7 @@ async function handleSetupInteraction(interaction) {
 
     const { finalizeInstall } = require('./setup');
     await finalizeInstall(interaction.guild);
-    await interaction.reply({
-      content: t('setup.finalized', {}, { guildId }),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t('setup.finalized', {}, { guildId }));
     return true;
   }
 
