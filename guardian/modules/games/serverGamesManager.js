@@ -14,6 +14,7 @@ const { GRADE_NAMES } = require('../../config');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { findTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
+const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
@@ -65,7 +66,7 @@ function canManageServerGames(member, guildId) {
     return false;
   }
 
-  return member.roles.cache.has(managerRole) || member.roles.cache.has(ownerRole);
+  return memberHasAnyRole(member, [managerRole, ownerRole]);
 }
 
 function getGames(guildId) {

@@ -4,6 +4,7 @@ const { getModerationRoleIds } = require('../../database/db');
 const { CHANNELS } = require('../../config');
 const { findGuildTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
+const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../i18n');
 
 async function handleAddServerButton(interaction) {
@@ -37,7 +38,7 @@ async function handleServerModalSubmit(interaction) {
   const modRoles = getModerationRoleIds(guildId);
 
   const member = interaction.member;
-  const isAutoApproved = modRoles.some((roleId) => member.roles.cache.has(roleId));
+  const isAutoApproved = memberHasAnyRole(member, modRoles);
 
   const serverId = addServer(guildId, name, game, ip, Number(port), pwd || null, interaction.user.id, isAutoApproved ? 1 : 0);
 
