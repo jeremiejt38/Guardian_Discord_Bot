@@ -13,18 +13,86 @@ const TOKENS_BY_ENV = Object.freeze({
 
 const DISCORD_TOKEN = TOKENS_BY_ENV[NODE_ENV];
 
-const CHANNEL_NAMES = Object.freeze({
-  setupCategory: 'guardian-setup',
-  setupChannel: 'setup',
+if (!DISCORD_TOKEN) {
+  throw new Error(`No Discord token configured for NODE_ENV=${NODE_ENV}`);
+}
+
+const CATEGORIES = Object.freeze({
+  setup: 'guardian-setup',
+  informations: 'informations',
+  communaute: 'communaute',
+  vocaux: 'vocaux',
+  moderation: 'moderation',
+  configuration: 'configuration'
+});
+
+const CHANNELS = Object.freeze({
+  setup: 'setup',
   welcome: 'bienvenue',
+  faq: 'faq',
   requests: 'demandes',
+  general: 'general',
+  voiceGeneral: 'general-vocal',
+  voiceAfk: 'afk',
+  reports: 'signalements',
+  autoModeration: 'auto-moderation',
+  behavior: 'comportement',
+  guardian: 'guardian',
+  roles: 'roles',
   moderationLogs: 'logs-mod',
-  gameUpdates: 'game-updates',
   gameChannels: 'mes-channels',
   gameList: 'ma-gamelist',
-  voiceCreate: 'créer-un-channel',
+  voiceCreate: 'creer-channel',
   serverList: 'liste-serveurs',
-  configLogs: 'logs-config'
+  serverManagement: 'gestion-serveurs',
+  configLogs: 'guardian-logs',
+  statutBot: 'statut-bot',
+  botConfig: 'bot',
+  jeuxServeur: 'jeux-serveur',
+  membres: 'membres',
+  channelsConfig: 'channels',
+  vocauxConfig: 'vocaux',
+  jeux: 'jeux',
+  changelogs: 'changelogs',
+  suggestions: 'suggestions',
+  annonces: 'annonces',
+  serveursJeu: 'serveurs-jeu',
+  approveGames: 'approve-games'
+});
+
+const CHANNEL_NAMES = Object.freeze({
+  setupCategory: CATEGORIES.setup,
+  setupChannel: CHANNELS.setup,
+  welcome: CHANNELS.welcome,
+  faq: CHANNELS.faq,
+  requests: CHANNELS.requests,
+  general: CHANNELS.general,
+  voiceGeneral: CHANNELS.voiceGeneral,
+  voiceAfk: CHANNELS.voiceAfk,
+  reports: CHANNELS.reports,
+  autoModeration: CHANNELS.autoModeration,
+  behavior: CHANNELS.behavior,
+  guardian: CHANNELS.guardian,
+  roles: CHANNELS.roles,
+  moderationLogs: CHANNELS.moderationLogs,
+  gameChannels: CHANNELS.gameChannels,
+  gameList: CHANNELS.gameList,
+  voiceCreate: CHANNELS.voiceCreate,
+  serverList: CHANNELS.serverList,
+  serverManagement: CHANNELS.serverManagement,
+  configLogs: CHANNELS.configLogs,
+  statutBot: CHANNELS.statutBot,
+  botConfig: CHANNELS.botConfig,
+  jeuxServeur: CHANNELS.jeuxServeur,
+  membres: CHANNELS.membres,
+  channelsConfig: CHANNELS.channelsConfig,
+  vocauxConfig: CHANNELS.vocauxConfig,
+  jeux: CHANNELS.jeux,
+  changelogs: CHANNELS.changelogs,
+  suggestions: CHANNELS.suggestions,
+  annonces: CHANNELS.annonces,
+  serveursJeu: CHANNELS.serveursJeu,
+  approveGames: CHANNELS.approveGames
 });
 
 const GRADE_NAMES = Object.freeze({
@@ -35,18 +103,13 @@ const GRADE_NAMES = Object.freeze({
   owner: 'owner'
 });
 
-function assertDiscordTokenConfigured() {
-  if (!DISCORD_TOKEN) {
-    throw new Error(`No Discord token configured for NODE_ENV=${NODE_ENV}`);
-  }
-}
-
 module.exports = {
   NODE_ENV,
   DISCORD_TOKEN,
   CLIENT_ID: process.env.CLIENT_ID,
   DATABASE_PATH: path.resolve(process.cwd(), process.env.DATABASE_PATH || './data/guardian.db'),
+  CATEGORIES,
+  CHANNELS,
   CHANNEL_NAMES,
-  GRADE_NAMES,
-  assertDiscordTokenConfigured
+  GRADE_NAMES
 };

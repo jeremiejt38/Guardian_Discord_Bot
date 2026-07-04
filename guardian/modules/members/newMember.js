@@ -1,9 +1,7 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { getDb } = require('../../database/db');
-const { GRADE_NAMES, CHANNEL_NAMES } = require('../../config');
-const { IDS } = require('./promotion');
+const { GRADE_NAMES, CHANNELS } = require('../../config');
+const { t } = require('../i18n');
 const logger = require('../logs/logger');
-const { t } = require('../../locales');
 
 function getGradeRoleId(guildId, gradeName) {
   const db = getDb();
@@ -18,21 +16,9 @@ async function handleNewMember(member) {
       await member.roles.add(inviteRoleId);
     }
 
-    const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNEL_NAMES.welcome);
+    const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
-      const actions = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(IDS.request)
-          .setStyle(ButtonStyle.Success)
-          .setLabel(t('promotion.requestButton', {}, { guildId: member.guild.id }))
-      );
-
-      await welcomeChannel.send(
-        {
-          content: t('members.welcomePrompt', { member: String(member) }, { guildId: member.guild.id }),
-          components: [actions]
-        }
-      );
+      await welcomeChannel.send(t(member.guild.id, 'members.welcome', { member: member.toString() }));
     }
 
     const db = getDb();
@@ -47,6 +33,41 @@ async function handleNewMember(member) {
   }
 }
 
+function canPromoteInvite(record, options = {}) {
+  const {
+    minDays = 0,
+    bioRequired = false,
+    parrainRequired = false,
+    now = new Date()
+  } = options;
+
+  if (!record?.join_date) {
+    return false;
+  }
+
+  const joinDate = new Date(record.join_date);
+  if (Number.isNaN(joinDate.getTime())) {
+    return false;
+  }
+
+  const ageMs = now.getTime() - joinDate.getTime();
+  const minAgeMs = minDays * 24 * 60 * 60 * 1000;
+  if (ageMs < minAgeMs) {
+    return false;
+  }
+
+  if (bioRequired && !String(record.bio || '').trim()) {
+    return false;
+  }
+
+  if (parrainRequired && !String(record.parrain_id || '').trim()) {
+    return false;
+  }
+
+  return true;
+}
+
 module.exports = {
-  handleNewMember
+  handleNewMember,
+  canPromoteInvite
 };
