@@ -545,13 +545,9 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
 function buildSetupInstallButtonRow(language) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(SETUP_START_BUTTON_ID)
-      .setLabel(tForLanguage(language, 'setup.startButton'))
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
       .setCustomId(SETUP_INSTALL_BUTTON_ID)
-      .setLabel(tForLanguage(language, 'setup.installButton'))
-      .setStyle(ButtonStyle.Secondary)
+      .setLabel(tForLanguage(language, 'setup.continueButton'))
+      .setStyle(ButtonStyle.Primary)
   );
 }
 
@@ -687,21 +683,35 @@ function buildContextChoiceMessage(guildId, context) {
   const messages = {
     reinstall: [
       `⚠️ **${t(guildId, 'setup.contextReinstallTitle')}**`,
-      t(guildId, 'setup.contextReinstallDesc')
-    ],
-    guardian_partial: [
-      `⚠️ **${t(guildId, 'setup.contextGuardianPartialTitle')}**`,
-      t(guildId, 'setup.contextGuardianPartialDesc')
+      t(guildId, 'setup.contextReinstallDesc'),
+      '',
+      `> ${t(guildId, 'setup.contextReinstallOption1')}`,
+      `> ${t(guildId, 'setup.contextReinstallOption2')}`
     ],
     existing_server: [
       `ℹ️ **${t(guildId, 'setup.contextExistingTitle')}**`,
-      t(guildId, 'setup.contextExistingDesc')
+      t(guildId, 'setup.contextExistingDesc'),
+      '',
+      `> ${t(guildId, 'setup.contextExistingOption1')}`,
+      `> ${t(guildId, 'setup.contextExistingOption2')}`
     ]
   };
   return messages[context]?.join('\n') ?? '';
 }
 
-function buildContextChoiceRow(guildId) {
+function buildContextChoiceRow(guildId, context) {
+  if (context === 'reinstall') {
+    return new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(SETUP_INTEGRATE_BUTTON_ID)
+        .setLabel(t(guildId, 'setup.contextKeepButton'))
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(SETUP_RESET_BUTTON_ID)
+        .setLabel(t(guildId, 'setup.contextResetButton'))
+        .setStyle(ButtonStyle.Danger)
+    );
+  }
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(SETUP_INTEGRATE_BUTTON_ID)
@@ -709,8 +719,8 @@ function buildContextChoiceRow(guildId) {
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId(SETUP_RESET_BUTTON_ID)
-      .setLabel(t(guildId, 'setup.contextResetButton'))
-      .setStyle(ButtonStyle.Danger)
+      .setLabel(t(guildId, 'setup.contextFreshButton'))
+      .setStyle(ButtonStyle.Secondary)
   );
 }
 
@@ -744,9 +754,10 @@ async function handleSetupInstallButton(interaction) {
     return;
   }
 
+  const effectiveContext = context === 'guardian_partial' ? 'reinstall' : context;
   await interaction.reply({
-    content: buildContextChoiceMessage(guildId, context),
-    components: [buildContextChoiceRow(guildId)],
+    content: buildContextChoiceMessage(guildId, effectiveContext),
+    components: [buildContextChoiceRow(guildId, effectiveContext)],
     ephemeral: true
   });
 }
