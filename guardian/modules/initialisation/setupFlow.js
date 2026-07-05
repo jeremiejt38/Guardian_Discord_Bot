@@ -39,6 +39,8 @@ const TOTAL_STEPS = 8;
 const CUSTOM_IDS = Object.freeze({
   start: 'setup:start',
   createRolesAuto: 'setup:grade:create-auto',
+  renameGradePrefix: 'setup:grade:rename',
+  renameGradeModal: 'setup:grade:rename:modal',
   selectRolePrefix: 'setup:grade:role',
   previousGrade: 'setup:grade:prev',
   nextGrade: 'setup:grade:next',
@@ -181,25 +183,48 @@ function hasMapableRoles(guild) {
   );
 }
 
+function getRolesAutoCreated(guildId) {
+  return Boolean(getGuildSetting(guildId, 'setup', 'roles_auto_created', false));
+}
+
+function getGradeRenameMap(guildId) {
+  const stored = getGuildSetting(guildId, 'setup', 'grade_rename_map', {});
+  return stored && typeof stored === 'object' ? stored : {};
+}
+
+function setGradeRenameName(guildId, grade, name) {
+  const map = getGradeRenameMap(guildId);
+  map[grade] = name;
+  setGuildSetting(guildId, 'setup', 'grade_rename_map', map);
+}
+
 function buildStepOneContent(guildId, guild) {
   const mappings = getGradeMappings(guildId);
-  const cursor = getGradeCursor(guildId);
-  const currentGrade = ORDERED_GRADES[cursor];
-  const summary = ORDERED_GRADES.map((grade) => {
-    const roleId = mappings[grade];
-    const marker = roleId ? '✅' : '❌';
-    const roleText = roleId ? `<@&${roleId}>` : '-';
-    return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
-  }).join('\n');
-
-  const noRoles = !hasMapableRoles(guild);
+  const autoCreated = getRolesAutoCreated(guildId);
   const lines = [
     `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`
   ];
 
-  if (noRoles) {
+  if (autoCreated) {
+    const renameMap = getGradeRenameMap(guildId);
+    lines.push(t('setup.step1RenameDesc', {}, { guildId }));
+    lines.push('');
+    for (const grade of ORDERED_GRADES) {
+      const roleId = mappings[grade];
+      const roleName = renameMap[grade] || gradeLabel(grade);
+      lines.push(`🏷️ **${gradeLabel(grade)}** → \`${roleName}\`` + (roleId ? ` <@&${roleId}>` : ''));
+    }
+  } else if (!hasMapableRoles(guild)) {
     lines.push(t('setup.step1NoRolesDesc', {}, { guildId }));
   } else {
+    const cursor = getGradeCursor(guildId);
+    const currentGrade = ORDERED_GRADES[cursor];
+    const summary = ORDERED_GRADES.map((grade) => {
+      const roleId = mappings[grade];
+      const marker = roleId ? '✅' : '❌';
+      const roleText = roleId ? `<@&${roleId}>` : '-';
+      return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
+    }).join('\n');
     lines.push(t('setup.step1Instructions', {}, { guildId }));
     lines.push(`> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`);
     lines.push('');
@@ -210,6 +235,24 @@ function buildStepOneContent(guildId, guild) {
 }
 
 function buildStepOneComponents(guildId, guild) {
+  if (getRolesAutoCreated(guildId)) {
+    const rows = [];
+    for (let i = 0; i < ORDERED_GRADES.length; i += 3) {
+      const slice = ORDERED_GRADES.slice(i, i + 3);
+      const row = new ActionRowBuilder().addComponents(
+        slice.map((grade) =>
+          new ButtonBuilder()
+            .setCustomId(`${CUSTOM_IDS.renameGradePrefix}:${grade}`)
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel(`✏️ ${gradeLabel(grade)}`)
+        )
+      );
+      rows.push(row);
+    }
+    rows.push(buildNavRow(guildId, 1));
+    return rows;
+  }
+
   if (!hasMapableRoles(guild)) {
     const autoRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -796,7 +839,47 @@ async function handleSetupInteraction(interaction) {
         logger.error(`Failed to create role for grade ${grade}`, err);
       }
     }
+    setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
     setGradeCursor(guildId, 0);
+    await renderStep(interaction, 1);
+    return true;
+  }
+
+  if (interaction.customId.startsWith(`${CUSTOM_IDS.renameGradePrefix}:`) && !interaction.customId.includes(':modal')) {
+    const grade = interaction.customId.split(':').pop();
+    if (!ORDERED_GRADES.includes(grade)) return true;
+    const currentName = getGradeRenameMap(guildId)[grade] || gradeLabel(grade);
+    const modal = new ModalBuilder()
+      .setCustomId(`${CUSTOM_IDS.renameGradeModal}:${grade}`)
+      .setTitle(`Renommer le grade ${gradeLabel(grade)}`)
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('name')
+          .setLabel('Nouveau nom (laisser vide = défaut)')
+          .setStyle(TextInputStyle.Short)
+          .setValue(currentName)
+          .setRequired(false)
+          .setMaxLength(32)
+      ));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId.startsWith(`${CUSTOM_IDS.renameGradeModal}:`)) {
+    const grade = interaction.customId.split(':').pop();
+    if (!ORDERED_GRADES.includes(grade)) return true;
+    const rawName = interaction.fields.getTextInputValue('name').trim();
+    const finalName = rawName || gradeLabel(grade);
+    setGradeRenameName(guildId, grade, finalName);
+    const mappings = getGradeMappings(guildId);
+    const roleId = mappings[grade];
+    if (roleId && interaction.guild) {
+      try {
+        const role = interaction.guild.roles.cache.get(roleId);
+        if (role) await role.setName(finalName, 'Guardian setup — renommage grade');
+      } catch (err) {
+        logger.error(`Failed to rename role for grade ${grade}`, err);
+      }
+    }
     await renderStep(interaction, 1);
     return true;
   }
