@@ -908,7 +908,7 @@ function buildStepPayload(guildId, guild, step) {
   switch (step) {
     case 1: return { content: pad(buildStepOneContent(guildId, guild)), components: buildStepOneComponents(guildId, guild) };
     case 2: return { content: pad(buildStep2Content(guildId)), components: buildStep2Components(guildId) };
-    case 3: autoPositionChannelCursor(guildId); return { content: pad(buildStep3ChannelsContent(guildId, guild)), components: buildStep3ChannelsComponents(guildId, guild) };
+    case 3: return { content: pad(buildStep3ChannelsContent(guildId, guild)), components: buildStep3ChannelsComponents(guildId, guild) };
     case 4: return { content: pad(buildStep4Content(guildId)), components: buildStep4Components(guildId) };
     case 5: return { content: pad(buildStep5VocalContent(guildId)), components: buildStep5VocalComponents(guildId) };
     case 6: return { content: pad(buildStep6Content_Games(guildId)), components: buildStep6Components_Games(guildId) };
@@ -942,6 +942,8 @@ async function startWizardInChannel(interaction) {
   if (step === 1) {
     setGuildSetting(guildId, 'setup', 'step', 1);
     setGradeCursor(guildId, 0);
+  } else if (step === 3) {
+    autoPositionChannelCursor(guildId);
   }
   const payload = buildStepPayload(guildId, guild, step);
   try {
@@ -1570,6 +1572,7 @@ async function handleSetupInteraction(interaction) {
 
     const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
     setGuildSetting(guildId, 'setup', 'step', nextStep);
+    if (nextStep === 3) autoPositionChannelCursor(guildId);
     await renderStep(interaction, nextStep);
     return true;
   }
