@@ -922,9 +922,13 @@ async function renderStep(interaction, step) {
 async function startWizardInChannel(interaction) {
   const guildId = interaction.guildId;
   const guild = interaction.guild;
-  setGuildSetting(guildId, 'setup', 'step', 1);
-  setGradeCursor(guildId, 0);
-  const payload = buildStepPayload(guildId, guild, 1);
+  const savedStep = Number(getGuildSetting(guildId, 'setup', 'step', 0));
+  const step = (savedStep >= 1 && savedStep <= TOTAL_STEPS) ? savedStep : 1;
+  if (step === 1) {
+    setGuildSetting(guildId, 'setup', 'step', 1);
+    setGradeCursor(guildId, 0);
+  }
+  const payload = buildStepPayload(guildId, guild, step);
   try {
     await interaction.message.edit(payload);
     await interaction.deferUpdate().catch(() => {});
