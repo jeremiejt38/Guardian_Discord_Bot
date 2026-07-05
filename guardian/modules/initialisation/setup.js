@@ -18,7 +18,7 @@ const {
   tForLanguage
 } = require('../i18n');
 const { markGuildInstalled } = require('./checkInstall');
-const { getInstallContext } = require('./detectInstallContext');
+const { getInstallContext, autoMapRolesByName } = require('./detectInstallContext');
 const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/gameList');
 const {
   findCategoryByName,
@@ -756,9 +756,24 @@ async function handleSetupIntegrateButton(interaction) {
   const guildId = interaction.guildId;
   await interaction.deferUpdate();
   try {
+    const autoMapped = autoMapRolesByName(interaction.guild);
+    const mappedCount = Object.keys(autoMapped).length;
+
+    let preMsg = '';
+    if (mappedCount > 0) {
+      const lines = Object.entries(autoMapped)
+        .map(([grade, roleName]) => `  • **${grade}** → \`${roleName}\``);
+      preMsg = `\n\n${t(guildId, 'setup.autoMappedRoles', { count: String(mappedCount) })}\n${lines.join('\n')}`;
+    } else {
+      preMsg = `\n\n${t(guildId, 'setup.autoMappedNone')}`;
+    }
+
     const owner = await interaction.guild.fetchOwner();
     await runSetupInstallationPhases(interaction.guild, owner.id);
-    await interaction.editReply({ content: t(guildId, 'setup.installSuccess'), components: [] });
+    await interaction.editReply({
+      content: t(guildId, 'setup.integrateSuccess') + preMsg,
+      components: []
+    });
   } catch (error) {
     logger.error('Failed setup integrate', error);
     await interaction.editReply({ content: t(guildId, 'setup.installError'), components: [] });

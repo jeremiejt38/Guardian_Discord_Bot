@@ -1,6 +1,7 @@
-const { CATEGORIES, CHANNELS } = require('../../config');
+const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
 const { isGuildInstalled } = require('./checkInstall');
 const { findCategoryByName, findGuildTextChannelByName } = require('../utils/channels');
+const { setGradeRole, ORDERED_GRADES } = require('./gradeMapping');
 
 const DISCORD_DEFAULT_CHANNELS = new Set([
   'général',
@@ -52,4 +53,41 @@ function getInstallContext(guild) {
   return 'fresh';
 }
 
-module.exports = { getInstallContext };
+const GRADE_NAME_ALIASES = Object.freeze({
+  [GRADE_NAMES.invite]: ['invité', 'invite', 'guest', 'visitor', 'visiteur', 'new'],
+  [GRADE_NAMES.membre]: ['membre', 'member', 'membres', 'members'],
+  [GRADE_NAMES.moderateur]: ['modérateur', 'moderateur', 'mod', 'moderator', 'modo'],
+  [GRADE_NAMES.manager]: ['manager', 'gérant', 'gerant', 'admin', 'administrateur', 'administrator'],
+  [GRADE_NAMES.owner]: ['owner', 'propriétaire', 'proprietaire', 'fondateur', 'founder']
+});
+
+function normalizeRoleName(name) {
+  return String(name || '').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function autoMapRolesByName(guild) {
+  const guildId = guild.id;
+  const usedRoleIds = new Set();
+  const results = {};
+
+  const sortedRoles = [...guild.roles.cache.values()]
+    .filter((r) => r.id !== guild.roles.everyone.id && !r.managed)
+    .sort((a, b) => b.position - a.position);
+
+  for (const grade of ORDERED_GRADES) {
+    const aliases = GRADE_NAME_ALIASES[grade] || [];
+    const match = sortedRoles.find(
+      (r) => !usedRoleIds.has(r.id) && aliases.includes(normalizeRoleName(r.name))
+    );
+    if (match) {
+      setGradeRole(guildId, grade, match.id);
+      usedRoleIds.add(match.id);
+      results[grade] = match.name;
+    }
+  }
+
+  return results;
+}
+
+module.exports = { getInstallContext, autoMapRolesByName };
