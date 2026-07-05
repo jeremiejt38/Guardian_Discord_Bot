@@ -143,7 +143,7 @@ function buildNavRow(guildId, step) {
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.next)
       .setStyle(ButtonStyle.Primary)
-      .setLabel(t('setup.nextStep', { step, total: TOTAL_STEPS }, { guildId }))
+      .setLabel(t('setup.nextStep', {}, { guildId }))
       .setDisabled(nextDisabled)
   );
   buttons.push(

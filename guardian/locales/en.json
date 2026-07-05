@@ -34,7 +34,7 @@
     "installError": "Error while rerunning installation. Check bot logs.",
     "languageUpdated": "Installation language updated: {{language}}.",
     "startButton": "Start configuration",
-    "nextStep": "Next step ({{step}}/{{total}})",
+    "nextStep": "Next step",
     "backStep": "Back",
     "finalizeButton": "Finalize installation",
     "enabled": "Enabled",
