@@ -1299,25 +1299,25 @@ async function handleSetupInteraction(interaction) {
     } catch (err) {
       logger.warn('addGameModal: deferReply failed', { error: err?.message });
     }
-    let result = null;
+    let steamResult = null;
     try {
       const encoded = encodeURIComponent(name);
-      const res = await fetch(`https://api.rawg.io/api/games?search=${encoded}&page_size=1&key=`);
+      const res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encoded}&l=french&cc=FR`);
       if (res.ok) {
         const data = await res.json();
-        result = data.results?.[0] || null;
-        logger.info('RAWG search', { name, found: result?.name || null });
+        steamResult = data.items?.[0] || null;
+        logger.info('Steam search', { name, found: steamResult?.name || null, id: steamResult?.id || null });
       } else {
-        logger.warn('RAWG search non-ok', { status: res.status, name });
+        logger.warn('Steam search non-ok', { status: res.status, name });
       }
     } catch (err) {
-      logger.error('RAWG search error', { error: err?.message, name });
+      logger.error('Steam search error', { error: err?.message, name });
     }
     let game;
     try {
       game = addSetupGame(guildId, {
-        name: result ? result.name : name,
-        steam_app_id: result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null,
+        name: steamResult ? steamResult.name : name,
+        steam_app_id: steamResult?.id ? String(steamResult.id) : null,
         galerie_enabled: galerieEnabled,
         changelog_enabled: changelogEnabled
       });
@@ -1329,8 +1329,8 @@ async function handleSetupInteraction(interaction) {
     }
     const confirmMsg = [
       `✅ **Jeu ajouté : ${game.name}**`,
-      result ? `> Trouvé sur RAWG : *${result.released || 'date inconnue'}* — ${result.genres?.map((g) => g.name).join(', ') || 'genre inconnu'}` : '',
-      game.steam_app_id ? `> Steam ID : \`${game.steam_app_id}\`` : '> Aucun Steam ID — le suivi des mises à jour Steam ne sera pas disponible.',
+      steamResult ? `> Trouvé sur Steam : ID \`${game.steam_app_id}\`` : '',
+      !game.steam_app_id ? '> Aucun Steam ID trouvé — le suivi des mises à jour Steam ne sera pas disponible.' : '',
       '',
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].filter(Boolean).join('\n');
@@ -1393,15 +1393,15 @@ async function handleSetupInteraction(interaction) {
     if (name !== existingGame?.name) {
       try {
         const encoded = encodeURIComponent(name);
-        const res = await fetch(`https://api.rawg.io/api/games?search=${encoded}&page_size=1&key=`);
+        const res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encoded}&l=french&cc=FR`);
         if (res.ok) {
           const data = await res.json();
-          const result = data.results?.[0] || null;
-          steamId = result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null;
-          logger.info('RAWG re-search on name change', { name, found: result?.name || null, steamId });
+          const found = data.items?.[0] || null;
+          steamId = found?.id ? String(found.id) : null;
+          logger.info('Steam re-search on name change', { name, found: found?.name || null, steamId });
         }
       } catch (err) {
-        logger.error('RAWG re-search error', { error: err?.message, name });
+        logger.error('Steam re-search error', { error: err?.message, name });
       }
     }
     try {
