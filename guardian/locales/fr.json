@@ -81,7 +81,7 @@
     "step5NotReady": "Tu dois completer toutes les etapes avant de finaliser.",
     "finalizeNotReady": "Tu dois valider toutes les etapes avant de finaliser.",
     "finalized": "Installation terminee ! Guardian est maintenant actif.",
-    "summary": "Installation Guardian terminee pour **{{guild}}**. Les invites peuvent etre promus membres apres {{delay}}h. Consulte #regles et #faq pour bien demarrer."
+    "summary": "🎉 **INSTALLATION RÉUSSIE — Guardian est maintenant actif sur {{guild}} !**\n\n👥 **Grades & Accès**\nLes invités peuvent demander à devenir Membre après **{{delay}}h**.\n\n⚙️ **Prochaines étapes pour les admins**\n1️⃣ Va dans `#règles` et personnalise le règlement\n2️⃣ Va dans `#faq` et complète les questions fréquentes\n3️⃣ Va dans `#configuration` → `#channels` pour affiner les permissions\n4️⃣ Ajoute tes jeux et configure les vocaux dans `#configuration`\n\n📚 **Ressources**\n• `#faq` — Questions fréquentes\n• `#statut-bot` — Statut et logs du bot\n• `/help` — Aide sur les commandes Guardian\n\nBonne chance ! 🚀"
   },
   "interaction": {
     "unsupported": "Interaction non prise en charge."
