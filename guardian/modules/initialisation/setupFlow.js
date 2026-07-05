@@ -25,6 +25,15 @@ const {
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
+async function sendSetupMessage(interaction, content) {
+  if (interaction.channel?.send) {
+    await interaction.channel.send({ content });
+    await interaction.deferUpdate().catch(() => {});
+  } else {
+    await replyEphemeral(interaction, content);
+  }
+}
+
 const TOTAL_STEPS = 8;
 
 const CUSTOM_IDS = Object.freeze({
@@ -777,7 +786,7 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith(`${CUSTOM_IDS.selectRolePrefix}:`)) {
     const gradeName = interaction.customId.split(':').pop();
     if (!ORDERED_GRADES.includes(gradeName)) {
-      await replyEphemeral(interaction, t('setup.validationGenericError', {}, { guildId }));
+      await sendSetupMessage(interaction, t('setup.validationGenericError', {}, { guildId }));
       return true;
     }
     const roleId = interaction.values[0];
@@ -869,7 +878,7 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.editVocalSuffix) {
-    await replyEphemeral(interaction, `Suffixe actuel : \`${getStep4VocalConfig(guildId).suffix}\`\nPour le modifier, utilisez le panel de configuration vocale après l'installation.`);
+    await sendSetupMessage(interaction, `Suffixe actuel : \`${getStep4VocalConfig(guildId).suffix}\`\nPour le modifier, utilisez le panel de configuration vocale après l'installation.`);
     return true;
   }
   if (interaction.customId === CUSTOM_IDS.decreaseVocalLimit) {
@@ -1017,7 +1026,7 @@ async function handleSetupInteraction(interaction) {
     if (currentStep === 1 && interaction.guild) {
       const validation = validateStepOneMappings(interaction.guild);
       if (!validation.ok) {
-        await replyEphemeral(interaction, explainStepOneValidation(guildId, validation));
+        await sendSetupMessage(interaction, explainStepOneValidation(guildId, validation));
         return true;
       }
     }
@@ -1030,19 +1039,23 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.finalize) {
     if (getCurrentStep(guildId) < TOTAL_STEPS) {
-      await replyEphemeral(interaction, t('setup.finalizeNotReady', {}, { guildId }));
+      await sendSetupMessage(interaction, t('setup.finalizeNotReady', {}, { guildId }));
       return true;
     }
     if (!interaction.guild) return true;
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferUpdate().catch(() => {});
     try {
       const { completeGuildSetup } = require('./setup');
       await completeGuildSetup(interaction.guild);
-      await interaction.editReply(t('setup.finalized', {}, { guildId }));
+      if (interaction.channel?.send) {
+        await interaction.channel.send({ content: t('setup.finalized', {}, { guildId }) });
+      }
     } catch (error) {
       logger.error('Failed to complete guild setup', error);
-      await interaction.editReply(t('setup.validationGenericError', {}, { guildId }));
+      if (interaction.channel?.send) {
+        await interaction.channel.send({ content: t('setup.validationGenericError', {}, { guildId }) });
+      }
     }
     return true;
   }
