@@ -25,8 +25,11 @@ function detectExistingStructure(guild) {
     (role) => role.id !== guild.roles.everyone.id && !role.managed
   );
 
+  const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+  const setupCategoryId = setupCategory?.id ?? null;
+
   const nonDefaultChannels = guild.channels.cache.filter(
-    (ch) => !isDefaultDiscordChannel(ch.name)
+    (ch) => !isDefaultDiscordChannel(ch.name) && ch.parentId !== setupCategoryId && ch.id !== setupCategoryId
   );
 
   return nonDefaultRoles.size > 0 || nonDefaultChannels.size > 0;
