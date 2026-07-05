@@ -818,50 +818,30 @@ async function handleSetupInstallButton(interaction) {
 
 async function handleSetupIntegrateButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) return;
-  const guildId = interaction.guildId;
-  await interaction.deferUpdate();
   try {
-    const autoMapped = autoMapRolesByName(interaction.guild);
-    const mappedCount = Object.keys(autoMapped).length;
-
-    let preMsg = '';
-    if (mappedCount > 0) {
-      const lines = Object.entries(autoMapped)
-        .map(([grade, roleName]) => `  • **${grade}** → \`${roleName}\``);
-      preMsg = `\n\n${t(guildId, 'setup.autoMappedRoles', { count: String(mappedCount) })}\n${lines.join('\n')}`;
-    } else {
-      preMsg = `\n\n${t(guildId, 'setup.autoMappedNone')}`;
-    }
-
-    const owner = await interaction.guild.fetchOwner();
-    await runSetupInstallationPhases(interaction.guild, owner.id);
-    await interaction.editReply({
-      content: t(guildId, 'setup.integrateSuccess') + preMsg,
-      components: []
-    });
+    autoMapRolesByName(interaction.guild);
+    const { startWizardInChannel } = require('./setupFlow');
+    await startWizardInChannel(interaction);
   } catch (error) {
     logger.error('Failed setup integrate', error);
-    await interaction.editReply({ content: t(guildId, 'setup.installError'), components: [] });
+    if (interaction.isRepliable()) await replyEphemeral(interaction, t(interaction.guildId, 'setup.installError'));
   }
 }
 
 async function handleSetupResetButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) return;
   const guildId = interaction.guildId;
-  await interaction.deferUpdate();
   try {
-    const { getDb } = require('../../database/db');
     const db = getDb();
     db.prepare('DELETE FROM guild_config WHERE guild_id = ?').run(guildId);
     db.prepare('DELETE FROM grades WHERE guild_id = ?').run(guildId);
     db.prepare('UPDATE guilds SET setup_done = 0 WHERE guild_id = ?').run(guildId);
 
-    const owner = await interaction.guild.fetchOwner();
-    await runSetupInstallationPhases(interaction.guild, owner.id);
-    await interaction.editReply({ content: t(guildId, 'setup.resetSuccess'), components: [] });
+    const { startWizardInChannel } = require('./setupFlow');
+    await startWizardInChannel(interaction);
   } catch (error) {
     logger.error('Failed setup reset', error);
-    await interaction.editReply({ content: t(guildId, 'setup.installError'), components: [] });
+    if (interaction.isRepliable()) await replyEphemeral(interaction, t(guildId, 'setup.installError'));
   }
 }
 
