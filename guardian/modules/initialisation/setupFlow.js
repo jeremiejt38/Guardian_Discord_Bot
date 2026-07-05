@@ -708,8 +708,17 @@ async function renderStep(interaction, step) {
   const guildId = interaction.guildId;
   const guild = interaction.guild;
   const payload = buildStepPayload(guildId, guild, step);
-  await interaction.message.edit(payload);
-  await interaction.deferUpdate().catch(() => {});
+  try {
+    await interaction.message.edit(payload);
+    await interaction.deferUpdate().catch(() => {});
+  } catch (err) {
+    if (err.code === 10008 && interaction.channel?.send) {
+      await interaction.channel.send(payload);
+      await interaction.deferUpdate().catch(() => {});
+    } else {
+      throw err;
+    }
+  }
 }
 
 async function startWizardInChannel(interaction) {
