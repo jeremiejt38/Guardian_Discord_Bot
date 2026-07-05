@@ -392,32 +392,45 @@ function buildChannelOptions(guild, slot) {
   return channels.length > 0 ? channels : [{ label: 'Aucun channel compatible', value: 'none', description: 'Guardian en créera un automatiquement' }];
 }
 
+const FRESH_SLOTS = ['general', 'voiceGeneral'];
+
+function getActiveSlotsForInstall(guildId) {
+  return isFreshInstall(guildId)
+    ? CHANNEL_SLOTS.filter((s) => FRESH_SLOTS.includes(s.key))
+    : CHANNEL_SLOTS;
+}
+
 function buildStep3ChannelsContent(guildId, guild) {
-  const cursor = getChannelCursor(guildId);
-  const slot = CHANNEL_SLOTS[cursor];
+  const slots = getActiveSlotsForInstall(guildId);
+  const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
+  const slot = slots[cursor];
   const currentId = getGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
   const currentChannel = currentId && guild ? guild.channels.cache.get(currentId) : null;
-  const statusLines = CHANNEL_SLOTS.map((s, i) => {
+  const statusLines = slots.map((s, i) => {
     const id = getGuildSetting(guildId, s.settingSection, s.settingKey, null);
     const ch = id && guild ? guild.channels.cache.get(id) : null;
     const marker = i === cursor ? '▶' : (ch ? '✅' : '—');
     return `${marker} ${s.emoji} **${s.label}** ${ch ? `→ #${ch.name}` : '*à configurer*'}`;
   }).join('\n');
 
-  return [
+  const lines = [
     `## ${t('setup.step3Title', {}, { guildId })} (3/${TOTAL_STEPS})`,
     t('setup.step3Instructions', {}, { guildId }),
-    '',
-    statusLines,
-    '',
+  ];
+  if (isFreshInstall(guildId)) {
+    lines.push('> Installation fraîche — seuls les channels essentiels sont à configurer.');
+  }
+  lines.push('', statusLines, '',
     `> Configuration en cours : **${slot.emoji} ${slot.label}**`,
     currentChannel ? `> Actuellement lié à : #${currentChannel.name}` : '> Non configuré — choisir un channel existant ou laisser Guardian le créer'
-  ].join('\n');
+  );
+  return lines.join('\n');
 }
 
 function buildStep3ChannelsComponents(guildId, guild) {
-  const cursor = getChannelCursor(guildId);
-  const slot = CHANNEL_SLOTS[cursor];
+  const slots = getActiveSlotsForInstall(guildId);
+  const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
+  const slot = slots[cursor];
   const options = buildChannelOptions(guild, slot);
   const hasNone = options.length === 1 && options[0].value === 'none';
 
@@ -434,7 +447,7 @@ function buildStep3ChannelsComponents(guildId, guild) {
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Secondary)
       .setLabel('Laisser Guardian créer →').setDisabled(false),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:skip`).setStyle(ButtonStyle.Secondary)
-      .setLabel('Passer tous restants →')
+      .setLabel('Passer tous restants →').setDisabled(isFreshInstall(guildId))
   );
 
   return [selectRow, navRow, buildNavRow(guildId, 3)];
@@ -931,17 +944,19 @@ async function handleSetupInteraction(interaction) {
     if (slot && interaction.values?.[0] && interaction.values[0] !== 'none') {
       setGuildSetting(guildId, slot.settingSection, slot.settingKey, interaction.values[0]);
     }
+    const activeSlots = getActiveSlotsForInstall(guildId);
     const cursor = getChannelCursor(guildId);
-    if (cursor < CHANNEL_SLOTS.length - 1) setChannelCursor(guildId, cursor + 1);
+    if (cursor < activeSlots.length - 1) setChannelCursor(guildId, cursor + 1);
     await renderStep(interaction, 3); return true;
   }
   if (interaction.customId.startsWith(`${CUSTOM_IDS.channelSkip}:`)) {
     const action = interaction.customId.split(':').pop();
+    const activeSlots = getActiveSlotsForInstall(guildId);
     const cursor = getChannelCursor(guildId);
     if (action === 'prev') { setChannelCursor(guildId, cursor - 1); await renderStep(interaction, 3); return true; }
-    if (action === 'skip') { setChannelCursor(guildId, CHANNEL_SLOTS.length - 1); await renderStep(interaction, 3); return true; }
+    if (action === 'skip') { setChannelCursor(guildId, activeSlots.length - 1); await renderStep(interaction, 3); return true; }
     if (action === 'next') {
-      if (cursor >= CHANNEL_SLOTS.length - 1) { const nextStep = 4; setGuildSetting(guildId, 'setup', 'step', nextStep); await renderStep(interaction, nextStep); }
+      if (cursor >= activeSlots.length - 1) { const nextStep = 4; setGuildSetting(guildId, 'setup', 'step', nextStep); await renderStep(interaction, nextStep); }
       else { setChannelCursor(guildId, cursor + 1); await renderStep(interaction, 3); }
       return true;
     }
@@ -1134,7 +1149,18 @@ async function handleSetupInteraction(interaction) {
         logger.error('Failed to assign owner role', err);
       }
     }
-    await renderStep(interaction, 1);
+    await interaction.message.delete().catch(() => {});
+    const nextStep = 2;
+    setGuildSetting(guildId, 'setup', 'step', nextStep);
+    const wizardChannel = interaction.channel;
+    if (wizardChannel) {
+      const msgs = await wizardChannel.messages.fetch({ limit: 10 });
+      const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
+      if (wizardMsg) {
+        const payload = buildStepPayload(guildId, interaction.guild, nextStep);
+        await wizardMsg.edit(payload).catch(() => {});
+      }
+    }
     return true;
   }
 
