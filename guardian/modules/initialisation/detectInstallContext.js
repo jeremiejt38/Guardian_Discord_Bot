@@ -10,7 +10,15 @@ const DISCORD_DEFAULT_CHANNELS = new Set([
   'general-vocal',
   'général-vocal',
   'bienvenue-et-regles',
-  'welcome'
+  'welcome',
+  'salons textuels',
+  'text channels',
+  'salons vocaux',
+  'voice channels',
+  'événements',
+  'evenements',
+  'events',
+  'boost'
 ]);
 
 function isDefaultDiscordChannel(name) {
@@ -44,8 +52,20 @@ function getInstallContext(guild) {
   );
   const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
   const setupCategoryId = setupCategory?.id ?? null;
+
+  const defaultCategoryIds = new Set(
+    guild.channels.cache
+      .filter((ch) => ch.type === 4 && ch.position <= 1)
+      .map((ch) => ch.id)
+  );
+
   const nonDefaultChannels = guild.channels.cache.filter(
-    (ch) => !isDefaultDiscordChannel(ch.name) && ch.parentId !== setupCategoryId && ch.id !== setupCategoryId
+    (ch) =>
+      !isDefaultDiscordChannel(ch.name)
+      && ch.parentId !== setupCategoryId
+      && ch.id !== setupCategoryId
+      && !defaultCategoryIds.has(ch.id)
+      && !defaultCategoryIds.has(ch.parentId)
   );
 
   console.log(`[detectInstallContext] nonDefaultRoles=${nonDefaultRoles.size} names=[${[...nonDefaultRoles.values()].map(r => r.name).join(', ')}]`);
