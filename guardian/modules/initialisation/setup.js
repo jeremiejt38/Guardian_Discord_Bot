@@ -8,7 +8,7 @@ const {
 } = require('discord.js');
 const { getDb } = require('../../database/db');
 const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
-const { getGuildSetting } = require('../config/settings');
+const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const {
   getAvailableLanguages,
   getLanguageLabel,
@@ -22,27 +22,16 @@ const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/g
 const {
   findCategoryByName,
   findGuildTextChannelByName,
-  findGuildVoiceChannelByName
+  findGuildVoiceChannelByName,
+  findGuildForumChannelByName
 } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
+const { getGradeMappings } = require('./gradeMapping');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
 const SETUP_LANGUAGE_SELECT_ID = 'setup:language';
-
-function getGradeRoleMap(guildId) {
-  const db = getDb();
-  const rows = db.prepare('SELECT grade_name, role_id FROM grades WHERE guild_id = ?').all(guildId);
-  const roles = {};
-
-  for (const row of rows) {
-    if (row?.grade_name && row?.role_id) {
-      roles[row.grade_name] = row.role_id;
-    }
-  }
-
-  return roles;
-}
+const SETUP_START_BUTTON_ID = 'setup:start';
 
 async function ensureCategory(guild, name, permissionOverwrites) {
   const existing = findCategoryByName(guild, name);
@@ -94,6 +83,42 @@ async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
     parent: parentId,
     permissionOverwrites
   });
+}
+
+async function ensureForumChannel(guild, parentId, name, permissionOverwrites) {
+  const existingForum = findGuildForumChannelByName(guild, name, parentId);
+  if (existingForum) {
+    await existingForum.edit({ parent: parentId, permissionOverwrites });
+    return existingForum;
+  }
+
+  // A same-named text channel from a previous install cannot be converted to a
+  // forum; keep it as-is so we do not destroy existing content.
+  const existingText = findGuildTextChannelByName(guild, name, parentId);
+  if (existingText) {
+    await existingText.edit({ parent: parentId, permissionOverwrites });
+    return existingText;
+  }
+
+  return guild.channels.create({
+    name,
+    type: ChannelType.GuildForum,
+    parent: parentId,
+    permissionOverwrites
+  });
+}
+
+async function ensureForumPost(channel, name, content) {
+  if (channel?.type !== ChannelType.GuildForum || typeof channel.threads?.create !== 'function') {
+    return;
+  }
+
+  const existing = await channel.threads.fetchActive().catch(() => null);
+  if (existing?.threads?.size) {
+    return;
+  }
+
+  await channel.threads.create({ name, message: { content } });
 }
 
 function buildGeneralPermissions(guild, roleMap) {
@@ -275,10 +300,6 @@ function buildRequestsPermissions(guild, roleMap) {
 }
 
 async function seedFaqMessages(channel) {
-  if (channel.lastMessageId) {
-    return;
-  }
-
   const language = getGuildLanguage(channel.guild.id);
   const defaultMessages = [
     tForLanguage(language, 'init.faq1'),
@@ -286,9 +307,38 @@ async function seedFaqMessages(channel) {
     tForLanguage(language, 'init.faq3')
   ];
 
+  if (channel.type === ChannelType.GuildForum) {
+    const existing = await channel.threads.fetchActive().catch(() => null);
+    if (existing?.threads?.size) {
+      return;
+    }
+
+    let index = 1;
+    for (const message of defaultMessages) {
+      await channel.threads.create({
+        name: tForLanguage(language, 'init.faqPostTitle', { index }),
+        message: { content: message }
+      });
+      index += 1;
+    }
+    return;
+  }
+
+  if (channel.lastMessageId) {
+    return;
+  }
+
   for (const message of defaultMessages) {
     await channel.send(message);
   }
+}
+
+async function seedStaticInfoMessage(channel, key) {
+  if (!channel?.isTextBased?.() || channel.lastMessageId) {
+    return;
+  }
+
+  await channel.send(tForLanguage(getGuildLanguage(channel.guild.id), key));
 }
 
 async function seedVoiceCreateMessage(channel) {
@@ -354,23 +404,24 @@ async function createInformationsArea(guild, roleMap) {
     { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
   ]);
 
-  await ensureTextChannel(guild, informationsCategory.id, CHANNELS.welcome, [
+  const readOnlyPermissions = [
     {
       id: guild.roles.everyone.id,
       allow: [PermissionFlagsBits.ViewChannel],
       deny: [PermissionFlagsBits.SendMessages]
     }
-  ]);
+  ];
 
-  const faqChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.faq, [
-    {
-      id: guild.roles.everyone.id,
-      allow: [PermissionFlagsBits.ViewChannel],
-      deny: [PermissionFlagsBits.SendMessages]
-    }
-  ]);
+  const welcomeChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.welcome, readOnlyPermissions);
+  const rulesChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.rules, readOnlyPermissions);
+  const announcementsChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.annonces, readOnlyPermissions);
+  const faqChannel = await ensureForumChannel(guild, informationsCategory.id, CHANNELS.faq, readOnlyPermissions);
 
   await ensureTextChannel(guild, informationsCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+
+  await seedStaticInfoMessage(welcomeChannel, 'init.welcomeInfo');
+  await seedStaticInfoMessage(rulesChannel, 'init.rules');
+  await seedStaticInfoMessage(announcementsChannel, 'init.announcements');
   await seedFaqMessages(faqChannel);
 }
 
@@ -385,6 +436,18 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
     : buildHiddenPermissions(guild, ownerId);
 
   await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions);
+
+  const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
+  if (suggestionsEnabled) {
+    const suggestionsForum = await ensureForumChannel(guild, communauteCategory.id, CHANNELS.suggestions, [
+      { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
+    ]);
+    await ensureForumPost(
+      suggestionsForum,
+      tForLanguage(getGuildLanguage(guild.id), 'init.suggestionsPostTitle'),
+      tForLanguage(getGuildLanguage(guild.id), 'init.suggestionsIntro')
+    );
+  }
 }
 
 async function createVocalArea(guild, ownerId) {
@@ -452,9 +515,7 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     { name: CHANNELS.vocauxConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
     { name: CHANNELS.jeux, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
     { name: CHANNELS.changelogs, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.suggestions, permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
     { name: CHANNELS.approveGames, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
-    { name: CHANNELS.annonces, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
     { name: CHANNELS.serveursJeu, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
 
     // logs and guardian config
@@ -481,9 +542,13 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
 function buildSetupInstallButtonRow(language) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
+      .setCustomId(SETUP_START_BUTTON_ID)
+      .setLabel(tForLanguage(language, 'setup.startButton'))
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
       .setCustomId(SETUP_INSTALL_BUTTON_ID)
       .setLabel(tForLanguage(language, 'setup.installButton'))
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
   );
 }
 
@@ -556,7 +621,7 @@ function buildSetupInstallMessagePayloadForGuild(language) {
 }
 
 async function runSetupInstallationPhases(guild, ownerId) {
-  const roleMap = getGradeRoleMap(guild.id);
+  const roleMap = getGradeMappings(guild.id);
 
   await createInformationsArea(guild, roleMap);
   await createCommunauteArea(guild, roleMap, ownerId);
@@ -582,7 +647,10 @@ async function createSetupArea(guild) {
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
     ]);
 
-    await runSetupInstallationPhases(guild, owner.id);
+    setGuildSetting(guild.id, 'setup', 'owner_id', owner.id);
+    if (!Number.isInteger(getGuildSetting(guild.id, 'setup', 'step', null))) {
+      setGuildSetting(guild.id, 'setup', 'step', 1);
+    }
 
     const language = resolveSetupLanguage(guild.id);
     await channel.send(buildSetupInstallMessagePayloadForGuild(language));
@@ -642,12 +710,56 @@ function finalizeInstall(guild) {
   markGuildInstalled(guild.id, guild.ownerId);
 }
 
+async function cleanupSetupArea(guild) {
+  const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+  if (!setupCategory) {
+    return;
+  }
+
+  const children = guild.channels.cache.filter((channel) => channel.parentId === setupCategory.id);
+  for (const child of children.values()) {
+    await child.delete('Guardian setup finalised').catch((error) => {
+      logger.error('Failed to remove setup child channel', error);
+    });
+  }
+
+  await setupCategory.delete('Guardian setup finalised').catch((error) => {
+    logger.error('Failed to remove setup category', error);
+  });
+}
+
+async function postSetupSummary(guild) {
+  const welcomeChannel = findGuildTextChannelByName(guild, CHANNELS.welcome);
+  if (!welcomeChannel?.isTextBased?.()) {
+    return;
+  }
+
+  const language = getGuildLanguage(guild.id);
+  const delayHours = Number(getGuildSetting(guild.id, 'members', 'promotion_delay_hours', 48));
+
+  await welcomeChannel.send(
+    tForLanguage(language, 'setup.summary', {
+      guild: guild.name,
+      delay: delayHours
+    })
+  );
+}
+
+async function completeGuildSetup(guild) {
+  const owner = await guild.fetchOwner();
+  await runSetupInstallationPhases(guild, owner.id);
+  await postSetupSummary(guild);
+  await cleanupSetupArea(guild);
+}
+
 module.exports = {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
+  SETUP_START_BUTTON_ID,
   createSetupArea,
   ensureSetupInstallPrompt,
   finalizeInstall,
+  completeGuildSetup,
   handleSetupLanguageSelection,
   handleSetupInstallButton
 };
