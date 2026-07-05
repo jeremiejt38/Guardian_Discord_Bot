@@ -410,7 +410,8 @@ const CHANNEL_SLOTS = Object.freeze([
   { key: 'rules', label: '#règles', desc: 'Channel où le règlement du serveur est affiché.', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '�' },
   { key: 'announcements', label: '#annonces', desc: 'Channel réservé aux annonces officielles de l\'équipe.', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '�' },
   { key: 'welcome', label: '#bienvenue', desc: 'Channel où Guardian accueille les nouveaux membres.', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '�' },
-  { key: 'voiceAfk', label: 'Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' }
+  { key: 'voiceAfk', label: 'Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' },
+  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel réservé aux modérateurs — reçoit les logs Guardian (sanctions, alertes auto-mod). Correspond au channel "Moderator Only" des serveurs communautaires Discord.', settingSection: 'channels', settingKey: 'moderation_logs_channel_id', emoji: '🛡️' }
 ]);
 
 function getChannelCursor(guildId) {
@@ -1193,6 +1194,9 @@ async function handleSetupInteraction(interaction) {
         if (slot.key === 'voiceAfk') {
           setGuildSetting(guildId, 'modules', 'afk_enabled', false);
         }
+        if (slot.key === 'moderationLogs') {
+          setGuildSetting(guildId, 'modules', 'mod_logs_enabled', false);
+        }
       }
       if (cursor < activeSlots.length - 1) { setChannelCursor(guildId, cursor + 1); await renderStep(interaction, 3); }
       else { setGuildSetting(guildId, 'setup', 'step', 4); await renderStep(interaction, 4); }
@@ -1293,13 +1297,6 @@ async function handleSetupInteraction(interaction) {
     const name = interaction.fields.getTextInputValue('name').trim();
     const galerieEnabled = false;
     const changelogEnabled = true;
-    let deferredReply = false;
-    try {
-      await interaction.deferReply({ ephemeral: true });
-      deferredReply = true;
-    } catch (err) {
-      logger.warn('addGameModal: deferReply failed', { error: err?.message });
-    }
     let steamResult = null;
     try {
       const encoded = encodeURIComponent(name);
@@ -1315,7 +1312,6 @@ async function handleSetupInteraction(interaction) {
       logger.error('Steam search error', { error: err?.message, name });
     }
     if (!steamResult) {
-      if (deferredReply) await interaction.deleteReply().catch(() => {});
       const confirmModal = new ModalBuilder()
         .setCustomId(`${CUSTOM_IDS.addGameConfirmModal}:${encodeURIComponent(name)}`)
         .setTitle('⚠️ Jeu non trouvé sur Steam');
@@ -1334,6 +1330,13 @@ async function handleSetupInteraction(interaction) {
         )
       );
       await interaction.showModal(confirmModal); return true;
+    }
+    let deferredReply = false;
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      deferredReply = true;
+    } catch (err) {
+      logger.warn('addGameModal: deferReply failed', { error: err?.message });
     }
     let game;
     try {
