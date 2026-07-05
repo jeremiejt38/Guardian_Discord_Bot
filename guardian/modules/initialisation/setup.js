@@ -851,13 +851,20 @@ async function handleSetupInstallButton(interaction) {
 
 async function handleSetupIntegrateButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
   try {
+    const context = getInstallContext(interaction.guild);
+    if (context === 'reinstall') {
+      await interaction.deferUpdate().catch(() => {});
+      await completeGuildSetup(interaction.guild);
+      return;
+    }
     autoMapRolesByName(interaction.guild);
     const { startWizardInChannel } = require('./setupFlow');
     await startWizardInChannel(interaction);
   } catch (error) {
     logger.error('Failed setup integrate', error);
-    if (interaction.isRepliable()) await replyEphemeral(interaction, t(interaction.guildId, 'setup.installError'));
+    if (interaction.isRepliable()) await replyEphemeral(interaction, t(guildId, 'setup.installError'));
   }
 }
 
