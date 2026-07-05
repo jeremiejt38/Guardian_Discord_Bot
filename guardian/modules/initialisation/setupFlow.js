@@ -41,6 +41,7 @@ const CUSTOM_IDS = Object.freeze({
   createRolesAuto: 'setup:grade:create-auto',
   renameGradePrefix: 'setup:grade:rename',
   renameGradeModal: 'setup:grade:rename:modal',
+  selectOwnerMember: 'setup:grade:owner-member',
   selectRolePrefix: 'setup:grade:role',
   previousGrade: 'setup:grade:prev',
   nextGrade: 'setup:grade:next',
@@ -198,9 +199,14 @@ function setGradeRenameName(guildId, grade, name) {
   setGuildSetting(guildId, 'setup', 'grade_rename_map', map);
 }
 
+function isFreshInstall(guildId) {
+  return Boolean(getGuildSetting(guildId, 'setup', 'fresh_install', false));
+}
+
 function buildStepOneContent(guildId, guild) {
   const mappings = getGradeMappings(guildId);
   const autoCreated = getRolesAutoCreated(guildId);
+  const noRoles = !hasMapableRoles(guild) || isFreshInstall(guildId);
   const lines = [
     `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`
   ];
@@ -214,7 +220,7 @@ function buildStepOneContent(guildId, guild) {
       const roleName = renameMap[grade] || gradeLabel(grade);
       lines.push(`🏷️ **${gradeLabel(grade)}** → \`${roleName}\`` + (roleId ? ` <@&${roleId}>` : ''));
     }
-  } else if (!hasMapableRoles(guild)) {
+  } else if (noRoles) {
     lines.push(t('setup.step1NoRolesDesc', {}, { guildId }));
   } else {
     const cursor = getGradeCursor(guildId);
@@ -235,6 +241,7 @@ function buildStepOneContent(guildId, guild) {
 }
 
 function buildStepOneComponents(guildId, guild) {
+  const noRoles = !hasMapableRoles(guild) || isFreshInstall(guildId);
   if (getRolesAutoCreated(guildId)) {
     const rows = [];
     for (let i = 0; i < ORDERED_GRADES.length; i += 3) {
@@ -253,7 +260,7 @@ function buildStepOneComponents(guildId, guild) {
     return rows;
   }
 
-  if (!hasMapableRoles(guild)) {
+  if (noRoles) {
     const autoRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.createRolesAuto)
@@ -840,6 +847,7 @@ async function handleSetupInteraction(interaction) {
       }
     }
     setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
+    setGuildSetting(guildId, 'setup', 'fresh_install', false);
     setGradeCursor(guildId, 0);
     await renderStep(interaction, 1);
     return true;
@@ -1113,6 +1121,23 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 4); return true;
   }
 
+  if (interaction.isStringSelectMenu() && interaction.customId === CUSTOM_IDS.selectOwnerMember) {
+    const memberId = interaction.values[0];
+    if (memberId === 'none') { await interaction.deferUpdate().catch(() => {}); return true; }
+    const mappings = getGradeMappings(guildId);
+    const ownerRoleId = mappings[GRADE_NAMES.owner];
+    if (ownerRoleId && interaction.guild) {
+      try {
+        const member = await interaction.guild.members.fetch(memberId);
+        await member.roles.add(ownerRoleId, 'Guardian setup — attribution rôle Owner');
+      } catch (err) {
+        logger.error('Failed to assign owner role', err);
+      }
+    }
+    await renderStep(interaction, 1);
+    return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.back) {
     const currentStep = getCurrentStep(guildId);
     const prevStep = Math.max(1, currentStep - 1);
@@ -1127,6 +1152,30 @@ async function handleSetupInteraction(interaction) {
     if (currentStep === 1 && interaction.guild) {
       const validation = validateStepOneMappings(interaction.guild);
       if (!validation.ok) {
+        if (validation.reason === 'owner_cardinality' && validation.details?.ownerCount === 0 && interaction.guild.members) {
+          await interaction.deferUpdate().catch(() => {});
+          const members = await interaction.guild.members.fetch();
+          const nonBots = [...members.filter((m) => !m.user.bot).values()].slice(0, 25);
+          const options = nonBots.map((m) => ({
+            label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
+            value: m.id,
+            description: `@${m.user.username}`.slice(0, 50)
+          }));
+          const ownerRoleId = validation.mappings[GRADE_NAMES.owner];
+          const selectRow = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId(CUSTOM_IDS.selectOwnerMember)
+              .setPlaceholder('Choisir le membre Owner (aura tous les droits)')
+              .setMinValues(1).setMaxValues(1)
+              .addOptions(options.length ? options : [{ label: 'Aucun membre', value: 'none' }])
+          );
+          const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : 'Owner';
+          await interaction.channel.send({
+            content: `⚠️ **Aucun membre n'a encore le rôle ${ownerRoleMention}.**\nChoisis le propriétaire du serveur — il aura tous les droits Guardian (gestion des grades, modération, configuration).`,
+            components: [selectRow]
+          });
+          return true;
+        }
         await sendSetupMessage(interaction, explainStepOneValidation(guildId, validation));
         return true;
       }

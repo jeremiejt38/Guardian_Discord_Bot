@@ -836,6 +836,7 @@ async function handleSetupResetButton(interaction) {
     db.prepare('DELETE FROM guild_config WHERE guild_id = ?').run(guildId);
     db.prepare('DELETE FROM grades WHERE guild_id = ?').run(guildId);
     db.prepare('UPDATE guilds SET setup_done = 0 WHERE guild_id = ?').run(guildId);
+    setGuildSetting(guildId, 'setup', 'fresh_install', true);
 
     const { startWizardInChannel } = require('./setupFlow');
     await startWizardInChannel(interaction);
