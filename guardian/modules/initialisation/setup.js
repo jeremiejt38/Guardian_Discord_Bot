@@ -786,34 +786,34 @@ async function handleSetupInstallButton(interaction) {
   const context = getInstallContext(interaction.guild);
 
   if (context === 'fresh') {
-    await interaction.reply({
+    await interaction.message.edit({
       content: [
         `✅ **${t(guildId, 'setup.freshTitle')}**`,
         t(guildId, 'setup.freshDesc')
       ].join('\n'),
-      components: [buildFreshRow(guildId)],
-      ephemeral: true
+      components: [buildFreshRow(guildId)]
     });
+    await interaction.deferUpdate().catch(() => {});
     return;
   }
 
   if (context === 'guardian_partial') {
-    await interaction.reply({
+    await interaction.message.edit({
       content: [
         `⏸️ **${t(guildId, 'setup.guardianPartialTitle')}**`,
         t(guildId, 'setup.guardianPartialResume')
       ].join('\n'),
-      components: [buildPartialRow(guildId)],
-      ephemeral: true
+      components: [buildPartialRow(guildId)]
     });
+    await interaction.deferUpdate().catch(() => {});
     return;
   }
 
-  await interaction.reply({
+  await interaction.message.edit({
     content: buildContextChoiceMessage(guildId, context),
-    components: [buildContextChoiceRow(guildId, context)],
-    ephemeral: true
+    components: [buildContextChoiceRow(guildId, context)]
   });
+  await interaction.deferUpdate().catch(() => {});
 }
 
 async function handleSetupIntegrateButton(interaction) {
@@ -894,19 +894,21 @@ async function completeGuildSetup(guild) {
 async function handleSetupForceExistingButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) return;
   const guildId = interaction.guildId;
-  await interaction.update({
+  await interaction.message.edit({
     content: buildContextChoiceMessage(guildId, 'existing_server'),
     components: [buildContextChoiceRow(guildId, 'existing_server')]
   });
+  await interaction.deferUpdate().catch(() => {});
 }
 
 async function handleSetupForceReinstallButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) return;
   const guildId = interaction.guildId;
-  await interaction.update({
+  await interaction.message.edit({
     content: buildContextChoiceMessage(guildId, 'reinstall'),
     components: [buildContextChoiceRow(guildId, 'reinstall')]
   });
+  await interaction.deferUpdate().catch(() => {});
 }
 
 module.exports = {
