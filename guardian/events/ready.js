@@ -11,7 +11,7 @@ const { refreshStatusBotPanel } = require('../modules/config/statusBotPanel');
 const logger = require('../modules/logs/logger');
 
 module.exports = {
-  name: 'ready',
+  name: 'clientReady',
   once: true,
   async execute(client) {
     logger.info(`Connected as ${client.user.tag}`);
