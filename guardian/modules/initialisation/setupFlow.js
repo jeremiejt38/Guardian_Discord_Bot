@@ -696,8 +696,7 @@ function buildStep6Content_Games(guildId) {
     for (const game of games) {
       lines.push(
         `\n🎮 **${game.name}**`,
-        `> Steam ID : \`${game.steam_app_id || 'non défini'}\``,
-        `> Galerie : ${onOffDot(Boolean(game.galerie_enabled))} | Changelog : ${onOffDot(Boolean(game.changelog_enabled))}`
+        `> Steam ID : \`${game.steam_app_id || 'non défini'}\``
       );
     }
   }
@@ -716,7 +715,15 @@ function buildStep6Components_Games(guildId) {
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.editGamePrefix}:${game.game_id}`)
         .setStyle(ButtonStyle.Secondary)
-        .setLabel(`✏️ ${game.name.slice(0, 22)}`),
+        .setLabel(`✏️ ${game.name.slice(0, 18)}`),
+      new ButtonBuilder()
+        .setCustomId(`${CUSTOM_IDS.toggleGameGallery}:${game.game_id}`)
+        .setStyle(game.galerie_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setLabel(`🖼️ ${onOffDot(Boolean(game.galerie_enabled))}`),
+      new ButtonBuilder()
+        .setCustomId(`${CUSTOM_IDS.toggleGameChangelog}:${game.game_id}`)
+        .setStyle(game.changelog_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setLabel(`📢 ${onOffDot(Boolean(game.changelog_enabled))}`),
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.deleteGamePrefix}:${game.game_id}`)
         .setStyle(ButtonStyle.Danger)
@@ -1271,18 +1278,6 @@ async function handleSetupInteraction(interaction) {
           .setCustomId('name').setLabel('Nom du jeu')
           .setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(64)
           .setPlaceholder('Ex: Counter-Strike 2, Minecraft...')
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('galerie').setLabel('Galerie screenshots ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue('non').setPlaceholder('oui ou non')
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('changelog').setLabel('Changelog mises à jour ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue('oui').setPlaceholder('oui ou non')
       )
     );
     await interaction.showModal(modal); return true;
@@ -1290,8 +1285,8 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
-    const galerieEnabled = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
-    const changelogEnabled = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() !== 'non';
+    const galerieEnabled = false;
+    const changelogEnabled = true;
     let deferredReply = false;
     try {
       await interaction.deferReply({ ephemeral: true });
@@ -1366,18 +1361,6 @@ async function handleSetupInteraction(interaction) {
           .setCustomId('name').setLabel('Nom du jeu')
           .setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(64)
           .setValue(game.name)
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('galerie').setLabel('Galerie screenshots ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue(game.galerie_enabled ? 'oui' : 'non').setPlaceholder('oui ou non')
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('changelog').setLabel('Changelog mises à jour ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue(game.changelog_enabled ? 'oui' : 'non').setPlaceholder('oui ou non')
       )
     );
     await interaction.showModal(modal); return true;
@@ -1386,9 +1369,9 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const name = interaction.fields.getTextInputValue('name').trim();
-    const galerie = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
-    const changelog = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() !== 'non';
     const existingGame = listSetupGames(guildId).find((g) => g.game_id === gameId);
+    const galerie = Boolean(existingGame?.galerie_enabled);
+    const changelog = Boolean(existingGame?.changelog_enabled);
     let steamId = existingGame?.steam_app_id || null;
     if (name !== existingGame?.name) {
       try {
@@ -1423,6 +1406,18 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.customId?.startsWith(`${CUSTOM_IDS.toggleGameGallery}:`)) {
+    const gameId = Number(interaction.customId.split(':').pop());
+    const game = listSetupGames(guildId).find((g) => g.game_id === gameId);
+    if (game) { updateSetupGame(guildId, gameId, { ...game, galerie_enabled: !game.galerie_enabled }); }
+    await renderStep(interaction, 6); return true;
+  }
+  if (interaction.customId?.startsWith(`${CUSTOM_IDS.toggleGameChangelog}:`)) {
+    const gameId = Number(interaction.customId.split(':').pop());
+    const game = listSetupGames(guildId).find((g) => g.game_id === gameId);
+    if (game) { updateSetupGame(guildId, gameId, { ...game, changelog_enabled: !game.changelog_enabled }); }
+    await renderStep(interaction, 6); return true;
+  }
   if (interaction.customId?.startsWith(`${CUSTOM_IDS.deleteGamePrefix}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const db = require('../../database/db').getDb();
