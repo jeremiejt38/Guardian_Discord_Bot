@@ -217,7 +217,7 @@ function isFreshInstall(guildId) {
 function buildStepOneContent(guildId, guild) {
   const mappings = getGradeMappings(guildId);
   const autoCreated = getRolesAutoCreated(guildId);
-  const noRoles = !hasMapableRoles(guild) || isFreshInstall(guildId);
+  const noRoles = !hasMapableRoles(guild);
   const lines = [
     `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`
   ];
@@ -269,7 +269,7 @@ function buildStepOneContent(guildId, guild) {
 }
 
 function buildStepOneComponents(guildId, guild) {
-  const noRoles = !hasMapableRoles(guild) || isFreshInstall(guildId);
+  const noRoles = !hasMapableRoles(guild);
   if (getRolesAutoCreated(guildId)) {
     const rows = [];
     for (let i = 0; i < ORDERED_GRADES.length; i += 3) {
