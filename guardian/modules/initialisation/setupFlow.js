@@ -124,8 +124,12 @@ function boolText(value, guildId) {
   return value ? t('setup.enabled', {}, { guildId }) : t('setup.disabled', {}, { guildId });
 }
 
-function onOff(flag, guildId) {
-  return flag ? t('setup.enabled', {}, { guildId }) : t('setup.disabled', {}, { guildId });
+function onOff(flag) {
+  return flag ? '🟢 Actif' : '🔴 Inactif';
+}
+
+function onOffDot(flag) {
+  return flag ? '🟢' : '🔴';
 }
 
 function buildNavRow(guildId, step) {
@@ -342,15 +346,15 @@ function buildStep2Content(guildId) {
     `## ${t('setup.step2Title', {}, { guildId })} (2/${TOTAL_STEPS})`,
     t('setup.step2Instructions', {}, { guildId }),
     '',
-    `💡 **Suggestions** : ${onOff(c.suggestionsEnabled, guildId)}`,
+    `💡 **Suggestions** : ${onOff(c.suggestionsEnabled)}`,
     '> Permet aux membres de soumettre des idées via un channel dédié.',
-    `🖥️ **Liste serveurs** : ${onOff(c.serverListEnabled, guildId)}`,
+    `🖥️ **Liste serveurs** : ${onOff(c.serverListEnabled)}`,
     '> Affiche une liste des serveurs de jeu liés à la communauté.',
-    `🤖 **Statut bot** : ${onOff(c.statusBotEnabled, guildId)}`,
+    `🤖 **Statut bot** : ${onOff(c.statusBotEnabled)}`,
     '> Poste un message de statut mis à jour automatiquement (uptime, version...).',
-    `🔇 **Vocal AFK** : ${onOff(c.afkEnabled, guildId)}`,
+    `🔇 **Vocal AFK** : ${onOff(c.afkEnabled)}`,
     '> Crée un salon vocal AFK où les membres inactifs sont déplacés automatiquement.',
-    `🎮 **Game Updates** : ${onOff(c.gameUpdatesEnabled, guildId)}`,
+    `🎮 **Game Updates** : ${onOff(c.gameUpdatesEnabled)}`,
     '> Publie les mises à jour Steam des jeux configurés dans le channel dédié.'
   ].join('\n');
 }
@@ -359,17 +363,17 @@ function buildStep2Components(guildId) {
   const c = getStep2Config(guildId);
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSuggestions).setStyle(ButtonStyle.Secondary)
-      .setLabel(`💡 Suggestions: ${onOff(c.suggestionsEnabled, guildId)}`),
+      .setLabel(`💡 Suggestions: ${onOffDot(c.suggestionsEnabled)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleServerList).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🖥️ Serveurs: ${onOff(c.serverListEnabled, guildId)}`),
+      .setLabel(`🖥️ Serveurs: ${onOffDot(c.serverListEnabled)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleStatusBot).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🤖 Statut: ${onOff(c.statusBotEnabled, guildId)}`)
+      .setLabel(`🤖 Statut: ${onOffDot(c.statusBotEnabled)}`)
   );
   const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleAfk).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🔇 AFK: ${onOff(c.afkEnabled, guildId)}`),
+      .setLabel(`🔇 AFK: ${onOffDot(c.afkEnabled)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameUpdates).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🎮 Game Updates: ${onOff(c.gameUpdatesEnabled, guildId)}`)
+      .setLabel(`🎮 Game Updates: ${onOffDot(c.gameUpdatesEnabled)}`)
   );
   return [row, row2, buildNavRow(guildId, 2)];
 }
@@ -507,12 +511,18 @@ function buildStep4Content(guildId) {
     `## ${t('setup.step4Title', {}, { guildId })} (4/${TOTAL_STEPS})`,
     t('setup.step4Instructions', {}, { guildId }),
     '',
-    `⏱️ **Délai promotion** : ${c.promotionDelayHours}h`,
-    `📝 **Bio obligatoire** : ${boolText(c.bioRequired, guildId)}`,
-    `👥 **Parrainage** : ${boolText(c.sponsorshipRequired, guildId)}`,
+    `⏱️ **Délai de promotion** : ${c.promotionDelayHours}h`,
+    '> Temps minimum qu’un invité doit passer sur le serveur avant de pouvoir devenir Membre.',
+    `📝 **Bio obligatoire** : ${onOff(c.bioRequired)}`,
+    '> Si actif, les invités doivent renseigner leur profil avant d’être promus.',
+    `👥 **Parrainage** : ${onOff(c.sponsorshipRequired)}`,
+    '> Si actif, un Membre existant doit parrainer l’invité pour qu’il soit promu.',
     `🔍 **Grade réviseur** : ${gradeLabel(c.reviewerGrade)}`,
-    `🚪 **Expulsion invités** : ${boolText(c.inviteExpulsionEnabled, guildId)} (après ${c.inviteExpulsionDays}j)`,
-    `💬 **Message de bienvenue** : ${welcomePreview}`
+    '> Grade minimum requis pour valider ou refuser une demande de promotion.',
+    `🚪 **Expulsion des invités** : ${onOff(c.inviteExpulsionEnabled)} (après ${c.inviteExpulsionDays}j)`,
+    '> Guardian expulse automatiquement les invités qui ne sont pas promus après le délai.',
+    `💬 **Message de bienvenue** : ${welcomePreview}`,
+    '> Message envoyé en privé à chaque nouveau membre qui rejoint le serveur.'
   ].join('\n');
 }
 
@@ -520,9 +530,9 @@ function buildStep4Components(guildId) {
   const c = getStep4Config(guildId);
   const toggles = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBioRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Bio: ${boolText(c.bioRequired, guildId)}`),
+      .setLabel(`Bio: ${onOffDot(c.bioRequired)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSponsorshipRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Parrainage: ${boolText(c.sponsorshipRequired, guildId)}`),
+      .setLabel(`Parrainage: ${onOffDot(c.sponsorshipRequired)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cyclePromotionReviewerGrade).setStyle(ButtonStyle.Secondary)
       .setLabel(`Réviseur: ${gradeLabel(c.reviewerGrade)}`)
   );
@@ -532,7 +542,7 @@ function buildStep4Components(guildId) {
   );
   const expulsion = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteExpulsion).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Expulsion: ${boolText(c.inviteExpulsionEnabled, guildId)}`),
+      .setLabel(`Expulsion: ${onOffDot(c.inviteExpulsionEnabled)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('-1j'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('+1j')
   );
@@ -567,9 +577,13 @@ function buildStep5VocalContent(guildId) {
     t('setup.step5Instructions', {}, { guildId }),
     '',
     `🔊 **Préfixe des salons vocaux** : ${c.prefix}`,
+    '> Emoji ou texte affiché au début du nom de chaque room vocale créée automatiquement.',
     `📛 **Suffixe** : ${c.suffix}`,
+    '> Texte affiché à la fin du nom de la room (ex : « — Partie »).',
     `👥 **Limite de membres** : ${limitDisplay}`,
-    `⏱️ **Délai de suppression** : ${c.deleteDelayMinutes} min`
+    '> Nombre max de personnes autorisées dans chaque room vocale. 0 = illimité.',
+    `⏱️ **Délai de suppression** : ${c.deleteDelayMinutes} min`,
+    '> Temps après lequel une room vocale vide est supprimée automatiquement.'
   ].join('\n');
 }
 
@@ -618,47 +632,74 @@ function getSteamCycleValue(value) {
 }
 
 function buildStep6Content_Games(guildId) {
-  const games = ensureAtLeastOneSetupGame(guildId);
+  const games = listSetupGames(guildId);
+  const hasGames = games.length > 0;
   const rawCursor = getStep5Cursor(guildId);
-  const cursor = Math.min(rawCursor, games.length - 1);
+  const cursor = hasGames ? Math.min(rawCursor, games.length - 1) : 0;
   if (rawCursor !== cursor) setStep5Cursor(guildId, cursor);
-  const current = games[cursor];
-  const summary = games.map((game, i) => {
-    const marker = i === cursor ? '▶' : '—';
-    return `${marker} **${game.name}** | steam=${game.steam_app_id || 'none'} | galerie=${onOff(Boolean(game.galerie_enabled), guildId)} | changelog=${onOff(Boolean(game.changelog_enabled), guildId)}`;
-  }).join('\n');
-  return [
+  const current = hasGames ? games[cursor] : null;
+  const lines = [
     `## ${t('setup.step6Title', {}, { guildId })} (6/${TOTAL_STEPS})`,
-    t('setup.step6Instructions', {}, { guildId }),
-    `> Jeu sélectionné : **${current.name}**`,
     '',
-    summary
-  ].join('\n');
+    '🎮 **Pourquoi une liste de jeux ?**',
+    '> Guardian peut créer des channels dédiés par jeu (galerie screenshots, changelog des mises à jour).',
+    '> Il surveille les mises à jour Steam et les publie automatiquement si tu fournis le Steam ID du jeu.',
+    '',
+    '🔗 **Steam ID** : identifiant numérique unique de chaque jeu sur Steam.',
+    '> Exemple : `730` pour CS2, `570` pour Dota 2, `440` pour TF2.',
+    '> Tu le trouves dans l’URL Steam du jeu : `store.steampowered.com/app/**730**/`.',
+    '',
+  ];
+  if (!hasGames) {
+    lines.push('ℹ️ Aucun jeu configuré. Tu peux en ajouter maintenant ou plus tard via `/config games`.');
+    lines.push('> La liste vide ne bloque pas le fonctionnement du bot.');
+  } else {
+    const summary = games.map((game, i) => {
+      const marker = i === cursor ? '▶' : '—';
+      return [
+        `${marker} **${game.name}**`,
+        `> Steam ID: \`${game.steam_app_id || 'non défini'}\` | Galerie: ${onOffDot(Boolean(game.galerie_enabled))} | Changelog: ${onOffDot(Boolean(game.changelog_enabled))}`
+      ].join('\n');
+    }).join('\n');
+    lines.push(`> Jeu sélectionné : **${current.name}**`);
+    lines.push('');
+    lines.push(summary);
+  }
+  return lines.join('\n');
 }
 
 function buildStep6Components_Games(guildId) {
-  const games = ensureAtLeastOneSetupGame(guildId);
+  const games = listSetupGames(guildId);
+  const hasGames = games.length > 0;
   const rawCursor = getStep5Cursor(guildId);
-  const cursor = Math.min(rawCursor, games.length - 1);
+  const cursor = hasGames ? Math.min(rawCursor, games.length - 1) : 0;
   if (rawCursor !== cursor) setStep5Cursor(guildId, cursor);
-  const current = games[cursor];
+  const current = hasGames ? games[cursor] : null;
   const listActions = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Secondary).setLabel('➕ Ajouter jeu'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.removeLastGame).setStyle(ButtonStyle.Secondary).setLabel('🗑️ Supprimer dernier').setDisabled(games.length <= 1)
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.removeLastGame).setStyle(ButtonStyle.Secondary)
+      .setLabel('🗑️ Supprimer dernier').setDisabled(!hasGames)
   );
-  const nav = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.previousGame).setStyle(ButtonStyle.Secondary).setLabel('◀ Précédent').setDisabled(cursor === 0),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.nextGameItem).setStyle(ButtonStyle.Secondary).setLabel('Suivant ▶').setDisabled(cursor >= games.length - 1)
-  );
-  const toggles = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameGallery).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Galerie: ${onOff(Boolean(current.galerie_enabled), guildId)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameChangelog).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Changelog: ${onOff(Boolean(current.changelog_enabled), guildId)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleGameAppId).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Steam ID: ${current.steam_app_id || 'none'}`)
-  );
-  return [listActions, nav, toggles, buildNavRow(guildId, 6)];
+  const rows = [listActions];
+  if (hasGames && current) {
+    const nav = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.previousGame).setStyle(ButtonStyle.Secondary)
+        .setLabel('◀ Précédent').setDisabled(cursor === 0),
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.nextGameItem).setStyle(ButtonStyle.Secondary)
+        .setLabel('Suivant ▶').setDisabled(cursor >= games.length - 1)
+    );
+    const toggles = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameGallery).setStyle(ButtonStyle.Secondary)
+        .setLabel(`Galerie: ${onOffDot(Boolean(current.galerie_enabled))}`),
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameChangelog).setStyle(ButtonStyle.Secondary)
+        .setLabel(`Changelog: ${onOffDot(Boolean(current.changelog_enabled))}`),
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleGameAppId).setStyle(ButtonStyle.Secondary)
+        .setLabel(`Steam ID: ${current.steam_app_id || 'non défini'}`)
+    );
+    rows.push(nav, toggles);
+  }
+  rows.push(buildNavRow(guildId, 6));
+  return rows;
 }
 
 const LOGS_LEVELS = ['minimal', 'normal', 'verbose'];
@@ -700,11 +741,16 @@ function buildStep7Content(guildId) {
     `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
     t('setup.step7Instructions', {}, { guildId }),
     '',
-    `⚖️ **Score comportemental** : ${boolText(c.behaviorScoreEnabled, guildId)}`,
+    `⚖️ **Score comportemental** : ${onOff(c.behaviorScoreEnabled)}`,
+    '> Attribue un score aux membres selon leur comportement (messages, sanctions, ancienneté).',
     `🛡️ **Anti-spam** : max ${c.spamThreshold} msg/3s`,
-    `� **Slow mode** : ${slowDisplay}`,
-    `🚫 **Blacklist** : ${c.blacklistWarn ? '⚠️ Warn public' : '🤫 Silencieux'} — mots: ${wordList}`,
-    `📋 **Logs Guardian** : ${logsDisplay}`
+    '> Guardian supprime les messages si un membre dépasse ce seuil en 3 secondes.',
+    `⏱️ **Slow mode** : ${slowDisplay}`,
+    '> Impose un délai entre les messages pour calmer les discussions agitées.',
+    `🚫 **Blacklist** : ${c.blacklistWarn ? '⚠️ Avertissement public' : '🤫 Suppression silencieuse'} — ${c.blacklistWords.length} mot(s)`,
+    wordList !== '*aucun*' ? `> Mots bannis : ${wordList}` : '> Aucun mot banni configuré.',
+    `📋 **Logs Guardian** : ${logsDisplay}`,
+    '> Enregistre les actions du bot (sanctions, promotions, erreurs) dans un channel dédié.'
   ].join('\n');
 }
 
@@ -712,7 +758,7 @@ function buildStep7Components(guildId) {
   const c = getStep7Config(guildId);
   const scoreRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(ButtonStyle.Secondary)
-      .setLabel(`⚖️ Score: ${boolText(c.behaviorScoreEnabled, guildId)}`),
+      .setLabel(`⚖️ Score: ${onOffDot(c.behaviorScoreEnabled)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBlacklistWarn).setStyle(ButtonStyle.Secondary)
       .setLabel(`🚫 Blacklist: ${c.blacklistWarn ? 'Warn' : 'Silent'}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleLogsLevel).setStyle(ButtonStyle.Secondary)
@@ -749,12 +795,12 @@ function buildStep8Summary(guildId) {
     `**Grades mappés** : ${Object.keys(mappings).length}/5`,
     '',
     '**Modules**',
-    `  💡 Suggestions: ${onOff(modules.suggestionsEnabled, guildId)} | 🖥️ Serveurs: ${onOff(modules.serverListEnabled, guildId)} | 🤖 Statut: ${onOff(modules.statusBotEnabled, guildId)}`,
-    `  🔇 AFK: ${onOff(modules.afkEnabled, guildId)} | 🎮 Game Updates: ${onOff(modules.gameUpdatesEnabled, guildId)}`,
+    `  💡 Suggestions: ${onOffDot(modules.suggestionsEnabled)} | 🖥️ Serveurs: ${onOffDot(modules.serverListEnabled)} | 🤖 Statut: ${onOffDot(modules.statusBotEnabled)}`,
+    `  🔇 AFK: ${onOffDot(modules.afkEnabled)} | 🎮 Game Updates: ${onOffDot(modules.gameUpdatesEnabled)}`,
     '',
     '**Membres**',
-    `  ⏱️ Délai: ${members.promotionDelayHours}h | 📝 Bio: ${boolText(members.bioRequired, guildId)} | 👥 Parrainage: ${boolText(members.sponsorshipRequired, guildId)}`,
-    `  🚪 Expulsion: ${boolText(members.inviteExpulsionEnabled, guildId)} (${members.inviteExpulsionDays}j)`,
+    `  ⏱️ Délai: ${members.promotionDelayHours}h | 📝 Bio: ${onOffDot(members.bioRequired)} | 👥 Parrainage: ${onOffDot(members.sponsorshipRequired)}`,
+    `  🚪 Expulsion: ${onOffDot(members.inviteExpulsionEnabled)} (${members.inviteExpulsionDays}j)`,
     '',
     '**Vocaux**',
     `  ${vocal.prefix} | Limite: ${vocal.memberLimit === 0 ? '∞' : vocal.memberLimit} | Délai supp: ${vocal.deleteDelayMinutes}min`,
@@ -762,7 +808,7 @@ function buildStep8Summary(guildId) {
     `**Jeux configurés** : ${games.length}`,
     '',
     '**Modération**',
-    `  ⚖️ Score: ${boolText(mod.behaviorScoreEnabled, guildId)} | 🛡️ Spam max: ${mod.spamThreshold}/3s | 🚫 Blacklist: ${mod.blacklistWarn ? 'warn' : 'silent'}`,
+    `  ⚖️ Score: ${onOffDot(mod.behaviorScoreEnabled)} | 🛡️ Spam max: ${mod.spamThreshold}/3s | 🚫 Blacklist: ${mod.blacklistWarn ? 'warn' : 'silent'}`,
     `  📋 Mots bannis: ${mod.blacklistWords.length}`,
     '',
     `> ⚠️ ${t('setup.step8ConfirmWarning', {}, { guildId })}`
