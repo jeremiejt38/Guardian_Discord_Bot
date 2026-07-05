@@ -1,4 +1,6 @@
 const { markReportHandled, handleOpenReportButton, handleReportModalSubmit } = require('../modules/moderation/reports');
+const { handleSlowModeInteraction } = require('../modules/moderation/slowModePanel');
+const { handleBehaviorInteraction } = require('../modules/moderation/behaviorPanel');
 const { handleHistoriquePagination } = require('../commands/historique');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
@@ -29,6 +31,16 @@ module.exports = {
 
       await command.execute(interaction);
       return;
+    }
+
+    if (interaction.customId?.startsWith('automod:slowmode:')) {
+      const handled = await handleSlowModeInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('behavior:')) {
+      const handled = await handleBehaviorInteraction(interaction);
+      if (handled) return;
     }
 
     if (interaction.isButton() && interaction.customId === 'report:open') {

@@ -3,6 +3,9 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { t } = require('../../locales');
 const { findGuildTextChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
+const { seedSlowModePanel } = require('../moderation/slowModePanel');
+const { seedBehaviorPanel } = require('../moderation/behaviorPanel');
+const { seedReportPanel } = require('../moderation/reports');
 
 async function seedGuildMessages(guild) {
   try {
@@ -39,6 +42,9 @@ async function seedGuildMessages(guild) {
       );
       await voiceCreate.send({ content: t('tempVoice.panelText', {}, { guildId: guild.id }) || 'Cliquez pour créer un vocal temporaire', components: [row] }).catch(() => undefined);
     }
+    await seedSlowModePanel(guild);
+    await seedBehaviorPanel(guild);
+    await seedReportPanel(guild);
   } catch (error) {
     logger.error('Failed to seed guild messages', error);
   }
