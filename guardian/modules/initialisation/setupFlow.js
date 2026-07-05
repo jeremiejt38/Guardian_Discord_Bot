@@ -284,13 +284,20 @@ function buildStepOneComponents(guildId, guild) {
   }
 
   if (noRoles) {
+    const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
     const autoRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.createRolesAuto)
         .setStyle(ButtonStyle.Primary)
         .setLabel(t('setup.step1CreateRolesAuto', {}, { guildId }))
     );
-    return [autoRow, buildNavRow(guildId, 1)];
+    const toggleInviteRowFresh = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.toggleInviteGrade)
+        .setStyle(inviteEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setLabel(`Grade Invité : ${onOffDot(inviteEnabled)}`)
+    );
+    return [autoRow, toggleInviteRowFresh, buildNavRow(guildId, 1)];
   }
 
   const mappings = getGradeMappings(guildId);
@@ -1404,11 +1411,16 @@ async function handleSetupInteraction(interaction) {
     const currentStep = getCurrentStep(guildId);
 
     if (currentStep === 1 && interaction.guild) {
-      const validation = validateStepOneMappings(interaction.guild);
+      const guild = interaction.guild;
+      if (guild.roles?.fetch) await guild.roles.fetch().catch(() => {});
+      const validation = validateStepOneMappings(guild);
       if (!validation.ok) {
-        if (validation.reason === 'owner_cardinality' && validation.details?.ownerCount === 0 && interaction.guild.members) {
+        const needsOwnerSelect =
+          (validation.reason === 'owner_cardinality' && validation.details?.ownerCount === 0) ||
+          validation.reason === 'owner_role_missing';
+        if (needsOwnerSelect && guild.members) {
           await interaction.deferUpdate().catch(() => {});
-          const members = await interaction.guild.members.fetch();
+          const members = await guild.members.fetch();
           const nonBots = [...members.filter((m) => !m.user.bot).values()].slice(0, 25);
           const options = nonBots.map((m) => ({
             label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
@@ -1425,7 +1437,11 @@ async function handleSetupInteraction(interaction) {
           );
           const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : 'Owner';
           await interaction.channel.send({
-            content: `⚠️ **Aucun membre n'a encore le rôle ${ownerRoleMention}.**\nChoisis le propriétaire du serveur — il aura tous les droits Guardian (gestion des grades, modération, configuration).`,
+            content: [
+              `⚠️ **Aucun membre n'a encore le rôle ${ownerRoleMention}.**`,
+              'Choisis le propriétaire du serveur — il aura tous les droits Guardian',
+              '(gestion des grades, modération, configuration).'
+            ].join('\n'),
             components: [selectRow]
           });
           return true;
