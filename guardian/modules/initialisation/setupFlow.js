@@ -154,13 +154,18 @@ function buildStepOneComponents(guildId, guild) {
   const selectedRoleId = mappings[currentGrade];
   const roleOptions = buildRoleOptions(guild, selectedRoleId);
 
+  const effectiveOptions = roleOptions.length > 0
+    ? roleOptions
+    : [{ label: 'Aucun rôle disponible', value: 'none', description: 'Crée des rôles sur le serveur d\'abord' }];
+
   const roleSelector = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`${CUSTOM_IDS.selectRolePrefix}:${currentGrade}`)
       .setPlaceholder(t('setup.selectRolePlaceholder', { grade: gradeLabel(currentGrade) }, { guildId }))
       .setMinValues(1)
       .setMaxValues(1)
-      .addOptions(roleOptions)
+      .setDisabled(roleOptions.length === 0)
+      .addOptions(effectiveOptions)
   );
 
   const gradeNavigation = new ActionRowBuilder().addComponents(
