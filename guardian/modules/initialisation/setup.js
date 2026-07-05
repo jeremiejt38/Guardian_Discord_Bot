@@ -18,6 +18,7 @@ const {
   tForLanguage
 } = require('../i18n');
 const { markGuildInstalled } = require('./checkInstall');
+const { getInstallContext } = require('./detectInstallContext');
 const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/gameList');
 const {
   findCategoryByName,
@@ -32,6 +33,8 @@ const logger = require('../logs/logger');
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
 const SETUP_LANGUAGE_SELECT_ID = 'setup:language';
 const SETUP_START_BUTTON_ID = 'setup:start';
+const SETUP_INTEGRATE_BUTTON_ID = 'setup:integrate';
+const SETUP_RESET_BUTTON_ID = 'setup:reset';
 
 async function ensureCategory(guild, name, permissionOverwrites) {
   const existing = findCategoryByName(guild, name);
@@ -680,6 +683,37 @@ async function handleSetupLanguageSelection(interaction) {
   await interaction.update(buildSetupInstallMessagePayloadForGuild(selectedLanguage));
 }
 
+function buildContextChoiceMessage(guildId, context) {
+  const messages = {
+    reinstall: [
+      `⚠️ **${t(guildId, 'setup.contextReinstallTitle')}**`,
+      t(guildId, 'setup.contextReinstallDesc')
+    ],
+    guardian_partial: [
+      `⚠️ **${t(guildId, 'setup.contextGuardianPartialTitle')}**`,
+      t(guildId, 'setup.contextGuardianPartialDesc')
+    ],
+    existing_server: [
+      `ℹ️ **${t(guildId, 'setup.contextExistingTitle')}**`,
+      t(guildId, 'setup.contextExistingDesc')
+    ]
+  };
+  return messages[context]?.join('\n') ?? '';
+}
+
+function buildContextChoiceRow(guildId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(SETUP_INTEGRATE_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.contextIntegrateButton'))
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(SETUP_RESET_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.contextResetButton'))
+      .setStyle(ButtonStyle.Danger)
+  );
+}
+
 async function handleSetupInstallButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) {
     await replyEphemeral(interaction, t(interaction.guildId, 'setup.inGuildOnly'));
@@ -694,15 +728,60 @@ async function handleSetupInstallButton(interaction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  const guildId = interaction.guildId;
+  const context = getInstallContext(interaction.guild);
 
+  if (context === 'fresh') {
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const owner = await interaction.guild.fetchOwner();
+      await runSetupInstallationPhases(interaction.guild, owner.id);
+      await interaction.editReply(t(guildId, 'setup.installSuccess'));
+    } catch (error) {
+      logger.error('Failed setup install button execution', error);
+      await interaction.editReply(t(guildId, 'setup.installError'));
+    }
+    return;
+  }
+
+  await interaction.reply({
+    content: buildContextChoiceMessage(guildId, context),
+    components: [buildContextChoiceRow(guildId)],
+    ephemeral: true
+  });
+}
+
+async function handleSetupIntegrateButton(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
+  await interaction.deferUpdate();
   try {
     const owner = await interaction.guild.fetchOwner();
     await runSetupInstallationPhases(interaction.guild, owner.id);
-    await interaction.editReply(t(interaction.guildId, 'setup.installSuccess'));
+    await interaction.editReply({ content: t(guildId, 'setup.installSuccess'), components: [] });
   } catch (error) {
-    logger.error('Failed setup install button execution', error);
-    await interaction.editReply(t(interaction.guildId, 'setup.installError'));
+    logger.error('Failed setup integrate', error);
+    await interaction.editReply({ content: t(guildId, 'setup.installError'), components: [] });
+  }
+}
+
+async function handleSetupResetButton(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
+  await interaction.deferUpdate();
+  try {
+    const { getDb } = require('../../database/db');
+    const db = getDb();
+    db.prepare('DELETE FROM guild_config WHERE guild_id = ?').run(guildId);
+    db.prepare('DELETE FROM grades WHERE guild_id = ?').run(guildId);
+    db.prepare('UPDATE guilds SET setup_done = 0 WHERE guild_id = ?').run(guildId);
+
+    const owner = await interaction.guild.fetchOwner();
+    await runSetupInstallationPhases(interaction.guild, owner.id);
+    await interaction.editReply({ content: t(guildId, 'setup.resetSuccess'), components: [] });
+  } catch (error) {
+    logger.error('Failed setup reset', error);
+    await interaction.editReply({ content: t(guildId, 'setup.installError'), components: [] });
   }
 }
 
@@ -756,10 +835,14 @@ module.exports = {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
   SETUP_START_BUTTON_ID,
+  SETUP_INTEGRATE_BUTTON_ID,
+  SETUP_RESET_BUTTON_ID,
   createSetupArea,
   ensureSetupInstallPrompt,
   finalizeInstall,
   completeGuildSetup,
   handleSetupLanguageSelection,
-  handleSetupInstallButton
+  handleSetupInstallButton,
+  handleSetupIntegrateButton,
+  handleSetupResetButton
 };

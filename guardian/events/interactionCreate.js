@@ -17,7 +17,11 @@ const { t } = require('../modules/i18n');
 const {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
+  SETUP_INTEGRATE_BUTTON_ID,
+  SETUP_RESET_BUTTON_ID,
   handleSetupInstallButton,
+  handleSetupIntegrateButton,
+  handleSetupResetButton,
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction } = require('../modules/initialisation/setupFlow');
@@ -30,6 +34,11 @@ const { findGuildTextChannelByName } = require('../modules/utils/channels');
 module.exports = {
   name: 'interactionCreate',
   async execute(client, interaction) {
+    const AGE_LIMIT_MS = 3000;
+    if (interaction.createdTimestamp && Date.now() - interaction.createdTimestamp > AGE_LIMIT_MS) {
+      return;
+    }
+
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
@@ -146,6 +155,16 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId === SETUP_INSTALL_BUTTON_ID) {
       await handleSetupInstallButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_INTEGRATE_BUTTON_ID) {
+      await handleSetupIntegrateButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_RESET_BUTTON_ID) {
+      await handleSetupResetButton(interaction);
       return;
     }
 
