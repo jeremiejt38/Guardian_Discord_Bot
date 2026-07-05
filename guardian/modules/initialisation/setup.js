@@ -35,6 +35,8 @@ const SETUP_LANGUAGE_SELECT_ID = 'setup:language';
 const SETUP_START_BUTTON_ID = 'setup:start';
 const SETUP_INTEGRATE_BUTTON_ID = 'setup:integrate';
 const SETUP_RESET_BUTTON_ID = 'setup:reset';
+const SETUP_FORCE_EXISTING_BUTTON_ID = 'setup:force-existing';
+const SETUP_FORCE_REINSTALL_BUTTON_ID = 'setup:force-reinstall';
 
 async function ensureCategory(guild, name, permissionOverwrites) {
   const existing = findCategoryByName(guild, name);
@@ -699,11 +701,28 @@ function buildContextChoiceMessage(guildId, context) {
   return messages[context]?.join('\n') ?? '';
 }
 
-function buildSetupStartRow(guildId) {
+function buildFreshRow(guildId) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(SETUP_START_BUTTON_ID)
-      .setLabel(t(guildId, 'setup.resumeWizardButton'))
+      .setLabel(t(guildId, 'setup.freshInstallButton'))
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(SETUP_FORCE_EXISTING_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.freshForceExistingButton'))
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(SETUP_FORCE_REINSTALL_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.freshForceReinstallButton'))
+      .setStyle(ButtonStyle.Secondary)
+  );
+}
+
+function buildPartialRow(guildId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(SETUP_START_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.startInstallButton'))
       .setStyle(ButtonStyle.Primary)
   );
 }
@@ -751,22 +770,24 @@ async function handleSetupInstallButton(interaction) {
   const context = getInstallContext(interaction.guild);
 
   if (context === 'fresh') {
-    await interaction.deferReply({ ephemeral: true });
-    try {
-      const owner = await interaction.guild.fetchOwner();
-      await runSetupInstallationPhases(interaction.guild, owner.id);
-      await interaction.editReply(t(guildId, 'setup.installSuccess'));
-    } catch (error) {
-      logger.error('Failed setup install button execution', error);
-      await interaction.editReply(t(guildId, 'setup.installError'));
-    }
+    await interaction.reply({
+      content: [
+        `✅ **${t(guildId, 'setup.freshTitle')}**`,
+        t(guildId, 'setup.freshDesc')
+      ].join('\n'),
+      components: [buildFreshRow(guildId)],
+      ephemeral: true
+    });
     return;
   }
 
   if (context === 'guardian_partial') {
     await interaction.reply({
-      content: t(guildId, 'setup.guardianPartialResume'),
-      components: [buildSetupStartRow(guildId)],
+      content: [
+        `⏸️ **${t(guildId, 'setup.guardianPartialTitle')}**`,
+        t(guildId, 'setup.guardianPartialResume')
+      ].join('\n'),
+      components: [buildPartialRow(guildId)],
       ephemeral: true
     });
     return;
@@ -874,12 +895,32 @@ async function completeGuildSetup(guild) {
   await cleanupSetupArea(guild);
 }
 
+async function handleSetupForceExistingButton(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
+  await interaction.update({
+    content: buildContextChoiceMessage(guildId, 'existing_server'),
+    components: [buildContextChoiceRow(guildId, 'existing_server')]
+  });
+}
+
+async function handleSetupForceReinstallButton(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
+  await interaction.update({
+    content: buildContextChoiceMessage(guildId, 'reinstall'),
+    components: [buildContextChoiceRow(guildId, 'reinstall')]
+  });
+}
+
 module.exports = {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
   SETUP_START_BUTTON_ID,
   SETUP_INTEGRATE_BUTTON_ID,
   SETUP_RESET_BUTTON_ID,
+  SETUP_FORCE_EXISTING_BUTTON_ID,
+  SETUP_FORCE_REINSTALL_BUTTON_ID,
   createSetupArea,
   ensureSetupInstallPrompt,
   finalizeInstall,
@@ -887,5 +928,7 @@ module.exports = {
   handleSetupLanguageSelection,
   handleSetupInstallButton,
   handleSetupIntegrateButton,
-  handleSetupResetButton
+  handleSetupResetButton,
+  handleSetupForceExistingButton,
+  handleSetupForceReinstallButton
 };
