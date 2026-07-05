@@ -1112,7 +1112,7 @@ async function handleSetupInteraction(interaction) {
           .setRequired(false)
           .setMaxLength(32)
       ));
-    await interaction.showModal(modal);
+    await interaction.showModal(modal).catch((err) => logger.warn('showModal failed (renameGrade)', { error: err?.message }));
     return true;
   }
 
@@ -1290,7 +1290,7 @@ async function handleSetupInteraction(interaction) {
           .setPlaceholder('Ex: Counter-Strike 2, Minecraft...')
       )
     );
-    await interaction.showModal(modal); return true;
+    await interaction.showModal(modal).catch((err) => logger.warn('showModal failed (addGame)', { error: err?.message })); return true;
   }
 
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
@@ -1329,7 +1329,7 @@ async function handleSetupInteraction(interaction) {
             .setPlaceholder('Ex: 730 pour CS2 — vide si non disponible sur Steam')
         )
       );
-      await interaction.showModal(confirmModal); return true;
+      await interaction.showModal(confirmModal).catch((err) => logger.warn('showModal failed (confirmModal)', { error: err?.message })); return true;
     }
     let deferredReply = false;
     try {
@@ -1431,7 +1431,7 @@ async function handleSetupInteraction(interaction) {
           .setPlaceholder('Ex: 730 pour CS2 — laisser vide si non Steam')
       )
     );
-    await interaction.showModal(modal); return true;
+    await interaction.showModal(modal).catch((err) => logger.warn('showModal failed (editGame)', { error: err?.message })); return true;
   }
 
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
@@ -1524,7 +1524,7 @@ async function handleSetupInteraction(interaction) {
         new TextInputBuilder().setCustomId('words').setLabel('Un mot par ligne (max 50)')
           .setStyle(TextInputStyle.Paragraph).setValue(current).setRequired(false).setMaxLength(500)
       ));
-    await interaction.showModal(modal); return true;
+    await interaction.showModal(modal).catch((err) => logger.warn('showModal failed (blacklist)', { error: err?.message })); return true;
   }
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.blacklistModal) {
     const raw = interaction.fields.getTextInputValue('words').trim();
@@ -1544,7 +1544,7 @@ async function handleSetupInteraction(interaction) {
           .setLabel('Variables: {username}, {servername}, {delay}')
           .setStyle(TextInputStyle.Paragraph).setValue(current).setRequired(false).setMaxLength(500)
       ));
-    await interaction.showModal(modal); return true;
+    await interaction.showModal(modal).catch((err) => logger.warn('showModal failed (welcome)', { error: err?.message })); return true;
   }
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.welcomeModal) {
     const text = interaction.fields.getTextInputValue('text').trim();
