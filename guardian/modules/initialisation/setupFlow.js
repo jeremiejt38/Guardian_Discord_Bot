@@ -22,7 +22,7 @@ const {
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const CUSTOM_IDS = Object.freeze({
   start: 'setup:start',
@@ -44,6 +44,13 @@ const CUSTOM_IDS = Object.freeze({
   toggleInviteExpulsion: 'setup:members:invite-expulsion:toggle',
   decreaseInviteExpulsionDays: 'setup:members:invite-expulsion-days:dec',
   increaseInviteExpulsionDays: 'setup:members:invite-expulsion-days:inc',
+  editVocalPrefix: 'setup:vocal:prefix:edit',
+  editVocalSuffix: 'setup:vocal:suffix:edit',
+  decreaseVocalLimit: 'setup:vocal:limit:dec',
+  increaseVocalLimit: 'setup:vocal:limit:inc',
+  decreaseVocalDelay: 'setup:vocal:delay:dec',
+  increaseVocalDelay: 'setup:vocal:delay:inc',
+  cycleVocalPrefix: 'setup:vocal:prefix:cycle',
   addGame: 'setup:games:add',
   removeLastGame: 'setup:games:remove-last',
   previousGame: 'setup:games:prev',
@@ -55,6 +62,8 @@ const CUSTOM_IDS = Object.freeze({
   decreaseSpamThreshold: 'setup:mod:spam:dec',
   increaseSpamThreshold: 'setup:mod:spam:inc',
   toggleBlacklistWarn: 'setup:mod:blacklist:toggle',
+  addBlacklistWord: 'setup:mod:blacklist:add',
+  clearBlacklist: 'setup:mod:blacklist:clear',
   next: 'setup:step:next',
   finalize: 'setup:finalize'
 });
@@ -284,7 +293,8 @@ function getStep3Config(guildId) {
     sponsorshipRequired: Boolean(getGuildSetting(guildId, 'members', 'sponsorship_required', false)),
     reviewerGrade: getGuildSetting(guildId, 'members', 'promotion_review_grade', GRADE_NAMES.moderateur),
     inviteExpulsionEnabled: Boolean(getGuildSetting(guildId, 'members', 'invite_expulsion_enabled', true)),
-    inviteExpulsionDays: Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30)))
+    inviteExpulsionDays: Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30))),
+    welcomeText: String(getGuildSetting(guildId, 'members', 'welcome_text', '') || '')
   };
 }
 
@@ -295,6 +305,7 @@ function setStep3Config(guildId, config) {
   setGuildSetting(guildId, 'members', 'promotion_review_grade', config.reviewerGrade);
   setGuildSetting(guildId, 'members', 'invite_expulsion_enabled', config.inviteExpulsionEnabled);
   setGuildSetting(guildId, 'members', 'invite_expulsion_days', config.inviteExpulsionDays);
+  setGuildSetting(guildId, 'members', 'welcome_text', config.welcomeText);
 }
 
 function cycleReviewerGrade(currentGrade) {
@@ -305,6 +316,7 @@ function cycleReviewerGrade(currentGrade) {
 
 function buildStep3Content(guildId) {
   const c = getStep3Config(guildId);
+  const welcomePreview = c.welcomeText ? `"${c.welcomeText.slice(0, 60)}${c.welcomeText.length > 60 ? '…' : ''}"` : '*non défini*';
   return [
     `## ${t('setup.step3Title', {}, { guildId })} (3/${TOTAL_STEPS})`,
     t('setup.step3Instructions', {}, { guildId }),
@@ -313,7 +325,8 @@ function buildStep3Content(guildId) {
     `📝 **Bio obligatoire** : ${boolText(c.bioRequired, guildId)}`,
     `👥 **Parrainage** : ${boolText(c.sponsorshipRequired, guildId)}`,
     `🔍 **Grade réviseur** : ${gradeLabel(c.reviewerGrade)}`,
-    `🚪 **Expulsion invités** : ${boolText(c.inviteExpulsionEnabled, guildId)} (après ${c.inviteExpulsionDays}j)`
+    `🚪 **Expulsion invités** : ${boolText(c.inviteExpulsionEnabled, guildId)} (après ${c.inviteExpulsionDays}j)`,
+    `💬 **Message de bienvenue** : ${welcomePreview}`
   ].join('\n');
 }
 
@@ -340,12 +353,62 @@ function buildStep3Components(guildId) {
   return [toggles, delay, expulsion, buildNavRow(guildId, 3)];
 }
 
-function getStep4Cursor(guildId) {
+function getStep4VocalConfig(guildId) {
+  return {
+    prefix: String(getGuildSetting(guildId, 'vocal', 'prefix', '🎮') || '🎮'),
+    suffix: String(getGuildSetting(guildId, 'vocal', 'suffix', '— Partie') || '— Partie'),
+    memberLimit: Math.max(0, Number(getGuildSetting(guildId, 'vocal', 'member_limit', 0))),
+    deleteDelayMinutes: Math.max(1, Number(getGuildSetting(guildId, 'vocal', 'delete_delay_minutes', 5)))
+  };
+}
+
+const VOCAL_PREFIX_CYCLE = ['🎮', '🎯', '🔊', '⚔️', '🏆', '🎲'];
+
+function cycleVocalPrefix(current) {
+  const idx = VOCAL_PREFIX_CYCLE.indexOf(current);
+  return VOCAL_PREFIX_CYCLE[(idx < 0 ? 0 : idx + 1) % VOCAL_PREFIX_CYCLE.length];
+}
+
+function buildStep4VocalContent(guildId) {
+  const c = getStep4VocalConfig(guildId);
+  const limitDisplay = c.memberLimit === 0 ? 'illimité' : `${c.memberLimit} membres max`;
+  return [
+    `## ${t('setup.step4Title', {}, { guildId })} (4/${TOTAL_STEPS})`,
+    t('setup.step4Instructions', {}, { guildId }),
+    '',
+    `🔊 **Préfixe des salons vocaux** : ${c.prefix}`,
+    `📛 **Suffixe** : ${c.suffix}`,
+    `👥 **Limite de membres** : ${limitDisplay}`,
+    `⏱️ **Délai de suppression** : ${c.deleteDelayMinutes} min`
+  ].join('\n');
+}
+
+function buildStep4VocalComponents(guildId) {
+  const c = getStep4VocalConfig(guildId);
+  const limitDisplay = c.memberLimit === 0 ? '∞' : String(c.memberLimit);
+  const prefixRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleVocalPrefix).setStyle(ButtonStyle.Secondary)
+      .setLabel(`Préfixe: ${c.prefix} →`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.editVocalSuffix).setStyle(ButtonStyle.Secondary)
+      .setLabel(`Suffixe: ${c.suffix.slice(0, 20)}`)
+  );
+  const limitRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('Limite -1')
+      .setDisabled(c.memberLimit === 0),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel(`Limite +1 (${limitDisplay})`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('-1 min')
+      .setDisabled(c.deleteDelayMinutes <= 1),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`+1 min (${c.deleteDelayMinutes}min)`)
+  );
+  return [prefixRow, limitRow, buildNavRow(guildId, 4)];
+}
+
+function getStep5Cursor(guildId) {
   const cursor = getGuildSetting(guildId, 'setup', 'game_cursor', 0);
   return Number.isInteger(cursor) ? Math.max(0, cursor) : 0;
 }
 
-function setStep4Cursor(guildId, cursor) {
+function setStep5Cursor(guildId, cursor) {
   const safeCursor = Math.max(0, cursor);
   setGuildSetting(guildId, 'setup', 'game_cursor', safeCursor);
   return safeCursor;
@@ -364,30 +427,30 @@ function getSteamCycleValue(value) {
   return sequence[idx < 0 ? 0 : (idx + 1) % sequence.length];
 }
 
-function buildStep4Content(guildId) {
+function buildStep5Content(guildId) {
   const games = ensureAtLeastOneSetupGame(guildId);
-  const rawCursor = getStep4Cursor(guildId);
+  const rawCursor = getStep5Cursor(guildId);
   const cursor = Math.min(rawCursor, games.length - 1);
-  if (rawCursor !== cursor) setStep4Cursor(guildId, cursor);
+  if (rawCursor !== cursor) setStep5Cursor(guildId, cursor);
   const current = games[cursor];
   const summary = games.map((game, i) => {
     const marker = i === cursor ? '▶' : '—';
     return `${marker} **${game.name}** | steam=${game.steam_app_id || 'none'} | galerie=${onOff(Boolean(game.galerie_enabled), guildId)} | changelog=${onOff(Boolean(game.changelog_enabled), guildId)}`;
   }).join('\n');
   return [
-    `## ${t('setup.step4Title', {}, { guildId })} (4/${TOTAL_STEPS})`,
-    t('setup.step4Instructions', {}, { guildId }),
+    `## ${t('setup.step5Title', {}, { guildId })} (5/${TOTAL_STEPS})`,
+    t('setup.step5Instructions', {}, { guildId }),
     `> Jeu sélectionné : **${current.name}**`,
     '',
     summary
   ].join('\n');
 }
 
-function buildStep4Components(guildId) {
+function buildStep5Components(guildId) {
   const games = ensureAtLeastOneSetupGame(guildId);
-  const rawCursor = getStep4Cursor(guildId);
+  const rawCursor = getStep5Cursor(guildId);
   const cursor = Math.min(rawCursor, games.length - 1);
-  if (rawCursor !== cursor) setStep4Cursor(guildId, cursor);
+  if (rawCursor !== cursor) setStep5Cursor(guildId, cursor);
   const current = games[cursor];
   const listActions = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Secondary).setLabel('➕ Ajouter jeu'),
@@ -405,37 +468,43 @@ function buildStep4Components(guildId) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleGameAppId).setStyle(ButtonStyle.Secondary)
       .setLabel(`Steam ID: ${current.steam_app_id || 'none'}`)
   );
-  return [listActions, nav, toggles, buildNavRow(guildId, 4)];
+  return [listActions, nav, toggles, buildNavRow(guildId, 5)];
 }
 
-function getStep5Config(guildId) {
+function getStep6Config(guildId) {
   return {
     behaviorScoreEnabled: Boolean(getGuildSetting(guildId, 'moderation', 'behavior_score_enabled', true)),
     spamThreshold: Math.max(2, Number(getGuildSetting(guildId, 'automod', 'spam_threshold', 5))),
-    blacklistWarn: getGuildSetting(guildId, 'automod', 'blacklist_mode', 'warn') === 'warn'
+    blacklistWarn: getGuildSetting(guildId, 'automod', 'blacklist_mode', 'warn') === 'warn',
+    blacklistWords: (() => { const w = getGuildSetting(guildId, 'automod', 'blacklist_words', []); return Array.isArray(w) ? w : []; })()
   };
 }
 
-function setStep5Config(guildId, config) {
+function setStep6Config(guildId, config) {
   setGuildSetting(guildId, 'moderation', 'behavior_score_enabled', config.behaviorScoreEnabled);
   setGuildSetting(guildId, 'automod', 'spam_threshold', config.spamThreshold);
   setGuildSetting(guildId, 'automod', 'blacklist_mode', config.blacklistWarn ? 'warn' : 'silent');
+  setGuildSetting(guildId, 'automod', 'blacklist_words', config.blacklistWords);
 }
 
-function buildStep5Content(guildId) {
-  const c = getStep5Config(guildId);
+function buildStep6Content(guildId) {
+  const c = getStep6Config(guildId);
+  const wordList = c.blacklistWords.length > 0
+    ? c.blacklistWords.slice(0, 10).map((w) => `\`${w}\``).join(', ') + (c.blacklistWords.length > 10 ? ` +${c.blacklistWords.length - 10}` : '')
+    : '*aucun mot défini*';
   return [
-    `## ${t('setup.step5Title', {}, { guildId })} (5/${TOTAL_STEPS})`,
-    t('setup.step5Instructions', {}, { guildId }),
+    `## ${t('setup.step6Title', {}, { guildId })} (6/${TOTAL_STEPS})`,
+    t('setup.step6Instructions', {}, { guildId }),
     '',
     `⚖️ **Score comportemental** : ${boolText(c.behaviorScoreEnabled, guildId)}`,
-    `🛡️ **Anti-spam** : max ${c.spamThreshold} messages/10s`,
-    `🚫 **Blacklist** : ${c.blacklistWarn ? '⚠️ Avertissement public' : '🤫 Suppression silencieuse'}`
+    `🛡️ **Anti-spam** : max ${c.spamThreshold} messages/3s`,
+    `🚫 **Mode blacklist** : ${c.blacklistWarn ? '⚠️ Avertissement public' : '🤫 Suppression silencieuse'}`,
+    `📋 **Mots bannis** (${c.blacklistWords.length}) : ${wordList}`
   ].join('\n');
 }
 
-function buildStep5Components(guildId) {
-  const c = getStep5Config(guildId);
+function buildStep6Components(guildId) {
+  const c = getStep6Config(guildId);
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(ButtonStyle.Secondary)
       .setLabel(`⚖️ Score: ${boolText(c.behaviorScoreEnabled, guildId)}`),
@@ -446,45 +515,50 @@ function buildStep5Components(guildId) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('-1 msg/spam'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('+1 msg/spam')
   );
-  return [row, spamRow, buildNavRow(guildId, 5)];
+  const blacklistRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.addBlacklistWord).setStyle(ButtonStyle.Secondary).setLabel('➕ Ajouter mot'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.clearBlacklist).setStyle(ButtonStyle.Danger).setLabel('🗑️ Vider liste')
+      .setDisabled(c.blacklistWords.length === 0)
+  );
+  return [row, spamRow, blacklistRow, buildNavRow(guildId, 6)];
 }
 
-function buildStep6Summary(guildId) {
+function buildStep7Summary(guildId) {
   const mappings = getGradeMappings(guildId);
   const modules = getStep2Config(guildId);
   const members = getStep3Config(guildId);
+  const vocal = getStep4VocalConfig(guildId);
   const games = listSetupGames(guildId);
-  const mod = getStep5Config(guildId);
+  const mod = getStep6Config(guildId);
 
   return [
-    `## ${t('setup.step6Title', {}, { guildId })} (6/${TOTAL_STEPS})`,
-    t('setup.step6Instructions', {}, { guildId }),
+    `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
+    t('setup.step7Instructions', {}, { guildId }),
     '',
     `**Grades mappés** : ${Object.keys(mappings).length}/5`,
     '',
     '**Modules**',
-    `  💡 Suggestions: ${onOff(modules.suggestionsEnabled, guildId)}`,
-    `  🖥️ Liste serveurs: ${onOff(modules.serverListEnabled, guildId)}`,
-    `  🤖 Statut bot: ${onOff(modules.statusBotEnabled, guildId)}`,
-    `  🔇 AFK: ${onOff(modules.afkEnabled, guildId)}`,
-    `  🎮 Game Updates: ${onOff(modules.gameUpdatesEnabled, guildId)}`,
+    `  💡 Suggestions: ${onOff(modules.suggestionsEnabled, guildId)} | 🖥️ Serveurs: ${onOff(modules.serverListEnabled, guildId)} | 🤖 Statut: ${onOff(modules.statusBotEnabled, guildId)}`,
+    `  🔇 AFK: ${onOff(modules.afkEnabled, guildId)} | 🎮 Game Updates: ${onOff(modules.gameUpdatesEnabled, guildId)}`,
     '',
     '**Membres**',
-    `  ⏱️ Délai promotion: ${members.promotionDelayHours}h`,
-    `  📝 Bio: ${boolText(members.bioRequired, guildId)} | 👥 Parrainage: ${boolText(members.sponsorshipRequired, guildId)}`,
+    `  ⏱️ Délai: ${members.promotionDelayHours}h | 📝 Bio: ${boolText(members.bioRequired, guildId)} | 👥 Parrainage: ${boolText(members.sponsorshipRequired, guildId)}`,
+    `  🚪 Expulsion: ${boolText(members.inviteExpulsionEnabled, guildId)} (${members.inviteExpulsionDays}j)`,
+    '',
+    '**Vocaux**',
+    `  ${vocal.prefix} | Limite: ${vocal.memberLimit === 0 ? '∞' : vocal.memberLimit} | Délai supp: ${vocal.deleteDelayMinutes}min`,
     '',
     `**Jeux configurés** : ${games.length}`,
     '',
     '**Modération**',
-    `  ⚖️ Score: ${boolText(mod.behaviorScoreEnabled, guildId)}`,
-    `  🛡️ Spam max: ${mod.spamThreshold}/10s`,
-    `  🚫 Blacklist: ${mod.blacklistWarn ? 'warn' : 'silent'}`,
+    `  ⚖️ Score: ${boolText(mod.behaviorScoreEnabled, guildId)} | 🛡️ Spam max: ${mod.spamThreshold}/3s | 🚫 Blacklist: ${mod.blacklistWarn ? 'warn' : 'silent'}`,
+    `  📋 Mots bannis: ${mod.blacklistWords.length}`,
     '',
-    `> ⚠️ ${t('setup.step6ConfirmWarning', {}, { guildId })}`
+    `> ⚠️ ${t('setup.step7ConfirmWarning', {}, { guildId })}`
   ].join('\n');
 }
 
-function buildStep6Components(guildId) {
+function buildStep7Components(guildId) {
   return [buildNavRow(guildId, TOTAL_STEPS)];
 }
 
@@ -493,9 +567,10 @@ function buildStepPayload(guildId, guild, step) {
     case 1: return { content: buildStepOneContent(guildId, guild), components: buildStepOneComponents(guildId, guild) };
     case 2: return { content: buildStep2Content(guildId), components: buildStep2Components(guildId) };
     case 3: return { content: buildStep3Content(guildId), components: buildStep3Components(guildId) };
-    case 4: return { content: buildStep4Content(guildId), components: buildStep4Components(guildId) };
+    case 4: return { content: buildStep4VocalContent(guildId), components: buildStep4VocalComponents(guildId) };
     case 5: return { content: buildStep5Content(guildId), components: buildStep5Components(guildId) };
-    default: return { content: buildStep6Summary(guildId), components: buildStep6Components(guildId) };
+    case 6: return { content: buildStep6Content(guildId), components: buildStep6Components(guildId) };
+    default: return { content: buildStep7Summary(guildId), components: buildStep7Components(guildId) };
   }
 }
 
@@ -644,60 +719,107 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 3); return true;
   }
 
+  if (interaction.customId === CUSTOM_IDS.cycleVocalPrefix) {
+    const c = getStep4VocalConfig(guildId);
+    c.prefix = cycleVocalPrefix(c.prefix);
+    setGuildSetting(guildId, 'vocal', 'prefix', c.prefix);
+    await renderStep(interaction, 4); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.editVocalSuffix) {
+    await replyEphemeral(interaction, `Suffixe actuel : \`${getStep4VocalConfig(guildId).suffix}\`\nPour le modifier, utilisez le panel de configuration vocale après l'installation.`);
+    return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.decreaseVocalLimit) {
+    const c = getStep4VocalConfig(guildId);
+    c.memberLimit = Math.max(0, c.memberLimit - 1);
+    setGuildSetting(guildId, 'vocal', 'member_limit', c.memberLimit);
+    await renderStep(interaction, 4); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.increaseVocalLimit) {
+    const c = getStep4VocalConfig(guildId);
+    c.memberLimit = Math.min(99, c.memberLimit + 1);
+    setGuildSetting(guildId, 'vocal', 'member_limit', c.memberLimit);
+    await renderStep(interaction, 4); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.decreaseVocalDelay) {
+    const c = getStep4VocalConfig(guildId);
+    c.deleteDelayMinutes = Math.max(1, c.deleteDelayMinutes - 1);
+    setGuildSetting(guildId, 'vocal', 'delete_delay_minutes', c.deleteDelayMinutes);
+    await renderStep(interaction, 4); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.increaseVocalDelay) {
+    const c = getStep4VocalConfig(guildId);
+    c.deleteDelayMinutes = Math.min(60, c.deleteDelayMinutes + 1);
+    setGuildSetting(guildId, 'vocal', 'delete_delay_minutes', c.deleteDelayMinutes);
+    await renderStep(interaction, 4); return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.addGame) {
     addSetupGame(guildId);
     const games = listSetupGames(guildId);
-    setStep4Cursor(guildId, games.length - 1);
-    await renderStep(interaction, 4); return true;
+    setStep5Cursor(guildId, games.length - 1);
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.removeLastGame) {
     removeLastSetupGame(guildId);
     const games = ensureAtLeastOneSetupGame(guildId);
-    setStep4Cursor(guildId, Math.min(getStep4Cursor(guildId), games.length - 1));
-    await renderStep(interaction, 4); return true;
+    setStep5Cursor(guildId, Math.min(getStep5Cursor(guildId), games.length - 1));
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.previousGame) {
-    setStep4Cursor(guildId, getStep4Cursor(guildId) - 1);
-    await renderStep(interaction, 4); return true;
+    setStep5Cursor(guildId, getStep5Cursor(guildId) - 1);
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.nextGameItem) {
-    setStep4Cursor(guildId, getStep4Cursor(guildId) + 1);
-    await renderStep(interaction, 4); return true;
+    setStep5Cursor(guildId, getStep5Cursor(guildId) + 1);
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.toggleGameGallery) {
     const games = ensureAtLeastOneSetupGame(guildId);
-    const cursor = Math.min(getStep4Cursor(guildId), games.length - 1);
+    const cursor = Math.min(getStep5Cursor(guildId), games.length - 1);
     updateSetupGame(guildId, games[cursor].game_id, { galerie_enabled: !Boolean(games[cursor].galerie_enabled) });
-    await renderStep(interaction, 4); return true;
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.toggleGameChangelog) {
     const games = ensureAtLeastOneSetupGame(guildId);
-    const cursor = Math.min(getStep4Cursor(guildId), games.length - 1);
+    const cursor = Math.min(getStep5Cursor(guildId), games.length - 1);
     updateSetupGame(guildId, games[cursor].game_id, { changelog_enabled: !Boolean(games[cursor].changelog_enabled) });
-    await renderStep(interaction, 4); return true;
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.cycleGameAppId) {
     const games = ensureAtLeastOneSetupGame(guildId);
-    const cursor = Math.min(getStep4Cursor(guildId), games.length - 1);
+    const cursor = Math.min(getStep5Cursor(guildId), games.length - 1);
     updateSetupGame(guildId, games[cursor].game_id, { steam_app_id: getSteamCycleValue(games[cursor].steam_app_id) });
-    await renderStep(interaction, 4); return true;
+    await renderStep(interaction, 5); return true;
   }
 
   if (interaction.customId === CUSTOM_IDS.toggleBehaviorScore) {
-    const c = getStep5Config(guildId); c.behaviorScoreEnabled = !c.behaviorScoreEnabled; setStep5Config(guildId, c);
-    await renderStep(interaction, 5); return true;
+    const c = getStep6Config(guildId); c.behaviorScoreEnabled = !c.behaviorScoreEnabled; setStep6Config(guildId, c);
+    await renderStep(interaction, 6); return true;
   }
   if (interaction.customId === CUSTOM_IDS.toggleBlacklistWarn) {
-    const c = getStep5Config(guildId); c.blacklistWarn = !c.blacklistWarn; setStep5Config(guildId, c);
-    await renderStep(interaction, 5); return true;
+    const c = getStep6Config(guildId); c.blacklistWarn = !c.blacklistWarn; setStep6Config(guildId, c);
+    await renderStep(interaction, 6); return true;
   }
   if (interaction.customId === CUSTOM_IDS.decreaseSpamThreshold) {
-    const c = getStep5Config(guildId); c.spamThreshold = Math.max(2, c.spamThreshold - 1); setStep5Config(guildId, c);
-    await renderStep(interaction, 5); return true;
+    const c = getStep6Config(guildId); c.spamThreshold = Math.max(2, c.spamThreshold - 1); setStep6Config(guildId, c);
+    await renderStep(interaction, 6); return true;
   }
   if (interaction.customId === CUSTOM_IDS.increaseSpamThreshold) {
-    const c = getStep5Config(guildId); c.spamThreshold = Math.min(20, c.spamThreshold + 1); setStep5Config(guildId, c);
-    await renderStep(interaction, 5); return true;
+    const c = getStep6Config(guildId); c.spamThreshold = Math.min(20, c.spamThreshold + 1); setStep6Config(guildId, c);
+    await renderStep(interaction, 6); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.addBlacklistWord) {
+    const c = getStep6Config(guildId);
+    if (c.blacklistWords.length >= 50) {
+      await replyEphemeral(interaction, 'Maximum 50 mots bannis atteint.'); return true;
+    }
+    await replyEphemeral(interaction, `Liste actuelle (${c.blacklistWords.length} mots) : ${c.blacklistWords.join(', ') || 'vide'}\n\nPour ajouter des mots, utilisez le panel AutoMod après l'installation.`);
+    return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.clearBlacklist) {
+    const c = getStep6Config(guildId); c.blacklistWords = []; setStep6Config(guildId, c);
+    await renderStep(interaction, 6); return true;
   }
 
   if (interaction.customId === CUSTOM_IDS.back) {
@@ -727,7 +849,7 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.finalize) {
     if (getCurrentStep(guildId) < TOTAL_STEPS) {
-      await replyEphemeral(interaction, t('setup.step5NotReady', {}, { guildId }));
+      await replyEphemeral(interaction, t('setup.finalizeNotReady', {}, { guildId }));
       return true;
     }
     if (!interaction.guild) return true;
