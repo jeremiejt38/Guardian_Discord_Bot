@@ -147,7 +147,7 @@ function buildNavRow(guildId, step) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.back)
         .setStyle(ButtonStyle.Secondary)
-        .setLabel(t(guildId, 'setup.backStep'))
+        .setLabel(t('setup.backStep', {}, { guildId }))
     );
   }
   if (!isLastStep) {
@@ -155,14 +155,14 @@ function buildNavRow(guildId, step) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.next)
         .setStyle(ButtonStyle.Primary)
-        .setLabel(t(guildId, 'setup.nextStep'))
+        .setLabel(t('setup.nextStep', {}, { guildId }))
     );
   } else {
     buttons.push(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.finalize)
         .setStyle(ButtonStyle.Success)
-        .setLabel(t(guildId, 'setup.finalizeButton'))
+        .setLabel(t('setup.finalizeButton', {}, { guildId }))
     );
   }
   return new ActionRowBuilder().addComponents(buttons);
