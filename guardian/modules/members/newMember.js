@@ -2,6 +2,7 @@ const { getDb } = require('../../database/db');
 const { GRADE_NAMES, CHANNELS } = require('../../config');
 const { t } = require('../i18n');
 const logger = require('../logs/logger');
+const { buildRequestButton } = require('./promotionRequest');
 
 function getGradeRoleId(guildId, gradeName) {
   const db = getDb();
@@ -18,7 +19,10 @@ async function handleNewMember(member) {
 
     const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
-      await welcomeChannel.send(t(member.guild.id, 'members.welcome', { member: member.toString() }));
+      await welcomeChannel.send({
+        content: t(member.guild.id, 'members.welcome', { member: member.toString() }),
+        components: [buildRequestButton(member.guild.id)]
+      });
     }
 
     const db = getDb();

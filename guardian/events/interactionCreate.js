@@ -1,17 +1,20 @@
-const { markReportHandled } = require('../modules/moderation/reports');
+const { markReportHandled, handleOpenReportButton, handleReportModalSubmit } = require('../modules/moderation/reports');
+const { handleGamesInteraction } = require('../modules/games/optInInteraction');
+const { handleServerGamesInteraction } = require('../modules/games/serverGamesManager');
 const { handleHistoriquePagination } = require('../commands/historique');
+const { handlePromotionInteraction } = require('../modules/members/promotionRequest');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 const { t } = require('../modules/i18n');
 const {
-  SETUP_INSTALL_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
-  handleSetupInstallButton,
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
+const { handleSetupInteraction } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
+const { ChannelType } = require('discord.js');
 
 module.exports = {
   name: 'interactionCreate',
@@ -26,9 +29,36 @@ module.exports = {
       return;
     }
 
-    if (interaction.isButton() && interaction.customId === 'report:handled') {
+    if (interaction.isButton() && interaction.customId === 'report:open') {
+      await handleOpenReportButton(interaction);
+      return;
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'report:modal') {
+      await handleReportModalSubmit(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('report:handled')) {
       await markReportHandled(interaction);
       return;
+    }
+
+    if (
+      interaction.isButton() ||
+      interaction.isModalSubmit()
+    ) {
+      const id = interaction.customId || '';
+      if (
+        id === 'promotion:request' ||
+        id === 'promotion:bio:modal' ||
+        id.startsWith('promotion:accept:') ||
+        id.startsWith('promotion:reject:') ||
+        id.startsWith('promotion:reply:')
+      ) {
+        const handled = await handlePromotionInteraction(interaction);
+        if (handled) return;
+      }
     }
 
     if (interaction.isButton() && interaction.customId.startsWith('historique:')) {
@@ -41,18 +71,42 @@ module.exports = {
       return;
     }
 
-    if (interaction.isButton() && interaction.customId === SETUP_INSTALL_BUTTON_ID) {
-      await handleSetupInstallButton(interaction);
+    if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) {
+      if (
+        interaction.customId === 'games:manage' ||
+        interaction.customId === 'games:select'
+      ) {
+        const handled = await handleGamesInteraction(interaction);
+        if (handled) return;
+      }
+    }
+
+    if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) {
+      if (
+        interaction.customId === 'servergames:add' ||
+        interaction.customId === 'servergames:remove' ||
+        interaction.customId === 'servergames:add:modal' ||
+        interaction.customId === 'servergames:remove:select'
+      ) {
+        const handled = await handleServerGamesInteraction(interaction);
+        if (handled) return;
+      }
+    }
+
+    if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) {
+      const handledBySetupFlow = await handleSetupInteraction(interaction);
+      if (handledBySetupFlow) {
+        return;
+      }
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId === SETUP_LANGUAGE_SELECT_ID) {
+      await handleSetupLanguageSelection(interaction);
       return;
     }
 
     if (interaction.isStringSelectMenu() && interaction.customId === 'gamelist:select') {
       await handleGameListSelection(interaction);
-      return;
-    }
-
-    if (interaction.isStringSelectMenu() && interaction.customId === SETUP_LANGUAGE_SELECT_ID) {
-      await handleSetupLanguageSelection(interaction);
       return;
     }
 
@@ -79,7 +133,7 @@ module.exports = {
       return;
     }
 
-    if (interaction.isModalSubmit && interaction.customId === 'servers:add:modal') {
+    if (interaction.isModalSubmit() && interaction.customId === 'servers:add:modal') {
       await handleServerModalSubmit(interaction);
       return;
     }
@@ -91,7 +145,7 @@ module.exports = {
       db.prepare('UPDATE servers_jeu SET approved = 1 WHERE server_id = ?').run(serverId);
 
       const row = db.prepare('SELECT name, game, ip, port, password FROM servers_jeu WHERE server_id = ?').get(serverId);
-      const channel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.serverList && c.type === 0);
+      const channel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.serverList && c.type === ChannelType.GuildText);
       if (channel) {
         const embed = {
           title: `Serveur ajouté: ${row.name}`,
@@ -110,7 +164,7 @@ module.exports = {
         await channel.send({ embeds: [embed] });
       }
 
-      await interaction.update({ content: `Approved by ${interaction.user.tag}`, components: [] });
+      await interaction.update({ content: t(interaction.guildId, 'servers.approved', { user: interaction.user.tag }), components: [] });
       return;
     }
 
@@ -119,7 +173,7 @@ module.exports = {
       const serverId = Number(parts[2]);
       const db = getDb();
       db.prepare('DELETE FROM servers_jeu WHERE server_id = ?').run(serverId);
-      await interaction.update({ content: `Rejected by ${interaction.user.tag}`, components: [] });
+      await interaction.update({ content: t(interaction.guildId, 'servers.rejected', { user: interaction.user.tag }), components: [] });
       return;
     }
 
@@ -129,14 +183,14 @@ module.exports = {
       const db = getDb();
       const row = db.prepare('SELECT ip, port, password FROM servers_jeu WHERE server_id = ?').get(serverId);
       if (!row) {
-        await interaction.reply({ content: 'Server not found', ephemeral: true });
+        await interaction.reply({ content: t(interaction.guildId, 'servers.notFound'), ephemeral: true });
         return;
       }
       let pwd = row.password;
       try {
         pwd = decrypt(row.password);
       } catch (e) {}
-      await interaction.reply({ content: `Connect: ${row.ip}:${row.port}${pwd ? ` (pwd: ${pwd})` : ''}`, ephemeral: true });
+      await interaction.reply({ content: t(interaction.guildId, 'servers.connectInfo', { ip: row.ip, port: String(row.port), pwd: pwd || '' }), ephemeral: true });
       return;
     }
 
