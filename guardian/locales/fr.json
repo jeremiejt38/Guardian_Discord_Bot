@@ -28,15 +28,6 @@
     "welcome": "Bienvenue {{member}} sur **{{guild}}** ! Clique sur le bouton de demande pour devenir membre. Tu pourras etre promu apres {{delay}}h."
   },
   "promotion": {
-    "requestButton": "Faire une demande"
-  },
-  "servers": {
-    "approved": "Serveur approuve par {{user}}.",
-    "rejected": "Serveur refuse par {{user}}.",
-    "notFound": "Serveur introuvable.",
-    "connectInfo": "Connexion: {{ip}}:{{port}}{{pwd}}"
-  },
-  "promotion": {
     "requestButton": "Faire une demande",
     "requestEmbedTitle": "Demande Invite vers Membre",
     "requestEmbedUser": "Demandeur",
@@ -90,7 +81,7 @@
     "submitted": "Ton signalement a ete transmis au staff.",
     "notFound": "Signalement introuvable.",
     "alreadyHandled": "Ce signalement a deja ete traite.",
-    "handledPublic": "Rapport marque comme traite."
+    "handledPublic": "Rapport #{{id}} marque comme traite par {{staff}}."
   },
   "games": {
     "title": "Guardian - Ma game list",

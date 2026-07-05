@@ -28,15 +28,6 @@
     "welcome": "Welcome {{member}} to **{{guild}}**! Click the request button to become a member. You can be promoted after {{delay}}h."
   },
   "promotion": {
-    "requestButton": "Apply for membership"
-  },
-  "servers": {
-    "approved": "Server approved by {{user}}.",
-    "rejected": "Server rejected by {{user}}.",
-    "notFound": "Server not found.",
-    "connectInfo": "Connect: {{ip}}:{{port}}{{pwd}}"
-  },
-  "promotion": {
     "requestButton": "Apply for membership",
     "requestEmbedTitle": "Invite to Member request",
     "requestEmbedUser": "Applicant",
@@ -90,7 +81,7 @@
     "submitted": "Your report has been sent to the staff.",
     "notFound": "Report not found.",
     "alreadyHandled": "This report has already been handled.",
-    "handledPublic": "Report marked as handled."
+    "handledPublic": "Report #{{id}} marked as handled by {{staff}}."
   },
   "games": {
     "title": "Guardian - My game list",
