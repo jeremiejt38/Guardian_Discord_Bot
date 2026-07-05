@@ -63,6 +63,8 @@
     "validationOwnerRoleMissing": "Le role Owner est introuvable sur le serveur.",
     "validationOwnerCardinality": "Le role Owner doit etre attribue a exactement 1 membre (actuel: {{count}}).",
     "validationGenericError": "Erreur de validation. Verifie ta configuration.",
+    "guardianPartialResume": "Le setup Guardian a été commencé sur ce serveur mais jamais finalisé. Reprends le wizard pour terminer l'installation.",
+    "resumeWizardButton": "Reprendre le wizard",
     "step5NotReady": "Tu dois completer toutes les etapes avant de finaliser.",
     "finalized": "Installation terminee ! Guardian est maintenant actif.",
     "summary": "Installation Guardian terminee pour **{{guild}}**. Les invites peuvent etre promus membres apres {{delay}}h. Consulte #regles et #faq pour bien demarrer."
