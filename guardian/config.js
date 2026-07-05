@@ -19,11 +19,11 @@ if (!DISCORD_TOKEN) {
 
 const CATEGORIES = Object.freeze({
   setup: 'guardian-setup',
-  informations: 'informations',
-  communaute: 'communaute',
-  vocaux: 'vocaux',
-  moderation: 'moderation',
-  configuration: 'configuration'
+  informations: '📋 Informations',
+  communaute: '🌐 Communauté',
+  vocaux: '🔊 Salons Vocaux',
+  moderation: '🛡️ Modération',
+  configuration: '⚙️ Configuration'
 });
 
 const CHANNELS = Object.freeze({

@@ -637,15 +637,43 @@ function buildSetupInstallMessagePayloadForGuild(language) {
   };
 }
 
+async function repositionCategories(guild) {
+  const order = [
+    CATEGORIES.informations,
+    CATEGORIES.communaute,
+    CATEGORIES.vocaux,
+  ];
+  const fixedEnd = [
+    CATEGORIES.moderation,
+    CATEGORIES.configuration
+  ];
+
+  const allCategories = guild.channels.cache.filter((c) => c.type === 4);
+  const gameCats = allCategories.filter(
+    (c) => !order.includes(c.name) && !fixedEnd.includes(c.name) && c.name !== CATEGORIES.setup
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const ordered = [
+    ...order.map((name) => allCategories.find((c) => c.name === name)).filter(Boolean),
+    ...gameCats.values(),
+    ...fixedEnd.map((name) => allCategories.find((c) => c.name === name)).filter(Boolean)
+  ];
+
+  for (let i = 0; i < ordered.length; i++) {
+    await ordered[i].setPosition(i).catch(() => {});
+  }
+}
+
 async function runSetupInstallationPhases(guild, ownerId) {
   const roleMap = getGradeMappings(guild.id);
 
   await createInformationsArea(guild, roleMap);
   await createCommunauteArea(guild, roleMap, ownerId);
   await createVocalArea(guild, ownerId);
+  await provisionGuildGameStructures(guild);
   await createModerationArea(guild, roleMap, ownerId);
   await createConfigurationArea(guild, roleMap, ownerId);
-  await provisionGuildGameStructures(guild);
+  await repositionCategories(guild);
 
   markGuildInstalled(guild.id, ownerId);
 }
