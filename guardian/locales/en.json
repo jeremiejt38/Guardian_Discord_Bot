@@ -81,7 +81,7 @@
     "step5NotReady": "You must complete all steps before finalizing.",
     "finalizeNotReady": "You must complete all steps before finalizing.",
     "finalized": "Installation complete! Guardian is now active.",
-    "summary": "Guardian setup complete for **{{guild}}**. Guests can be promoted to members after {{delay}}h. Check #regles and #faq to get started."
+    "summary": "\ud83c\udf89 **SETUP COMPLETE \u2014 Guardian is now active on {{guild}}!**\n\n\ud83d\udc65 **Grades & Access**\nGuests can request to become Member after **{{delay}}h**.\n\n\u2699\ufe0f **Next steps for admins**\n1\ufe0f\u20e3 Go to `#rules` and customize the server rules\n2\ufe0f\u20e3 Go to `#faq` and fill in frequently asked questions\n3\ufe0f\u20e3 Go to `#configuration` \u2192 `#channels` to fine-tune permissions\n4\ufe0f\u20e3 Add your games and configure voice channels in `#configuration`\n\n\ud83d\udcda **Resources**\n\u2022 `#faq` \u2014 Frequently asked questions\n\u2022 `#statut-bot` \u2014 Bot status and logs\n\u2022 `/help` \u2014 Guardian command help\n\nGood luck! \ud83d\ude80"
   },
   "interaction": {
     "unsupported": "Unsupported interaction."
