@@ -400,12 +400,12 @@ function buildStep2Components(guildId) {
 }
 
 const CHANNEL_SLOTS = Object.freeze([
-  { key: 'rules', label: '#règles', desc: 'Channel où le règlement du serveur est affiché.', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '📜' },
-  { key: 'announcements', label: '#annonces', desc: 'Channel réservé aux annonces officielles de l\'équipe.', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '📢' },
-  { key: 'welcome', label: '#bienvenue', desc: 'Channel où Guardian accueille les nouveaux membres.', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '👋' },
-  { key: 'general', label: '#général', desc: 'Channel de discussion principale de la communauté.', settingSection: 'channels', settingKey: 'general_channel_id', emoji: '💬' },
-  { key: 'voiceGeneral', label: '🔊 Vocal Général', desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.', settingSection: 'channels', settingKey: 'voice_general_id', emoji: '🔊' },
-  { key: 'voiceAfk', label: '🔇 Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' }
+  { key: 'general', label: '#général', desc: 'Channel de discussion principale de la communauté.', settingSection: 'channels', settingKey: 'general_channel_id', emoji: '�' },
+  { key: 'voiceGeneral', label: 'Vocal Général', desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.', settingSection: 'channels', settingKey: 'voice_general_id', emoji: '�' },
+  { key: 'rules', label: '#règles', desc: 'Channel où le règlement du serveur est affiché.', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '�' },
+  { key: 'announcements', label: '#annonces', desc: 'Channel réservé aux annonces officielles de l\'équipe.', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '�' },
+  { key: 'welcome', label: '#bienvenue', desc: 'Channel où Guardian accueille les nouveaux membres.', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '�' },
+  { key: 'voiceAfk', label: 'Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' }
 ]);
 
 function getChannelCursor(guildId) {
@@ -488,7 +488,7 @@ function buildStep3ChannelsComponents(guildId, guild) {
   const navRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
       .setLabel('◀ Précédent').setDisabled(cursor === 0),
-    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
       .setLabel('Laisser Guardian créer →').setDisabled(false),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:skip`).setStyle(ButtonStyle.Secondary)
       .setLabel('Passer tous restants →').setDisabled(isFreshInstall(guildId))
@@ -1223,7 +1223,13 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
     const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
-    await interaction.deferUpdate().catch(() => {});
+    let deferredReply = false;
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      deferredReply = true;
+    } catch (err) {
+      logger.warn('addGameModal: deferReply failed', { error: err?.message });
+    }
     let result = null;
     if (!steamId) {
       try {
@@ -1232,13 +1238,26 @@ async function handleSetupInteraction(interaction) {
         if (res.ok) {
           const data = await res.json();
           result = data.results?.[0] || null;
+          logger.info('RAWG search', { name, found: result?.name || null });
+        } else {
+          logger.warn('RAWG search non-ok', { status: res.status, name });
         }
-      } catch { result = null; }
+      } catch (err) {
+        logger.error('RAWG search error', { error: err?.message, name });
+      }
     }
-    const game = addSetupGame(guildId, {
-      name: result ? result.name : name,
-      steam_app_id: steamId || (result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null)
-    });
+    let game;
+    try {
+      game = addSetupGame(guildId, {
+        name: result ? result.name : name,
+        steam_app_id: steamId || (result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null)
+      });
+      logger.info('Game added', { guildId, name: game.name, steam_app_id: game.steam_app_id });
+    } catch (err) {
+      logger.error('addSetupGame failed', { error: err?.message, guildId, name });
+      if (deferredReply) await interaction.deleteReply().catch(() => {});
+      return true;
+    }
     const confirmMsg = [
       `✅ **Jeu ajouté : ${game.name}**`,
       result ? `> Trouvé sur RAWG : *${result.released || 'date inconnue'}* — ${result.genres?.map((g) => g.name).join(', ') || 'genre inconnu'}` : '',
@@ -1246,8 +1265,22 @@ async function handleSetupInteraction(interaction) {
       '',
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].filter(Boolean).join('\n');
-    await interaction.channel.send({ content: confirmMsg }).catch(() => {});
-    await renderStep(interaction, 6); return true;
+    try {
+      await interaction.channel.send({ content: confirmMsg });
+    } catch (err) {
+      logger.error('addGameModal: channel.send failed', { error: err?.message });
+    }
+    if (deferredReply) await interaction.deleteReply().catch(() => {});
+    const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
+      .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
+      .catch((err) => { logger.error('addGameModal: fetch wizard msg failed', { error: err?.message }); return null; });
+    if (wizardMsg) {
+      const fakeIx = { guildId, guild: interaction.guild, message: wizardMsg, channel: interaction.channel, deferUpdate: async () => {} };
+      await renderStep(fakeIx, 6).catch((err) => logger.error('addGameModal: renderStep failed', { error: err?.message }));
+    } else {
+      logger.warn('addGameModal: wizard message not found in channel, cannot re-render step 6');
+    }
+    return true;
   }
 
   if (interaction.customId?.startsWith(`${CUSTOM_IDS.editGamePrefix}:`)) {
@@ -1293,8 +1326,23 @@ async function handleSetupInteraction(interaction) {
     const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
     const galerie = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
     const changelog = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() === 'oui';
-    updateSetupGame(guildId, gameId, { name, steam_app_id: steamId, galerie_enabled: galerie, changelog_enabled: changelog });
-    await renderStep(interaction, 6); return true;
+    try {
+      updateSetupGame(guildId, gameId, { name, steam_app_id: steamId, galerie_enabled: galerie, changelog_enabled: changelog });
+      logger.info('Game updated', { guildId, gameId, name });
+    } catch (err) {
+      logger.error('updateSetupGame failed', { error: err?.message, guildId, gameId });
+    }
+    let deferredReply = false;
+    try { await interaction.deferReply({ ephemeral: true }); deferredReply = true; } catch {}
+    const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
+      .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
+      .catch(() => null);
+    if (wizardMsg) {
+      const fakeIx = { guildId, guild: interaction.guild, message: wizardMsg, channel: interaction.channel, deferUpdate: async () => {} };
+      await renderStep(fakeIx, 6).catch((err) => logger.error('editGameModal: renderStep failed', { error: err?.message }));
+    }
+    if (deferredReply) await interaction.deleteReply().catch(() => {});
+    return true;
   }
 
   if (interaction.customId?.startsWith(`${CUSTOM_IDS.deleteGamePrefix}:`)) {
