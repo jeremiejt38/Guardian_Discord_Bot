@@ -34,12 +34,24 @@ async function handleNewMember(member) {
     }
 
     const db = getDb();
+    const initialScore = 200;
     db.prepare(
-      `INSERT INTO members (guild_id, user_id, grade, join_date)
-       VALUES (?, ?, ?, ?)
+      `INSERT INTO members (guild_id, user_id, grade, join_date, score_comportement)
+       VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(guild_id, user_id)
        DO UPDATE SET grade = excluded.grade, join_date = excluded.join_date`
-    ).run(member.guild.id, member.id, GRADE_NAMES.invite, new Date().toISOString());
+    ).run(member.guild.id, member.id, GRADE_NAMES.invite, new Date().toISOString(), initialScore);
+
+    try {
+      const delayHoursForDm = Number(getGuildSetting(member.guild.id, 'members', 'promotion_delay_hours', 48));
+      await member.send(
+        t(member.guild.id, 'members.dmWelcome', {
+          guild: member.guild.name,
+          delay: delayHoursForDm
+        })
+      );
+    } catch {
+    }
   } catch (error) {
     logger.error('Failed to process new member', error);
   }

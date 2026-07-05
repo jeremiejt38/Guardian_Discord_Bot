@@ -227,7 +227,14 @@ function migrateDatabase() {
     try {
       conn.exec('ALTER TABLE servers_jeu ADD COLUMN approved INTEGER NOT NULL DEFAULT 1');
     } catch (e) {
-      // ignore migration errors
+    }
+  }
+
+  const memberCols = conn.prepare(`PRAGMA table_info(members)`).all().map((c) => c.name);
+  if (!memberCols.includes('last_regen_at')) {
+    try {
+      conn.exec('ALTER TABLE members ADD COLUMN last_regen_at TEXT');
+    } catch (e) {
     }
   }
 }
@@ -298,6 +305,7 @@ function getModerationRoleIds(guildId) {
 
 module.exports = {
   initDatabase,
+  migrateDatabase,
   getDb,
   setConfig,
   getConfig,

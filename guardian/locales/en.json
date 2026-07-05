@@ -25,7 +25,8 @@
     "forbiddenWord": "{{user}}, this message contains a forbidden word."
   },
   "members": {
-    "welcome": "Welcome {{member}} to **{{guild}}**! Click the request button to become a member. You can be promoted after {{delay}}h."
+    "welcome": "Welcome {{member}} to **{{guild}}**! Click the request button to become a member. You can be promoted after {{delay}}h.",
+    "dmWelcome": "Welcome to **{{guild}}**!\n\nYou have joined as a Guest. To become a Member and access the full community, you will need to submit a promotion request.\n\n⏱ You can apply after **{{delay}}h** on the server.\n\nHead to **#bienvenue** to get started!"
   },
   "promotion": {
     "requestButton": "Apply for membership",
@@ -126,6 +127,104 @@
     "scoreReset": "Score for {{user}} has been reset.",
     "prev": "Previous",
     "next": "Next"
+  },
+  "config": {
+    "managerOnly": "This action is restricted to Managers and Owners.",
+    "ownerOnly": "This action is restricted to the Owner.",
+    "invalidNumber": "Invalid value. Check the format.",
+    "membres": {
+      "title": "Member Settings",
+      "delay": "Promotion request delay",
+      "bioRequired": "Bio required",
+      "sponsorRequired": "Sponsorship required",
+      "expulsion": "Auto-expulsion of Guests",
+      "editDelay": "Edit delay",
+      "editWelcome": "Edit welcome text",
+      "editExpulsion": "Edit expulsion delay",
+      "delayModalTitle": "Promotion delay",
+      "delayLabel": "Number of hours before applying",
+      "delayUpdated": "Delay updated: {{hours}}h.",
+      "bioToggled": "Bio required: {{state}}.",
+      "sponsorToggled": "Sponsorship required: {{state}}.",
+      "expulsionToggled": "Auto-expulsion: {{state}}.",
+      "expulsionModalTitle": "Expulsion delay",
+      "expulsionLabel": "Number of days before auto-expulsion",
+      "expulsionUpdated": "Expulsion delay updated: {{days}} days.",
+      "welcomeModalTitle": "Welcome text",
+      "welcomeLabel": "Message shown in #bienvenue",
+      "welcomeUpdated": "Welcome text updated."
+    },
+    "channels": {
+      "title": "Module Activation",
+      "toggled": "{{name}}: {{state}}."
+    },
+    "vocaux": {
+      "title": "Temporary Voice Settings",
+      "prefix": "Prefix",
+      "suffix": "Suffix",
+      "limit": "Member limit",
+      "delay": "Deletion delay (min)",
+      "editPrefix": "Edit prefix",
+      "editSuffix": "Edit suffix",
+      "editLimit": "Edit limit",
+      "editDelay": "Edit delay",
+      "updated": "{{setting}} updated: {{value}}."
+    },
+    "changelogs": {
+      "title": "Steam Changelog Settings",
+      "enabled": "Changelogs active",
+      "aggregate": "Aggregation in #game-updates",
+      "frequency": "Check frequency",
+      "editFrequency": "Edit frequency",
+      "frequencyLabel": "Frequency in minutes (5-1440)",
+      "toggled": "Changelogs: {{state}}.",
+      "aggregateToggled": "#game-updates aggregation: {{state}}.",
+      "frequencyUpdated": "Frequency updated: {{minutes}} min.",
+      "invalidFrequency": "Invalid value. Must be between 5 and 1440 minutes."
+    },
+    "jeux": {
+      "title": "Per-Game Configuration",
+      "noGames": "No games configured on this server.",
+      "hint": "Select a game to edit its settings.",
+      "selectPlaceholder": "Choose a game",
+      "notFound": "Game not found.",
+      "steamModalTitle": "Steam AppID",
+      "steamUpdated": "Steam AppID for **{{name}}** updated: {{appId}}."
+    },
+    "serveursJeu": {
+      "title": "Monitored Game Servers",
+      "noServers": "No servers configured.",
+      "hint": "Add servers to monitor them automatically.",
+      "add": "Add a server",
+      "addModalTitle": "Add a game server",
+      "nameLabel": "Server name",
+      "gameLabel": "Associated game",
+      "ipLabel": "IP address",
+      "portLabel": "Port",
+      "invalidPort": "Invalid port (1-65535).",
+      "added": "Server **{{name}}** added.",
+      "removed": "Server **{{name}}** removed.",
+      "notFound": "Server not found."
+    },
+    "roles": {
+      "title": "Guardian Roles",
+      "hint": "Edit the name or color of each grade role.",
+      "editButton": "Edit {{grade}}",
+      "modalTitle": "Edit role {{grade}}",
+      "nameLabel": "New name (leave blank to keep)",
+      "colorLabel": "Hex color (#RRGGBB, optional)",
+      "notMapped": "Grade {{grade}} is not mapped to a role.",
+      "roleNotFound": "Role not found on the server.",
+      "nothingChanged": "No changes made.",
+      "updated": "Role {{grade}} updated."
+    },
+    "statusBot": {
+      "title": "Guardian Status",
+      "version": "Version",
+      "uptime": "Uptime",
+      "modules": "Active modules",
+      "lastUpdate": "Last update"
+    }
   },
   "servers": {
     "approved": "Server approved by {{user}}.",

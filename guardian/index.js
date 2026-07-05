@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const { DISCORD_TOKEN, assertDiscordTokenConfigured } = require('./config');
-const { initDatabase } = require('./database/db');
+const { initDatabase, migrateDatabase } = require('./database/db');
 const logger = require('./modules/logs/logger');
 
 const client = new Client({
@@ -52,6 +52,7 @@ function loadEvents() {
   try {
     assertDiscordTokenConfigured();
     initDatabase();
+    migrateDatabase();
     loadCommands();
     loadEvents();
     await client.login(DISCORD_TOKEN);
