@@ -16,6 +16,7 @@ const { handlePromotionInteraction, IDS: PROMOTION_IDS } = require('../modules/m
 const { t } = require('../modules/i18n');
 const {
   SETUP_INSTALL_BUTTON_ID,
+  SETUP_START_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
   SETUP_INTEGRATE_BUTTON_ID,
   SETUP_RESET_BUTTON_ID,
