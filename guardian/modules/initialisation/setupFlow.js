@@ -694,7 +694,7 @@ function buildStep6Content_Games(guildId) {
     lines.push('ℹ️ **Aucun jeu configuré.** La liste vide ne bloque pas le fonctionnement du bot.');
     lines.push('> Tu peux ajouter des jeux maintenant ou plus tard via `/config games`.');
   } else {
-    lines.push(`**${games.length} jeu(x) configuré(s) :**`);
+    lines.push(`**${games.length} jeu(x) configuré(s) :**${games.length > 3 ? ' *(3 premiers modifiables ici, le reste via `/config games`)*' : ''}`);
     for (const game of games) {
       lines.push(
         `\n🎮 **${game.name}**`,
@@ -711,7 +711,7 @@ function buildStep6Components_Games(guildId) {
   rows.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu')
   ));
-  for (let i = 0; i < Math.min(games.length, 4); i++) {
+  for (let i = 0; i < Math.min(games.length, 3); i++) {
     const game = games[i];
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
