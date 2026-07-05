@@ -44,6 +44,7 @@
     "forbiddenNotOwner": "Seul le proprietaire du setup peut interagir avec ce wizard.",
     "step1Title": "Grades & Roles",
     "step1Instructions": "Associe chaque grade Guardian a un role Discord de ton serveur. Navigue avec les boutons.",
+    "step1RenameDesc": "Les 5 grades Guardian ont ete crees automatiquement. Clique sur un grade pour le renommer, ou continue avec les noms par defaut.",
     "step1NoRolesDesc": "Aucun role n'a ete trouve sur ce serveur. Guardian peut creer automatiquement les 5 roles necessaires (Invite, Membre, Moderateur, Manager, Owner) ou tu peux en creer manuellement puis revenir.",
     "step1CreateRolesAuto": "Creer les roles Guardian automatiquement",
     "step1CurrentGrade": "Grade en cours : **{{grade}}**",
