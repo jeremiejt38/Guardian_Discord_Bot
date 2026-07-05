@@ -1419,6 +1419,13 @@ async function handleSetupInteraction(interaction) {
           .setCustomId('name').setLabel('Nom du jeu')
           .setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(64)
           .setValue(game.name)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('steam_id').setLabel('Steam ID (vider = jeu non Steam)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(20)
+          .setValue(game.steam_app_id || '')
+          .setPlaceholder('Ex: 730 pour CS2 — laisser vide si non Steam')
       )
     );
     await interaction.showModal(modal); return true;
@@ -1427,24 +1434,10 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const name = interaction.fields.getTextInputValue('name').trim();
+    const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
     const existingGame = listSetupGames(guildId).find((g) => g.game_id === gameId);
     const galerie = Boolean(existingGame?.galerie_enabled);
     const changelog = Boolean(existingGame?.changelog_enabled);
-    let steamId = existingGame?.steam_app_id || null;
-    if (name !== existingGame?.name) {
-      try {
-        const encoded = encodeURIComponent(name);
-        const res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encoded}&l=french&cc=FR`);
-        if (res.ok) {
-          const data = await res.json();
-          const found = data.items?.[0] || null;
-          steamId = found?.id ? String(found.id) : null;
-          logger.info('Steam re-search on name change', { name, found: found?.name || null, steamId });
-        }
-      } catch (err) {
-        logger.error('Steam re-search error', { error: err?.message, name });
-      }
-    }
     try {
       updateSetupGame(guildId, gameId, { name, steam_app_id: steamId, galerie_enabled: galerie, changelog_enabled: changelog });
       logger.info('Game updated', { guildId, gameId, name });
