@@ -23,7 +23,8 @@ function buildFakeRolesCache() {
     filter() { return this; },
     sort() { return this; },
     first() { return []; },
-    get() { return undefined; }
+    get() { return undefined; },
+    some() { return false; }
   };
 }
 
@@ -41,6 +42,9 @@ function buildFakeRolesCacheFromRoles(roles) {
     },
     get(id) {
       return roles.find((role) => role.id === id);
+    },
+    some(fn) {
+      return roles.some(fn);
     }
   };
 }
@@ -52,7 +56,8 @@ function buildFakeGuild({ id } = {}) {
     id: id || `test-guild-${nextGuildIndex++}`,
     ownerId: 'owner',
     roles: {
-      cache: buildFakeRolesCache()
+      cache: buildFakeRolesCache(),
+      everyone: { id: 'everyone' }
     },
     channels: {
       cache: new Map()

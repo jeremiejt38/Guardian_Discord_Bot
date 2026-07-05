@@ -43,6 +43,8 @@
     "forbiddenNotOwner": "Only the setup owner can interact with this wizard.",
     "step1Title": "Grades & Roles",
     "step1Instructions": "Map each Guardian grade to a Discord role. Navigate with the buttons.",
+    "step1NoRolesDesc": "No roles were found on this server. Guardian can automatically create the 5 required roles (Invite, Member, Moderator, Manager, Owner), or you can create them manually and come back.",
+    "step1CreateRolesAuto": "Create Guardian roles automatically",
     "step1CurrentGrade": "Current grade: **{{grade}}**",
     "step1Mapped": "OK",
     "step1NotMapped": "missing",
