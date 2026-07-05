@@ -112,7 +112,8 @@ function initDatabase(customPath = DATABASE_PATH) {
       channel_changelog_id TEXT,
       category_id TEXT,
       galerie_enabled INTEGER NOT NULL DEFAULT 0,
-      changelog_enabled INTEGER NOT NULL DEFAULT 1
+      changelog_enabled INTEGER NOT NULL DEFAULT 1,
+      text_channel_enabled INTEGER NOT NULL DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS member_games (
@@ -236,6 +237,13 @@ function migrateDatabase() {
       conn.exec('ALTER TABLE members ADD COLUMN last_regen_at TEXT');
     } catch (e) {
     }
+  }
+
+  const gamesCols = conn.prepare(`PRAGMA table_info(games)`).all().map((c) => c.name);
+  if (!gamesCols.includes('text_channel_enabled')) {
+    try {
+      conn.exec('ALTER TABLE games ADD COLUMN text_channel_enabled INTEGER NOT NULL DEFAULT 1');
+    } catch (e) {}
   }
 }
 

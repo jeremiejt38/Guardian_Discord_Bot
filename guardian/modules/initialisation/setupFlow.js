@@ -77,6 +77,8 @@ const CUSTOM_IDS = Object.freeze({
   confirmGamePrefix: 'setup:games:confirm',
   toggleGameGallery: 'setup:games:gallery:toggle',
   toggleGameChangelog: 'setup:games:changelog:toggle',
+  toggleGameText: 'setup:games:text:toggle',
+  addGameConfirmModal: 'setup:games:add:confirm:modal',
   toggleInviteGrade: 'setup:grade:invite:toggle',
   toggleBehaviorScore: 'setup:modules:behavior:toggle',
   decreaseSpamThreshold: 'setup:mod:spam:dec',
@@ -725,6 +727,10 @@ function buildStep6Components_Games(guildId) {
         .setStyle(game.changelog_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setLabel(`📢 ${onOffDot(Boolean(game.changelog_enabled))}`),
       new ButtonBuilder()
+        .setCustomId(`${CUSTOM_IDS.toggleGameText}:${game.game_id}`)
+        .setStyle(game.text_channel_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setLabel(`💬 ${onOffDot(Boolean(game.text_channel_enabled))}`),
+      new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.deleteGamePrefix}:${game.game_id}`)
         .setStyle(ButtonStyle.Danger)
         .setLabel('🗑️')
@@ -1308,11 +1314,32 @@ async function handleSetupInteraction(interaction) {
     } catch (err) {
       logger.error('Steam search error', { error: err?.message, name });
     }
+    if (!steamResult) {
+      if (deferredReply) await interaction.deleteReply().catch(() => {});
+      const confirmModal = new ModalBuilder()
+        .setCustomId(`${CUSTOM_IDS.addGameConfirmModal}:${encodeURIComponent(name)}`)
+        .setTitle('⚠️ Jeu non trouvé sur Steam');
+      confirmModal.addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('name').setLabel('Nom du jeu (corriger si besoin)')
+            .setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(64)
+            .setValue(name)
+        ),
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('steam_id').setLabel('Steam ID (laisser vide si jeu non Steam)')
+            .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(20)
+            .setPlaceholder('Ex: 730 pour CS2 — vide si non disponible sur Steam')
+        )
+      );
+      await interaction.showModal(confirmModal); return true;
+    }
     let game;
     try {
       game = addSetupGame(guildId, {
-        name: steamResult ? steamResult.name : name,
-        steam_app_id: steamResult?.id ? String(steamResult.id) : null,
+        name: steamResult.name,
+        steam_app_id: String(steamResult.id),
         galerie_enabled: galerieEnabled,
         changelog_enabled: changelogEnabled
       });
@@ -1324,8 +1351,7 @@ async function handleSetupInteraction(interaction) {
     }
     const confirmMsg = [
       `✅ **Jeu ajouté : ${game.name}**`,
-      steamResult ? `> Trouvé sur Steam : ID \`${game.steam_app_id}\`` : '',
-      !game.steam_app_id ? '> Aucun Steam ID trouvé — le suivi des mises à jour Steam ne sera pas disponible.' : '',
+      `> Trouvé sur Steam : ID \`${game.steam_app_id}\``,
       '',
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].filter(Boolean).join('\n');
@@ -1343,6 +1369,38 @@ async function handleSetupInteraction(interaction) {
       await renderStep(fakeIx, 6).catch((err) => logger.error('addGameModal: renderStep failed', { error: err?.message }));
     } else {
       logger.warn('addGameModal: wizard message not found in channel, cannot re-render step 6');
+    }
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.addGameConfirmModal}:`)) {
+    const name = interaction.fields.getTextInputValue('name').trim();
+    const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
+    let deferredReply = false;
+    try { await interaction.deferReply({ ephemeral: true }); deferredReply = true; } catch {}
+    let game;
+    try {
+      game = addSetupGame(guildId, { name, steam_app_id: steamId, galerie_enabled: false, changelog_enabled: true });
+      logger.info('Game added (non-Steam)', { guildId, name: game.name, steam_app_id: game.steam_app_id });
+    } catch (err) {
+      logger.error('addGameConfirmModal: addSetupGame failed', { error: err?.message });
+      if (deferredReply) await interaction.deleteReply().catch(() => {});
+      return true;
+    }
+    const confirmMsg = [
+      `✅ **Jeu ajouté : ${game.name}**`,
+      game.steam_app_id ? `> Steam ID : \`${game.steam_app_id}\`` : '> Jeu non Steam — le suivi des mises à jour Steam ne sera pas disponible.',
+      '',
+      'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
+    ].join('\n');
+    try { await interaction.channel.send({ content: confirmMsg }); } catch {}
+    if (deferredReply) await interaction.deleteReply().catch(() => {});
+    const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
+      .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
+      .catch(() => null);
+    if (wizardMsg) {
+      const fakeIx = { guildId, guild: interaction.guild, message: wizardMsg, channel: interaction.channel, deferUpdate: async () => {} };
+      await renderStep(fakeIx, 6).catch(() => {});
     }
     return true;
   }
@@ -1416,6 +1474,12 @@ async function handleSetupInteraction(interaction) {
     const gameId = Number(interaction.customId.split(':').pop());
     const game = listSetupGames(guildId).find((g) => g.game_id === gameId);
     if (game) { updateSetupGame(guildId, gameId, { ...game, changelog_enabled: !game.changelog_enabled }); }
+    await renderStep(interaction, 6); return true;
+  }
+  if (interaction.customId?.startsWith(`${CUSTOM_IDS.toggleGameText}:`)) {
+    const gameId = Number(interaction.customId.split(':').pop());
+    const game = listSetupGames(guildId).find((g) => g.game_id === gameId);
+    if (game) { updateSetupGame(guildId, gameId, { ...game, text_channel_enabled: !game.text_channel_enabled }); }
     await renderStep(interaction, 6); return true;
   }
   if (interaction.customId?.startsWith(`${CUSTOM_IDS.deleteGamePrefix}:`)) {
