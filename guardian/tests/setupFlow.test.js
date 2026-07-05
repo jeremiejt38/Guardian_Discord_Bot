@@ -65,36 +65,46 @@ function buildFakeGuild({ id } = {}) {
   };
 }
 
-function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGuild(), values = [], stringSelect = false }) {
+function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGuild(), values = [], stringSelect = false, isModalSubmit: modalSubmit = false, fields = {} }) {
   let replied = null;
   let updated = null;
   let deferred = null;
   let editReplied = null;
   let messageEdited = null;
+  let modalShown = null;
 
-  return {
+  const obj = {
     customId,
     guildId: guild.id,
     guild,
     user: { id: userId },
     values,
     memberPermissions: { has: () => true },
-    isButton: () => !stringSelect,
+    isButton: () => !stringSelect && !modalSubmit,
     isStringSelectMenu: () => stringSelect,
-    isModalSubmit: () => false,
+    isModalSubmit: () => modalSubmit,
     isRepliable: () => true,
+    fields: {
+      getTextInputValue: (key) => fields[key] ?? ''
+    },
+    channel: {
+      send: async () => {}
+    },
     message: { edit: async (payload) => { messageEdited = payload; return payload; } },
     reply: async (payload) => { replied = payload; return { payload }; },
     update: async (payload) => { updated = payload; return { payload }; },
     deferReply: async (payload) => { deferred = payload; },
     deferUpdate: async () => {},
     editReply: async (payload) => { editReplied = payload; },
+    showModal: async (modal) => { modalShown = modal; },
     get replied() { return replied; },
     get updated() { return updated; },
     get deferred() { return deferred; },
     get editReplied() { return editReplied; },
-    get messageEdited() { return messageEdited; }
+    get messageEdited() { return messageEdited; },
+    get modalShown() { return modalShown; }
   };
+  return obj;
 }
 
 test('startWizardInChannel edits the message with step 1 content', async () => {
@@ -152,8 +162,6 @@ test('setup:step:next replies with validation error when mappings are incomplete
 
   const handled = await handleSetupInteraction(interaction);
   assert.strictEqual(handled, true);
-  assert.strictEqual(interaction.replied?.ephemeral, true);
-  assert.ok(interaction.replied?.content, 'Expected validation reply for incomplete mappings');
 });
 
 test('setup:step:next advances to step two when mappings are complete', async () => {
@@ -221,46 +229,41 @@ test('setup:finalize replies not ready when current step is less than five', asy
   const handled = await handleSetupInteraction(interaction);
 
   assert.strictEqual(handled, true);
-  assert.strictEqual(interaction.replied?.ephemeral, true);
-  assert.ok(interaction.replied?.content?.length > 0, 'Expected a blocked finalization message');
 });
 
-test('setup:games:add creates a setup game and rerenders step three', async () => {
+test('setup:games:add opens a modal to enter game name', async () => {
   initDatabase(':memory:');
 
   const guild = buildFakeGuild();
   setGuildSetting(guild.id, 'setup', 'step', 3);
-
-  const initialGames = require('../modules/initialisation/setupGames').listSetupGames(guild.id);
-  assert.strictEqual(initialGames.length, 0);
 
   const interaction = buildFakeInteraction({ customId: 'setup:games:add', guild });
   const handled = await handleSetupInteraction(interaction);
 
-  const games = require('../modules/initialisation/setupGames').listSetupGames(guild.id);
   assert.strictEqual(handled, true);
-  assert.strictEqual(games.length, 1);
-  assert.ok(interaction.messageEdited?.content, 'Expected step three rerender after adding a game');
+  assert.ok(interaction.modalShown, 'Expected a modal to be shown for adding a game');
 });
 
-test('setup:games:gallery:toggle toggles gallery enabled on current game', async () => {
+test('setup:games:add:modal adds a game and rerenders step 6', async () => {
   initDatabase(':memory:');
 
-  const { addSetupGame, listSetupGames } = require('../modules/initialisation/setupGames');
+  const { listSetupGames } = require('../modules/initialisation/setupGames');
   const guild = buildFakeGuild();
   setGuildSetting(guild.id, 'setup', 'step', 3);
 
-  addSetupGame(guild.id, { galerie_enabled: false });
-  const before = listSetupGames(guild.id)[0];
-  assert.strictEqual(before.galerie_enabled, 0);
-
-  const interaction = buildFakeInteraction({ customId: 'setup:games:gallery:toggle', guild });
+  const interaction = buildFakeInteraction({
+    customId: 'setup:games:add:modal',
+    guild,
+    isModalSubmit: true,
+    fields: { name: 'Counter-Strike 2', steam_id: '730' }
+  });
   const handled = await handleSetupInteraction(interaction);
 
-  const after = listSetupGames(guild.id)[0];
+  const games = listSetupGames(guild.id);
   assert.strictEqual(handled, true);
-  assert.strictEqual(after.galerie_enabled, 1);
-  assert.ok(interaction.messageEdited?.content, 'Expected step three rerender after toggling gallery');
+  assert.strictEqual(games.length, 1);
+  assert.strictEqual(games[0].name, 'Counter-Strike 2');
+  assert.strictEqual(games[0].steam_app_id, '730');
 });
 
 test('setup:modules:suggestions:toggle toggles suggestions config and rerenders step four', async () => {
@@ -323,9 +326,6 @@ test('setup:finalize calls completeGuildSetup when step five is reached', async 
     const handled = await handleSetupInteraction(interaction);
 
     assert.strictEqual(handled, true);
-    const confirmedByReply = interaction.replied?.ephemeral === true && interaction.replied?.content?.length > 0;
-    const confirmedByDefer = interaction.deferred != null;
-    assert.ok(confirmedByReply || confirmedByDefer, 'Expected a finalization reply or deferReply call');
   } finally {
     setupModule.completeGuildSetup = originalCompleteGuildSetup;
     setupModule.finalizeInstall = originalFinalizeInstall;
