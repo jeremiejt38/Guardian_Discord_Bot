@@ -2,6 +2,7 @@ const { CATEGORIES, GRADE_NAMES } = require('../../config');
 const { isGuildInstalled } = require('./checkInstall');
 const { findCategoryByName } = require('../utils/channels');
 const { setGradeRole, ORDERED_GRADES } = require('./gradeMapping');
+const { getGuildSetting } = require('../config/settings');
 
 const DISCORD_DEFAULT_CHANNELS = new Set([
   'général',
@@ -17,7 +18,9 @@ function isDefaultDiscordChannel(name) {
 }
 
 function detectGuardianInstall(guild) {
-  return findCategoryByName(guild, CATEGORIES.setup) !== null;
+  if (findCategoryByName(guild, CATEGORIES.setup) === null) return false;
+  const step = getGuildSetting(guild.id, 'setup', 'step', null);
+  return Number.isInteger(step) && step > 1;
 }
 
 
