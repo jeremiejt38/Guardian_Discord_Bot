@@ -70,6 +70,7 @@ function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGui
   let updated = null;
   let deferred = null;
   let editReplied = null;
+  let messageEdited = null;
 
   return {
     customId,
@@ -82,27 +83,29 @@ function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGui
     isStringSelectMenu: () => stringSelect,
     isModalSubmit: () => false,
     isRepliable: () => true,
+    message: { edit: async (payload) => { messageEdited = payload; return payload; } },
     reply: async (payload) => { replied = payload; return { payload }; },
     update: async (payload) => { updated = payload; return { payload }; },
     deferReply: async (payload) => { deferred = payload; },
+    deferUpdate: async () => {},
     editReply: async (payload) => { editReplied = payload; },
     get replied() { return replied; },
     get updated() { return updated; },
     get deferred() { return deferred; },
-    get editReplied() { return editReplied; }
+    get editReplied() { return editReplied; },
+    get messageEdited() { return messageEdited; }
   };
 }
 
-test('setup:start stores setup owner and replies with step content', async () => {
+test('startWizardInChannel edits the message with step 1 content', async () => {
   initDatabase(':memory:');
+  const { startWizardInChannel } = require('../modules/initialisation/setupFlow');
 
   const guild = buildFakeGuild();
   const interaction = buildFakeInteraction({ customId: 'setup:start', guild });
 
-  const handled = await handleSetupInteraction(interaction);
-  assert.strictEqual(handled, true);
-  assert.ok(interaction.replied || interaction.updated);
-  assert.ok(interaction.replied?.content || interaction.updated?.content, 'Expected a reply or update payload');
+  await startWizardInChannel(interaction);
+  assert.ok(interaction.messageEdited?.content, 'Expected message.edit to be called with step 1 content');
 });
 
 test('setup:start rejects non-owner if setup owner already exists', async () => {
@@ -138,7 +141,7 @@ test('setup:grade:role selects a role and rerenders the first step', async () =>
   const handled = await handleSetupInteraction(interaction);
   assert.strictEqual(handled, true);
   assert.strictEqual(getGradeMappings(guild.id).invite, 'role-invite');
-  assert.ok(interaction.updated?.content, 'Expected step one to rerender after role selection');
+  assert.ok(interaction.messageEdited?.content, 'Expected step one to rerender after role selection');
 });
 
 test('setup:step:next replies with validation error when mappings are incomplete', async () => {
@@ -177,7 +180,7 @@ test('setup:step:next advances to step two when mappings are complete', async ()
 
   assert.strictEqual(handled, true);
   assert.strictEqual(getGuildSetting(guild.id, 'setup', 'step'), 2);
-  assert.ok(interaction.updated?.content, 'Expected step two content after advancing');
+  assert.ok(interaction.messageEdited?.content, 'Expected step two content after advancing');
 });
 
 test('toggleBioRequired updates the member bio config and rerenders step two', async () => {
@@ -191,7 +194,7 @@ test('toggleBioRequired updates the member bio config and rerenders step two', a
 
   assert.strictEqual(handled, true);
   assert.strictEqual(getGuildSetting(guild.id, 'members', 'bio_required'), true);
-  assert.ok(interaction.updated?.content || interaction.replied?.content, 'Expected step two rerender after toggle');
+  assert.ok(interaction.messageEdited?.content, 'Expected step two rerender after toggle');
 });
 
 test('setup:step:next advances from step two to step three', async () => {
@@ -205,7 +208,7 @@ test('setup:step:next advances from step two to step three', async () => {
 
   assert.strictEqual(handled, true);
   assert.strictEqual(getGuildSetting(guild.id, 'setup', 'step'), 3);
-  assert.ok(interaction.updated?.content, 'Expected step three content after advancing');
+  assert.ok(interaction.messageEdited?.content, 'Expected step three content after advancing');
 });
 
 test('setup:finalize replies not ready when current step is less than five', async () => {
@@ -237,7 +240,7 @@ test('setup:games:add creates a setup game and rerenders step three', async () =
   const games = require('../modules/initialisation/setupGames').listSetupGames(guild.id);
   assert.strictEqual(handled, true);
   assert.strictEqual(games.length, 1);
-  assert.ok(interaction.updated?.content || interaction.replied?.content, 'Expected step three rerender after adding a game');
+  assert.ok(interaction.messageEdited?.content, 'Expected step three rerender after adding a game');
 });
 
 test('setup:games:gallery:toggle toggles gallery enabled on current game', async () => {
@@ -257,7 +260,7 @@ test('setup:games:gallery:toggle toggles gallery enabled on current game', async
   const after = listSetupGames(guild.id)[0];
   assert.strictEqual(handled, true);
   assert.strictEqual(after.galerie_enabled, 1);
-  assert.ok(interaction.updated?.content, 'Expected step three rerender after toggling gallery');
+  assert.ok(interaction.messageEdited?.content, 'Expected step three rerender after toggling gallery');
 });
 
 test('setup:modules:suggestions:toggle toggles suggestions config and rerenders step four', async () => {
@@ -272,7 +275,7 @@ test('setup:modules:suggestions:toggle toggles suggestions config and rerenders 
 
   assert.strictEqual(handled, true);
   assert.strictEqual(getGuildSetting(guild.id, 'channels', 'suggestions_enabled'), false);
-  assert.ok(interaction.updated?.content, 'Expected step four rerender after toggling suggestions');
+  assert.ok(interaction.messageEdited?.content, 'Expected step four rerender after toggling suggestions');
 });
 
 test('setup:step:next advances from step three to step four', async () => {
@@ -286,7 +289,7 @@ test('setup:step:next advances from step three to step four', async () => {
 
   assert.strictEqual(handled, true);
   assert.strictEqual(getGuildSetting(guild.id, 'setup', 'step'), 4);
-  assert.ok(interaction.updated?.content, 'Expected step four content after advancing from step three');
+  assert.ok(interaction.messageEdited?.content, 'Expected step four content after advancing from step three');
 });
 
 test('setup:step:next advances from step four to step five', async () => {
@@ -300,7 +303,7 @@ test('setup:step:next advances from step four to step five', async () => {
 
   assert.strictEqual(handled, true);
   assert.strictEqual(getGuildSetting(guild.id, 'setup', 'step'), 5);
-  assert.ok(interaction.updated?.content, 'Expected step five summary after advancing from step four');
+  assert.ok(interaction.messageEdited?.content, 'Expected step five summary after advancing from step four');
 });
 
 test('setup:finalize calls completeGuildSetup when step five is reached', async () => {

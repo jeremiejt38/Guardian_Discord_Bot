@@ -35,6 +35,7 @@
     "languageUpdated": "Installation language updated: {{language}}.",
     "startButton": "Start configuration",
     "nextStep": "Next step ({{step}}/{{total}})",
+    "backStep": "Back",
     "finalizeButton": "Finalize installation",
     "enabled": "Enabled",
     "disabled": "Disabled",

@@ -28,7 +28,7 @@ const {
   handleSetupForceReinstallButton,
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
-const { handleSetupInteraction } = require('../modules/initialisation/setupFlow');
+const { handleSetupInteraction, startWizardInChannel } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
@@ -159,6 +159,11 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId === SETUP_INSTALL_BUTTON_ID) {
       await handleSetupInstallButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_START_BUTTON_ID) {
+      await startWizardInChannel(interaction);
       return;
     }
 
