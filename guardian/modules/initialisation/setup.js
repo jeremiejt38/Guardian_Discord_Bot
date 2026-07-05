@@ -734,12 +734,17 @@ function buildFreshRow(guildId) {
   );
 }
 
+
 function buildPartialRow(guildId) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(SETUP_START_BUTTON_ID)
-      .setLabel(t(guildId, 'setup.startInstallButton'))
-      .setStyle(ButtonStyle.Primary)
+      .setLabel(t(guildId, 'setup.resumeInstallButton'))
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(SETUP_RESET_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.contextResetButton'))
+      .setStyle(ButtonStyle.Danger)
   );
 }
 
@@ -801,7 +806,7 @@ async function handleSetupInstallButton(interaction) {
     await interaction.message.edit({
       content: [
         `⏸️ **${t(guildId, 'setup.guardianPartialTitle')}**`,
-        t(guildId, 'setup.guardianPartialResume')
+        t(guildId, 'setup.guardianPartialDesc')
       ].join('\n'),
       components: [buildPartialRow(guildId)]
     });
