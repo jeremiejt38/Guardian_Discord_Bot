@@ -19,9 +19,13 @@ const {
   SETUP_LANGUAGE_SELECT_ID,
   SETUP_INTEGRATE_BUTTON_ID,
   SETUP_RESET_BUTTON_ID,
+  SETUP_FORCE_EXISTING_BUTTON_ID,
+  SETUP_FORCE_REINSTALL_BUTTON_ID,
   handleSetupInstallButton,
   handleSetupIntegrateButton,
   handleSetupResetButton,
+  handleSetupForceExistingButton,
+  handleSetupForceReinstallButton,
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction } = require('../modules/initialisation/setupFlow');
@@ -165,6 +169,16 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId === SETUP_RESET_BUTTON_ID) {
       await handleSetupResetButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_FORCE_EXISTING_BUTTON_ID) {
+      await handleSetupForceExistingButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_FORCE_REINSTALL_BUTTON_ID) {
+      await handleSetupForceReinstallButton(interaction);
       return;
     }
 
