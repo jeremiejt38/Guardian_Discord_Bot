@@ -1,6 +1,13 @@
 const { markReportHandled, handleOpenReportButton, handleReportModalSubmit } = require('../modules/moderation/reports');
 const { handleSlowModeInteraction } = require('../modules/moderation/slowModePanel');
 const { handleBehaviorInteraction } = require('../modules/moderation/behaviorPanel');
+const { handleMembresInteraction } = require('../modules/config/membresPanel');
+const { handleChannelsInteraction } = require('../modules/config/channelsPanel');
+const { handleVocauxInteraction } = require('../modules/config/vocauxPanel');
+const { handleJeuxInteraction } = require('../modules/config/jeuxPanel');
+const { handleChangelogsInteraction } = require('../modules/config/changelogsPanel');
+const { handleServeursJeuInteraction } = require('../modules/config/serveursJeuPanel');
+const { handleRolesInteraction } = require('../modules/config/rolesPanel');
 const { handleHistoriquePagination } = require('../commands/historique');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
@@ -40,6 +47,41 @@ module.exports = {
 
     if (interaction.customId?.startsWith('behavior:')) {
       const handled = await handleBehaviorInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('membres:')) {
+      const handled = await handleMembresInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('channels:toggle:')) {
+      const handled = await handleChannelsInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('vocaux:')) {
+      const handled = await handleVocauxInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('jeux:')) {
+      const handled = await handleJeuxInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('changelogs:')) {
+      const handled = await handleChangelogsInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('serveurs-jeu:')) {
+      const handled = await handleServeursJeuInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('roles:')) {
+      const handled = await handleRolesInteraction(interaction);
       if (handled) return;
     }
 

@@ -25,7 +25,8 @@
     "forbiddenWord": "{{user}}, ce message contient un mot interdit."
   },
   "members": {
-    "welcome": "Bienvenue {{member}} sur **{{guild}}** ! Clique sur le bouton de demande pour devenir membre. Tu pourras etre promu apres {{delay}}h."
+    "welcome": "Bienvenue {{member}} sur **{{guild}}** ! Clique sur le bouton de demande pour devenir membre. Tu pourras etre promu apres {{delay}}h.",
+    "dmWelcome": "Bienvenue sur **{{guild}}** !\n\nTu as rejoint le serveur en tant qu Invite. Pour devenir Membre et acceder a toute la communaute, tu devras faire une demande de promotion.\n\n⏱ Tu pourras faire ta demande apres **{{delay}}h** de presence sur le serveur.\n\nRendez-vous dans le channel **#bienvenue** pour commencer !"
   },
   "promotion": {
     "requestButton": "Faire une demande",
@@ -126,6 +127,104 @@
     "scoreReset": "Score de {{user}} reinitialise.",
     "prev": "Precedent",
     "next": "Suivant"
+  },
+  "config": {
+    "managerOnly": "Cette action est reservee aux Managers et Owners.",
+    "ownerOnly": "Cette action est reservee au Owner.",
+    "invalidNumber": "Valeur invalide. Verifie le format.",
+    "membres": {
+      "title": "Parametres Membres",
+      "delay": "Delai avant demande de promotion",
+      "bioRequired": "Bio obligatoire",
+      "sponsorRequired": "Parrainage obligatoire",
+      "expulsion": "Expulsion automatique Invites",
+      "editDelay": "Modifier le delai",
+      "editWelcome": "Modifier le texte d'accueil",
+      "editExpulsion": "Modifier le delai d'expulsion",
+      "delayModalTitle": "Delai de promotion",
+      "delayLabel": "Nombre d'heures avant de pouvoir demander",
+      "delayUpdated": "Delai mis a jour : {{hours}}h.",
+      "bioToggled": "Bio obligatoire : {{state}}.",
+      "sponsorToggled": "Parrainage obligatoire : {{state}}.",
+      "expulsionToggled": "Expulsion automatique : {{state}}.",
+      "expulsionModalTitle": "Delai d'expulsion",
+      "expulsionLabel": "Nombre de jours avant expulsion automatique",
+      "expulsionUpdated": "Delai d'expulsion mis a jour : {{days}} jours.",
+      "welcomeModalTitle": "Texte d'accueil",
+      "welcomeLabel": "Message affiche dans #bienvenue",
+      "welcomeUpdated": "Texte d'accueil mis a jour."
+    },
+    "channels": {
+      "title": "Activation des Modules",
+      "toggled": "{{name}} : {{state}}."
+    },
+    "vocaux": {
+      "title": "Parametres Vocaux Temporaires",
+      "prefix": "Prefixe",
+      "suffix": "Suffixe",
+      "limit": "Limite de membres",
+      "delay": "Delai de suppression (min)",
+      "editPrefix": "Modifier le prefixe",
+      "editSuffix": "Modifier le suffixe",
+      "editLimit": "Modifier la limite",
+      "editDelay": "Modifier le delai",
+      "updated": "{{setting}} mis a jour : {{value}}."
+    },
+    "changelogs": {
+      "title": "Parametres Changelogs Steam",
+      "enabled": "Changelogs actifs",
+      "aggregate": "Agregation dans #game-updates",
+      "frequency": "Frequence de verification",
+      "editFrequency": "Modifier la frequence",
+      "frequencyLabel": "Frequence en minutes (5-1440)",
+      "toggled": "Changelogs : {{state}}.",
+      "aggregateToggled": "Agregation #game-updates : {{state}}.",
+      "frequencyUpdated": "Frequence mise a jour : {{minutes}} min.",
+      "invalidFrequency": "Valeur invalide. Doit etre entre 5 et 1440 minutes."
+    },
+    "jeux": {
+      "title": "Configuration par Jeu",
+      "noGames": "Aucun jeu configure sur ce serveur.",
+      "hint": "Selectionnez un jeu pour modifier ses parametres.",
+      "selectPlaceholder": "Choisir un jeu",
+      "notFound": "Jeu introuvable.",
+      "steamModalTitle": "Steam AppID",
+      "steamUpdated": "Steam AppID de **{{name}}** mis a jour : {{appId}}."
+    },
+    "serveursJeu": {
+      "title": "Serveurs de Jeu Surveilles",
+      "noServers": "Aucun serveur configure.",
+      "hint": "Ajoutez des serveurs pour les surveiller automatiquement.",
+      "add": "Ajouter un serveur",
+      "addModalTitle": "Ajouter un serveur de jeu",
+      "nameLabel": "Nom du serveur",
+      "gameLabel": "Jeu associe",
+      "ipLabel": "Adresse IP",
+      "portLabel": "Port",
+      "invalidPort": "Port invalide (1-65535).",
+      "added": "Serveur **{{name}}** ajoute.",
+      "removed": "Serveur **{{name}}** retire.",
+      "notFound": "Serveur introuvable."
+    },
+    "roles": {
+      "title": "Roles Guardian",
+      "hint": "Modifiez le nom ou la couleur des roles de chaque grade.",
+      "editButton": "Modifier {{grade}}",
+      "modalTitle": "Modifier le role {{grade}}",
+      "nameLabel": "Nouveau nom (laisser vide pour ne pas changer)",
+      "colorLabel": "Couleur hex (#RRGGBB, optionnel)",
+      "notMapped": "Le grade {{grade}} n'est pas associe a un role.",
+      "roleNotFound": "Role introuvable sur le serveur.",
+      "nothingChanged": "Aucune modification effectuee.",
+      "updated": "Role {{grade}} mis a jour."
+    },
+    "statusBot": {
+      "title": "Statut Guardian",
+      "version": "Version",
+      "uptime": "Uptime",
+      "modules": "Modules actifs",
+      "lastUpdate": "Derniere mise a jour"
+    }
   },
   "servers": {
     "approved": "Serveur approuve par {{user}}.",

@@ -93,7 +93,12 @@ function buildOverwrites(guild, gradeMappings, policy) {
       const deny = [];
 
       if (policy.read) {
-        allow.push(PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory);
+        allow.push(PermissionFlagsBits.ViewChannel);
+        if (policy.denyHistory && grade === GRADE_NAMES.invite) {
+          deny.push(PermissionFlagsBits.ReadMessageHistory);
+        } else {
+          allow.push(PermissionFlagsBits.ReadMessageHistory);
+        }
       }
 
       const canSend = Boolean(policy.send) || (policy.sendFromGrade && hasGradeOrAbove(grade, policy.sendFromGrade));
@@ -207,7 +212,8 @@ async function applyGuardianPermissions(guild) {
   await setChannelPermissions(guild, gradeMappings, CHANNEL_NAMES.general, {
     minGrade: GRADE_NAMES.invite,
     read: true,
-    sendFromGrade: GRADE_NAMES.membre
+    sendFromGrade: GRADE_NAMES.membre,
+    denyHistory: true
   });
   await setChannelPermissions(guild, gradeMappings, CHANNEL_NAMES.gameUpdates, {
     minGrade: GRADE_NAMES.membre,

@@ -6,6 +6,14 @@ const logger = require('../logs/logger');
 const { seedSlowModePanel } = require('../moderation/slowModePanel');
 const { seedBehaviorPanel } = require('../moderation/behaviorPanel');
 const { seedReportPanel } = require('../moderation/reports');
+const { seedMembresPanel } = require('../config/membresPanel');
+const { seedChannelsPanel } = require('../config/channelsPanel');
+const { seedVocauxPanel } = require('../config/vocauxPanel');
+const { seedJeuxPanel } = require('../config/jeuxPanel');
+const { seedChangelogsPanel } = require('../config/changelogsPanel');
+const { seedServeursJeuPanel } = require('../config/serveursJeuPanel');
+const { seedRolesPanel } = require('../config/rolesPanel');
+const { seedStatusBotPanel } = require('../config/statusBotPanel');
 
 async function seedGuildMessages(guild) {
   try {
@@ -45,6 +53,14 @@ async function seedGuildMessages(guild) {
     await seedSlowModePanel(guild);
     await seedBehaviorPanel(guild);
     await seedReportPanel(guild);
+    await seedMembresPanel(guild);
+    await seedChannelsPanel(guild);
+    await seedVocauxPanel(guild);
+    await seedJeuxPanel(guild);
+    await seedChangelogsPanel(guild);
+    await seedServeursJeuPanel(guild);
+    await seedRolesPanel(guild);
+    await seedStatusBotPanel(guild);
   } catch (error) {
     logger.error('Failed to seed guild messages', error);
   }

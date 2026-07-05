@@ -1,0 +1,201 @@
+const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
+} = require('discord.js');
+const { CHANNELS, GRADE_NAMES } = require('../../config');
+const { t } = require('../i18n');
+const { replyEphemeral } = require('../utils/interactions');
+const { findTextChannelByName } = require('../utils/channels');
+const { getGuildSetting, setGuildSetting } = require('./settings');
+const { getGradeMappings } = require('../initialisation/gradeMapping');
+const { logConfigChange } = require('./configLogger');
+
+const IDS = Object.freeze({
+  editDelay: 'membres:delay:edit',
+  delayModal: 'membres:delay:modal',
+  toggleBio: 'membres:bio:toggle',
+  toggleSponsor: 'membres:sponsor:toggle',
+  editWelcome: 'membres:welcome:edit',
+  welcomeModal: 'membres:welcome:modal',
+  editExpulsion: 'membres:expulsion:edit',
+  expulsionModal: 'membres:expulsion:modal',
+  toggleExpulsion: 'membres:expulsion:toggle'
+});
+
+function hasManagerGrade(member, guildId) {
+  const mappings = getGradeMappings(guildId);
+  const managerRoleId = mappings[GRADE_NAMES.manager];
+  const ownerRoleId = mappings[GRADE_NAMES.owner];
+  return (managerRoleId && member.roles.cache.has(managerRoleId)) ||
+         (ownerRoleId && member.roles.cache.has(ownerRoleId));
+}
+
+function buildPanelContent(guildId) {
+  const delay = getGuildSetting(guildId, 'members', 'promotion_delay_hours', 48);
+  const bio = getGuildSetting(guildId, 'members', 'bio_required', false);
+  const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
+  const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
+  const expulsionDays = getGuildSetting(guildId, 'members', 'expulsion_delay_days', 30);
+
+  return [
+    `**${t(guildId, 'config.membres.title')}**\n`,
+    `• **${t(guildId, 'config.membres.delay')}** : ${delay}h`,
+    `• **${t(guildId, 'config.membres.bioRequired')}** : ${bio ? '✅' : '❌'}`,
+    `• **${t(guildId, 'config.membres.sponsorRequired')}** : ${sponsor ? '✅' : '❌'}`,
+    `• **${t(guildId, 'config.membres.expulsion')}** : ${expulsion ? `✅ (${expulsionDays}j)` : '❌'}`
+  ].join('\n');
+}
+
+function buildRows(guildId) {
+  const bio = getGuildSetting(guildId, 'members', 'bio_required', false);
+  const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
+  const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
+
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(IDS.editDelay).setLabel(t(guildId, 'config.membres.editDelay')).setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(IDS.editWelcome).setLabel(t(guildId, 'config.membres.editWelcome')).setStyle(ButtonStyle.Primary)
+    ),
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(IDS.toggleBio).setLabel(`Bio: ${bio ? 'ON' : 'OFF'}`).setStyle(bio ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(IDS.toggleSponsor).setLabel(`Parrainage: ${sponsor ? 'ON' : 'OFF'}`).setStyle(sponsor ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(IDS.toggleExpulsion).setLabel(`Expulsion auto: ${expulsion ? 'ON' : 'OFF'}`).setStyle(expulsion ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(IDS.editExpulsion).setLabel(t(guildId, 'config.membres.editExpulsion')).setStyle(ButtonStyle.Secondary)
+    )
+  ];
+}
+
+async function seedMembresPanel(guild) {
+  const channel = findTextChannelByName(guild, CHANNELS.membres);
+  if (!channel) return;
+  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+  const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
+  if (hasPanel) return;
+  const guildId = guild.id;
+  await channel.send({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+}
+
+async function refreshMembresPanel(guild) {
+  const channel = findTextChannelByName(guild, CHANNELS.membres);
+  if (!channel) return;
+  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+  const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
+  if (!panel) return;
+  const guildId = guild.id;
+  await panel.edit({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+}
+
+async function handleMembresInteraction(interaction) {
+  const { customId, guildId } = interaction;
+  if (!customId?.startsWith('membres:')) return false;
+
+  if (!hasManagerGrade(interaction.member, guildId)) {
+    await replyEphemeral(interaction, t(guildId, 'config.managerOnly'));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.editDelay) {
+    const modal = new ModalBuilder().setCustomId(IDS.delayModal).setTitle(t(guildId, 'config.membres.delayModalTitle'))
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('hours').setLabel(t(guildId, 'config.membres.delayLabel'))
+          .setStyle(TextInputStyle.Short).setPlaceholder('48').setRequired(true).setMaxLength(4)
+      ));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId === IDS.delayModal) {
+    const raw = interaction.fields.getTextInputValue('hours').trim();
+    const hours = Number.parseInt(raw, 10);
+    if (!Number.isInteger(hours) || hours < 0) {
+      await replyEphemeral(interaction, t(guildId, 'config.invalidNumber'));
+      return true;
+    }
+    const old = getGuildSetting(guildId, 'members', 'promotion_delay_hours', 48);
+    setGuildSetting(guildId, 'members', 'promotion_delay_hours', hours);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.promotion_delay_hours', old, hours);
+    await refreshMembresPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.membres.delayUpdated', { hours: String(hours) }));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.toggleBio) {
+    const current = getGuildSetting(guildId, 'members', 'bio_required', false);
+    setGuildSetting(guildId, 'members', 'bio_required', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.bio_required', current, !current);
+    await refreshMembresPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.membres.bioToggled', { state: !current ? 'ON' : 'OFF' }));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.toggleSponsor) {
+    const current = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
+    setGuildSetting(guildId, 'members', 'sponsorship_required', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.sponsorship_required', current, !current);
+    await refreshMembresPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.membres.sponsorToggled', { state: !current ? 'ON' : 'OFF' }));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.toggleExpulsion) {
+    const current = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
+    setGuildSetting(guildId, 'members', 'expulsion_enabled', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.expulsion_enabled', current, !current);
+    await refreshMembresPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.membres.expulsionToggled', { state: !current ? 'ON' : 'OFF' }));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.editExpulsion) {
+    const modal = new ModalBuilder().setCustomId(IDS.expulsionModal).setTitle(t(guildId, 'config.membres.expulsionModalTitle'))
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('days').setLabel(t(guildId, 'config.membres.expulsionLabel'))
+          .setStyle(TextInputStyle.Short).setPlaceholder('30').setRequired(true).setMaxLength(4)
+      ));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId === IDS.expulsionModal) {
+    const raw = interaction.fields.getTextInputValue('days').trim();
+    const days = Number.parseInt(raw, 10);
+    if (!Number.isInteger(days) || days < 1) {
+      await replyEphemeral(interaction, t(guildId, 'config.invalidNumber'));
+      return true;
+    }
+    const old = getGuildSetting(guildId, 'members', 'expulsion_delay_days', 30);
+    setGuildSetting(guildId, 'members', 'expulsion_delay_days', days);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.expulsion_delay_days', old, days);
+    await refreshMembresPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.membres.expulsionUpdated', { days: String(days) }));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.editWelcome) {
+    const current = getGuildSetting(guildId, 'members', 'welcome_text', '');
+    const modal = new ModalBuilder().setCustomId(IDS.welcomeModal).setTitle(t(guildId, 'config.membres.welcomeModalTitle'))
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('text').setLabel(t(guildId, 'config.membres.welcomeLabel'))
+          .setStyle(TextInputStyle.Paragraph).setValue(String(current)).setRequired(false).setMaxLength(500)
+      ));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId === IDS.welcomeModal) {
+    const text = interaction.fields.getTextInputValue('text').trim();
+    const old = getGuildSetting(guildId, 'members', 'welcome_text', '');
+    setGuildSetting(guildId, 'members', 'welcome_text', text);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.welcome_text', old, text);
+    await replyEphemeral(interaction, t(guildId, 'config.membres.welcomeUpdated'));
+    return true;
+  }
+
+  return false;
+}
+
+module.exports = { seedMembresPanel, handleMembresInteraction };
