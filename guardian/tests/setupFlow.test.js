@@ -88,7 +88,8 @@ function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGui
       getTextInputValue: (key) => fields[key] ?? ''
     },
     channel: {
-      send: async () => {}
+      send: async () => {},
+      messages: { fetch: async () => new Map() }
     },
     message: { edit: async (payload) => { messageEdited = payload; return payload; } },
     reply: async (payload) => { replied = payload; return { payload }; },
@@ -97,6 +98,8 @@ function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGui
     deferUpdate: async () => {},
     editReply: async (payload) => { editReplied = payload; },
     showModal: async (modal) => { modalShown = modal; },
+    deleteReply: async () => {},
+    client: { user: { id: 'bot-user-id' } },
     get replied() { return replied; },
     get updated() { return updated; },
     get deferred() { return deferred; },
