@@ -235,7 +235,8 @@ function buildStepOneContent(guildId, guild) {
     for (const grade of ORDERED_GRADES) {
       const roleId = mappings[grade];
       const roleName = renameMap[grade] || gradeLabel(grade);
-      lines.push(`🏷️ **${gradeLabel(grade)}** → \`${roleName}\`` + (roleId ? ` <@&${roleId}>` : ''));
+      const roleExists = roleId && guild?.roles?.cache?.get(roleId);
+      lines.push(`🏷️ **${gradeLabel(grade)}** → \`${roleName}\`` + (roleExists ? ` <@&${roleId}>` : ''));
       lines.push(`> ${GRADE_DESCS[grade] || ''}`);
     }
   } else if (noRoles) {
@@ -255,8 +256,9 @@ function buildStepOneContent(guildId, guild) {
     lines.push('');
     const summary = ORDERED_GRADES.map((grade) => {
       const roleId = mappings[grade];
-      const marker = roleId ? '✅' : '❌';
-      const roleText = roleId ? `<@&${roleId}>` : '*non mappé*';
+      const roleExists = roleId && guild?.roles?.cache?.get(roleId);
+      const marker = roleExists ? '✅' : '❌';
+      const roleText = roleExists ? `<@&${roleId}>` : '*non mappé*';
       return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
     }).join('\n');
     lines.push(summary);
