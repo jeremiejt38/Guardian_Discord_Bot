@@ -65,6 +65,7 @@ const CUSTOM_IDS = Object.freeze({
   increaseInviteExpulsionDays: 'setup:members:invite-expulsion-days:inc',
   editVocalPrefix: 'setup:vocal:prefix:edit',
   editVocalSuffix: 'setup:vocal:suffix:edit',
+  toggleVocalSuffix: 'setup:vocal:suffix:toggle',
   decreaseVocalLimit: 'setup:vocal:limit:dec',
   increaseVocalLimit: 'setup:vocal:limit:inc',
   decreaseVocalDelay: 'setup:vocal:delay:dec',
@@ -588,27 +589,38 @@ function getStep4VocalConfig(guildId) {
   };
 }
 
-const VOCAL_PREFIX_CYCLE = ['🎮', '🎯', '🔊', '⚔️', '🏆', '🎲'];
+const VOCAL_PREFIX_CYCLE = ['', '🎮', '🎯', '🔊', '⚔️', '🏆', '🎲'];
 
 function cycleVocalPrefix(current) {
   const idx = VOCAL_PREFIX_CYCLE.indexOf(current);
-  return VOCAL_PREFIX_CYCLE[(idx < 0 ? 0 : idx + 1) % VOCAL_PREFIX_CYCLE.length];
+  return VOCAL_PREFIX_CYCLE[(idx < 0 ? 1 : idx + 1) % VOCAL_PREFIX_CYCLE.length];
+}
+
+function formatDelay(minutes) {
+  const totalSec = Math.round(minutes * 60);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m === 0) return `${s}s`;
+  if (s === 0) return `${m}min`;
+  return `${m}min ${s}s`;
 }
 
 function buildStep5VocalContent(guildId) {
   const c = getStep4VocalConfig(guildId);
   const limitDisplay = c.memberLimit === 0 ? 'illimité' : `${c.memberLimit} membres max`;
+  const prefixDisplay = c.prefix === '' ? '*aucun*' : c.prefix;
+  const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
   return [
     `## ${t('setup.step5Title', {}, { guildId })} (5/${TOTAL_STEPS})`,
     t('setup.step5Instructions', {}, { guildId }),
     '',
-    `🔊 **Préfixe des salons vocaux** : ${c.prefix}`,
+    `🔊 **Préfixe des salons vocaux** : ${prefixDisplay}`,
     '> Emoji ou texte affiché au début du nom de chaque room vocale créée automatiquement.',
-    `📛 **Suffixe** : ${c.suffix}`,
-    '> Texte affiché à la fin du nom de la room (ex : « — Partie »).',
+    `📛 **Suffixe** : ${onOffDot(suffixEnabled)}`,
+    '> Texte affiché à la fin du nom de la room (ex : « — Partie »).',
     `👥 **Limite de membres** : ${limitDisplay}`,
     '> Nombre max de personnes autorisées dans chaque room vocale. 0 = illimité.',
-    `⏱️ **Délai de suppression** : ${c.deleteDelayMinutes} min`,
+    `⏱️ **Délai de suppression** : ${formatDelay(c.deleteDelayMinutes)}`,
     '> Temps après lequel une room vocale vide est supprimée automatiquement.'
   ].join('\n');
 }
@@ -616,19 +628,22 @@ function buildStep5VocalContent(guildId) {
 function buildStep5VocalComponents(guildId) {
   const c = getStep4VocalConfig(guildId);
   const limitDisplay = c.memberLimit === 0 ? '∞' : String(c.memberLimit);
+  const prefixDisplay = c.prefix === '' ? 'Aucun' : c.prefix;
+  const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
   const prefixRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleVocalPrefix).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Préfixe: ${c.prefix} →`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.editVocalSuffix).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Suffixe: ${c.suffix.slice(0, 20)}`)
+      .setLabel(`Préfixe: ${prefixDisplay} →`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleVocalSuffix)
+      .setStyle(suffixEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel(`Suffixe: ${onOffDot(suffixEnabled)}`)
   );
   const limitRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('Limite -1')
       .setDisabled(c.memberLimit === 0),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel(`Limite +1 (${limitDisplay})`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('-1 min')
-      .setDisabled(c.deleteDelayMinutes <= 1),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`+1 min (${c.deleteDelayMinutes}min)`)
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('-30s')
+      .setDisabled(c.deleteDelayMinutes <= 0.5),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`+30s (${formatDelay(c.deleteDelayMinutes)})`)
   );
   return [prefixRow, limitRow, buildNavRow(guildId, 5)];
 }
@@ -1182,9 +1197,10 @@ async function handleSetupInteraction(interaction) {
     setGuildSetting(guildId, 'vocal', 'prefix', c.prefix);
     await renderStep(interaction, 5); return true;
   }
-  if (interaction.customId === CUSTOM_IDS.editVocalSuffix) {
-    await sendSetupMessage(interaction, `Suffixe actuel : \`${getStep4VocalConfig(guildId).suffix}\`\nPour le modifier, utilisez le panel de configuration vocale après l'installation.`);
-    return true;
+  if (interaction.customId === CUSTOM_IDS.toggleVocalSuffix) {
+    const current = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
+    setGuildSetting(guildId, 'vocal', 'suffix_enabled', !current);
+    await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.decreaseVocalLimit) {
     const c = getStep4VocalConfig(guildId);
@@ -1200,13 +1216,13 @@ async function handleSetupInteraction(interaction) {
   }
   if (interaction.customId === CUSTOM_IDS.decreaseVocalDelay) {
     const c = getStep4VocalConfig(guildId);
-    c.deleteDelayMinutes = Math.max(1, c.deleteDelayMinutes - 1);
+    c.deleteDelayMinutes = Math.max(0.5, Math.round((c.deleteDelayMinutes - 0.5) * 2) / 2);
     setGuildSetting(guildId, 'vocal', 'delete_delay_minutes', c.deleteDelayMinutes);
     await renderStep(interaction, 5); return true;
   }
   if (interaction.customId === CUSTOM_IDS.increaseVocalDelay) {
     const c = getStep4VocalConfig(guildId);
-    c.deleteDelayMinutes = Math.min(60, c.deleteDelayMinutes + 1);
+    c.deleteDelayMinutes = Math.min(60, Math.round((c.deleteDelayMinutes + 0.5) * 2) / 2);
     setGuildSetting(guildId, 'vocal', 'delete_delay_minutes', c.deleteDelayMinutes);
     await renderStep(interaction, 5); return true;
   }
