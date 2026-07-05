@@ -486,14 +486,15 @@ function buildStep3ChannelsComponents(guildId, guild) {
     .setDisabled(hasNone)
     .addOptions(options);
 
+  const isRequired = slot.key === 'general' || slot.key === 'voiceGeneral';
   const selectRow = new ActionRowBuilder().addComponents(selectMenu);
   const navRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
       .setLabel('◀ Précédent').setDisabled(cursor === 0),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
       .setLabel('Laisser Guardian créer →').setDisabled(false),
-    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:skip`).setStyle(ButtonStyle.Secondary)
-      .setLabel('Passer tous restants →').setDisabled(isFreshInstall(guildId))
+    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:ignore`).setStyle(ButtonStyle.Secondary)
+      .setLabel('⏭️ Ignorer ce channel').setDisabled(isRequired)
   );
 
   return [selectRow, navRow, buildNavRow(guildId, 3)];
@@ -1126,6 +1127,13 @@ async function handleSetupInteraction(interaction) {
     const cursor = getChannelCursor(guildId);
     if (action === 'prev') { setChannelCursor(guildId, cursor - 1); await renderStep(interaction, 3); return true; }
     if (action === 'skip') { setChannelCursor(guildId, activeSlots.length - 1); await renderStep(interaction, 3); return true; }
+    if (action === 'ignore') {
+      const slot = activeSlots[cursor];
+      if (slot) setGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
+      if (cursor < activeSlots.length - 1) { setChannelCursor(guildId, cursor + 1); await renderStep(interaction, 3); }
+      else { setGuildSetting(guildId, 'setup', 'step', 4); await renderStep(interaction, 4); }
+      return true;
+    }
     if (action === 'next') {
       if (cursor >= activeSlots.length - 1) { const nextStep = 4; setGuildSetting(guildId, 'setup', 'step', nextStep); await renderStep(interaction, nextStep); }
       else { setChannelCursor(guildId, cursor + 1); await renderStep(interaction, 3); }
