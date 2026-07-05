@@ -34,7 +34,7 @@
     "installError": "Erreur pendant la relance de l'installation. Consulte les logs du bot.",
     "languageUpdated": "Langue d'installation mise a jour: {{language}}.",
     "startButton": "Demarrer la configuration",
-    "nextStep": "Etape suivante ({{step}}/{{total}})",
+    "nextStep": "Etape suivante",
     "backStep": "Retour",
     "finalizeButton": "Finaliser l'installation",
     "enabled": "Actif",
