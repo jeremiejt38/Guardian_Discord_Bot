@@ -26,6 +26,7 @@ const TOTAL_STEPS = 6;
 
 const CUSTOM_IDS = Object.freeze({
   start: 'setup:start',
+  createRolesAuto: 'setup:grade:create-auto',
   selectRolePrefix: 'setup:grade:role',
   previousGrade: 'setup:grade:prev',
   nextGrade: 'setup:grade:next',
@@ -132,6 +133,12 @@ function buildRoleOptions(guild, selectedRoleId) {
   return options.slice(0, 25);
 }
 
+function hasMapableRoles(guild) {
+  return guild.roles.cache.some(
+    (role) => role.id !== guild.roles.everyone.id && !role.managed
+  );
+}
+
 function buildStepOneContent(guildId, guild) {
   const mappings = getGradeMappings(guildId);
   const cursor = getGradeCursor(guildId);
@@ -143,16 +150,34 @@ function buildStepOneContent(guildId, guild) {
     return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
   }).join('\n');
 
-  return [
-    `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`,
-    t('setup.step1Instructions', {}, { guildId }),
-    `> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`,
-    '',
-    summary
-  ].join('\n');
+  const noRoles = !hasMapableRoles(guild);
+  const lines = [
+    `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`
+  ];
+
+  if (noRoles) {
+    lines.push(t('setup.step1NoRolesDesc', {}, { guildId }));
+  } else {
+    lines.push(t('setup.step1Instructions', {}, { guildId }));
+    lines.push(`> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`);
+    lines.push('');
+    lines.push(summary);
+  }
+
+  return lines.join('\n');
 }
 
 function buildStepOneComponents(guildId, guild) {
+  if (!hasMapableRoles(guild)) {
+    const autoRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.createRolesAuto)
+        .setStyle(ButtonStyle.Primary)
+        .setLabel(t('setup.step1CreateRolesAuto', {}, { guildId }))
+    );
+    return [autoRow, buildNavRow(guildId, 1)];
+  }
+
   const mappings = getGradeMappings(guildId);
   const cursor = getGradeCursor(guildId);
   const currentGrade = ORDERED_GRADES[cursor];
@@ -161,7 +186,7 @@ function buildStepOneComponents(guildId, guild) {
 
   const effectiveOptions = roleOptions.length > 0
     ? roleOptions
-    : [{ label: 'Aucun rôle disponible', value: 'none', description: 'Crée des rôles sur le serveur d\'abord' }];
+    : [{ label: 'Aucun rôle disponible', value: 'none' }];
 
   const roleSelector = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -518,6 +543,32 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.nextGrade) {
     setGradeCursor(guildId, getGradeCursor(guildId) + 1);
+    await renderStep(interaction, 1);
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.createRolesAuto) {
+    await interaction.deferUpdate();
+    const roleColors = {
+      [GRADE_NAMES.invite]: 0x95a5a6,
+      [GRADE_NAMES.membre]: 0x3498db,
+      [GRADE_NAMES.moderateur]: 0x2ecc71,
+      [GRADE_NAMES.manager]: 0xe67e22,
+      [GRADE_NAMES.owner]: 0xe74c3c
+    };
+    for (const grade of ORDERED_GRADES) {
+      try {
+        const role = await interaction.guild.roles.create({
+          name: gradeLabel(grade),
+          color: roleColors[grade] ?? 0x99aab5,
+          reason: 'Guardian setup — création automatique des rôles'
+        });
+        setGradeRole(guildId, grade, role.id);
+      } catch (err) {
+        logger.error(`Failed to create role for grade ${grade}`, err);
+      }
+    }
+    setGradeCursor(guildId, 0);
     await renderStep(interaction, 1);
     return true;
   }
