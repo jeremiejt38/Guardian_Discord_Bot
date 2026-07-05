@@ -85,7 +85,8 @@ function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGui
     isModalSubmit: () => modalSubmit,
     isRepliable: () => true,
     fields: {
-      getTextInputValue: (key) => fields[key] ?? ''
+      getTextInputValue: (key) => fields[key] ?? '',
+      getField: (key) => fields[key] !== undefined ? { values: Array.isArray(fields[key]) ? fields[key] : [] } : { values: [] }
     },
     channel: {
       send: async () => {},
@@ -258,7 +259,7 @@ test('setup:games:add:modal adds a game and rerenders step 6', async () => {
     customId: 'setup:games:add:modal',
     guild,
     isModalSubmit: true,
-    fields: { name: 'Counter-Strike 2', steam_id: '730' }
+    fields: { name: 'Counter-Strike 2', options: ['galerie', 'changelog'] }
   });
   const handled = await handleSetupInteraction(interaction);
 
@@ -266,7 +267,6 @@ test('setup:games:add:modal adds a game and rerenders step 6', async () => {
   assert.strictEqual(handled, true);
   assert.strictEqual(games.length, 1);
   assert.strictEqual(games[0].name, 'Counter-Strike 2');
-  assert.strictEqual(games[0].steam_app_id, '730');
 });
 
 test('setup:modules:suggestions:toggle toggles suggestions config and rerenders step four', async () => {
