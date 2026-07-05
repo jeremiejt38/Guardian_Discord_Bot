@@ -3,6 +3,8 @@ const {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  LabelBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle
@@ -1273,16 +1275,22 @@ async function handleSetupInteraction(interaction) {
           .setPlaceholder('Ex: Counter-Strike 2, Minecraft...')
       ),
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('galerie').setLabel('Galerie screenshots ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue('non').setPlaceholder('oui ou non')
+        new LabelBuilder().setLabel('Galerie screenshots ?')
+          .setStringSelectMenuComponent(
+            new StringSelectMenuBuilder().setCustomId('galerie').setMinValues(1).setMaxValues(1).addOptions(
+              new StringSelectMenuOptionBuilder().setLabel('Non').setValue('non').setDefault(true),
+              new StringSelectMenuOptionBuilder().setLabel('Oui').setValue('oui')
+            )
+          )
       ),
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('changelog').setLabel('Changelog mises \u00e0 jour ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue('oui').setPlaceholder('oui ou non')
+        new LabelBuilder().setLabel('Changelog mises à jour ?')
+          .setStringSelectMenuComponent(
+            new StringSelectMenuBuilder().setCustomId('changelog').setMinValues(1).setMaxValues(1).addOptions(
+              new StringSelectMenuOptionBuilder().setLabel('Oui').setValue('oui').setDefault(true),
+              new StringSelectMenuOptionBuilder().setLabel('Non').setValue('non')
+            )
+          )
       )
     );
     await interaction.showModal(modal); return true;
@@ -1290,8 +1298,8 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
-    const galerieEnabled = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
-    const changelogEnabled = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() !== 'non';
+    const galerieEnabled = (interaction.fields.getField('galerie')?.values?.[0] ?? 'non') === 'oui';
+    const changelogEnabled = (interaction.fields.getField('changelog')?.values?.[0] ?? 'oui') !== 'non';
     let deferredReply = false;
     try {
       await interaction.deferReply({ ephemeral: true });
@@ -1368,16 +1376,22 @@ async function handleSetupInteraction(interaction) {
           .setValue(game.name)
       ),
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('galerie').setLabel('Galerie screenshots ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue(game.galerie_enabled ? 'oui' : 'non').setPlaceholder('oui ou non')
+        new LabelBuilder().setLabel('Galerie screenshots ?')
+          .setStringSelectMenuComponent(
+            new StringSelectMenuBuilder().setCustomId('galerie').setMinValues(1).setMaxValues(1).addOptions(
+              new StringSelectMenuOptionBuilder().setLabel('Non').setValue('non').setDefault(!game.galerie_enabled),
+              new StringSelectMenuOptionBuilder().setLabel('Oui').setValue('oui').setDefault(Boolean(game.galerie_enabled))
+            )
+          )
       ),
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('changelog').setLabel('Changelog mises à jour ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue(game.changelog_enabled ? 'oui' : 'non').setPlaceholder('oui ou non')
+        new LabelBuilder().setLabel('Changelog mises à jour ?')
+          .setStringSelectMenuComponent(
+            new StringSelectMenuBuilder().setCustomId('changelog').setMinValues(1).setMaxValues(1).addOptions(
+              new StringSelectMenuOptionBuilder().setLabel('Oui').setValue('oui').setDefault(Boolean(game.changelog_enabled)),
+              new StringSelectMenuOptionBuilder().setLabel('Non').setValue('non').setDefault(!game.changelog_enabled)
+            )
+          )
       )
     );
     await interaction.showModal(modal); return true;
@@ -1386,8 +1400,8 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const name = interaction.fields.getTextInputValue('name').trim();
-    const galerie = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
-    const changelog = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() !== 'non';
+    const galerie = (interaction.fields.getField('galerie')?.values?.[0] ?? 'non') === 'oui';
+    const changelog = (interaction.fields.getField('changelog')?.values?.[0] ?? 'oui') !== 'non';
     const existingGame = listSetupGames(guildId).find((g) => g.game_id === gameId);
     let steamId = existingGame?.steam_app_id || null;
     if (name !== existingGame?.name) {
