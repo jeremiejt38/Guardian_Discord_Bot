@@ -5,9 +5,7 @@ const {
   StringSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle,
-  CheckboxGroupBuilder,
-  CheckboxGroupOptionBuilder
+  TextInputStyle
 } = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
@@ -1272,12 +1270,16 @@ async function handleSetupInteraction(interaction) {
           .setPlaceholder('Ex: Counter-Strike 2, Minecraft...')
       ),
       new ActionRowBuilder().addComponents(
-        new CheckboxGroupBuilder()
-          .setCustomId('options')
-          .addOptions(
-            new CheckboxGroupOptionBuilder().setLabel('Galerie (screenshots)').setValue('galerie').setDefault(false),
-            new CheckboxGroupOptionBuilder().setLabel('Changelog (mises \u00e0 jour)').setValue('changelog').setDefault(true)
-          )
+        new TextInputBuilder()
+          .setCustomId('galerie').setLabel('Galerie screenshots ? (oui / non)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
+          .setValue('non').setPlaceholder('oui ou non')
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('changelog').setLabel('Changelog mises \u00e0 jour ? (oui / non)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
+          .setValue('oui').setPlaceholder('oui ou non')
       )
     );
     await interaction.showModal(modal); return true;
@@ -1285,9 +1287,8 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
-    const checkedOptions = interaction.fields.getField('options')?.values ?? [];
-    const galerieEnabled = checkedOptions.includes('galerie');
-    const changelogEnabled = checkedOptions.includes('changelog');
+    const galerieEnabled = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
+    const changelogEnabled = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() !== 'non';
     let deferredReply = false;
     try {
       await interaction.deferReply({ ephemeral: true });
@@ -1364,12 +1365,16 @@ async function handleSetupInteraction(interaction) {
           .setValue(game.name)
       ),
       new ActionRowBuilder().addComponents(
-        new CheckboxGroupBuilder()
-          .setCustomId('options')
-          .addOptions(
-            new CheckboxGroupOptionBuilder().setLabel('Galerie (screenshots)').setValue('galerie').setDefault(Boolean(game.galerie_enabled)),
-            new CheckboxGroupOptionBuilder().setLabel('Changelog (mises à jour)').setValue('changelog').setDefault(Boolean(game.changelog_enabled))
-          )
+        new TextInputBuilder()
+          .setCustomId('galerie').setLabel('Galerie screenshots ? (oui / non)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
+          .setValue(game.galerie_enabled ? 'oui' : 'non').setPlaceholder('oui ou non')
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('changelog').setLabel('Changelog mises à jour ? (oui / non)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
+          .setValue(game.changelog_enabled ? 'oui' : 'non').setPlaceholder('oui ou non')
       )
     );
     await interaction.showModal(modal); return true;
@@ -1378,9 +1383,8 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const name = interaction.fields.getTextInputValue('name').trim();
-    const checkedOptions = interaction.fields.getField('options')?.values ?? [];
-    const galerie = checkedOptions.includes('galerie');
-    const changelog = checkedOptions.includes('changelog');
+    const galerie = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
+    const changelog = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() !== 'non';
     const existingGame = listSetupGames(guildId).find((g) => g.game_id === gameId);
     let steamId = existingGame?.steam_app_id || null;
     if (name !== existingGame?.name) {
