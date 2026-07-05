@@ -882,12 +882,18 @@ function detectDuplicateGradeRoles(guild) {
   return dupes;
 }
 
+function autoPositionChannelCursor(guildId) {
+  const slots = getActiveSlotsForInstall(guildId);
+  const firstUnconfigured = slots.findIndex((s) => !getGuildSetting(guildId, s.settingSection, s.settingKey, null));
+  if (firstUnconfigured !== -1) setChannelCursor(guildId, firstUnconfigured);
+}
+
 function buildStepPayload(guildId, guild, step) {
   function pad(content) { return content + '\n\u200b'; }
   switch (step) {
     case 1: return { content: pad(buildStepOneContent(guildId, guild)), components: buildStepOneComponents(guildId, guild) };
     case 2: return { content: pad(buildStep2Content(guildId)), components: buildStep2Components(guildId) };
-    case 3: return { content: pad(buildStep3ChannelsContent(guildId, guild)), components: buildStep3ChannelsComponents(guildId, guild) };
+    case 3: autoPositionChannelCursor(guildId); return { content: pad(buildStep3ChannelsContent(guildId, guild)), components: buildStep3ChannelsComponents(guildId, guild) };
     case 4: return { content: pad(buildStep4Content(guildId)), components: buildStep4Components(guildId) };
     case 5: return { content: pad(buildStep5VocalContent(guildId)), components: buildStep5VocalComponents(guildId) };
     case 6: return { content: pad(buildStep6Content_Games(guildId)), components: buildStep6Components_Games(guildId) };
@@ -1146,7 +1152,12 @@ async function handleSetupInteraction(interaction) {
     if (action === 'skip') { setChannelCursor(guildId, activeSlots.length - 1); await renderStep(interaction, 3); return true; }
     if (action === 'ignore') {
       const slot = activeSlots[cursor];
-      if (slot) setGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
+      if (slot) {
+        setGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
+        if (slot.key === 'voiceAfk') {
+          setGuildSetting(guildId, 'modules', 'afk_enabled', false);
+        }
+      }
       if (cursor < activeSlots.length - 1) { setChannelCursor(guildId, cursor + 1); await renderStep(interaction, 3); }
       else { setGuildSetting(guildId, 'setup', 'step', 4); await renderStep(interaction, 4); }
       return true;
