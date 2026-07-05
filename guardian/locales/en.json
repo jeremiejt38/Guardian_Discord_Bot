@@ -27,8 +27,35 @@
   "members": {
     "welcome": "Welcome {{member}} to **{{guild}}**! Click the request button to become a member. You can be promoted after {{delay}}h."
   },
+  "promotion": {
+    "requestButton": "Apply for membership"
+  },
+  "servers": {
+    "approved": "Server approved by {{user}}.",
+    "rejected": "Server rejected by {{user}}.",
+    "notFound": "Server not found.",
+    "connectInfo": "Connect: {{ip}}:{{port}}{{pwd}}"
+  },
   "reports": {
-    "handled": "Report marked as handled."
+    "handled": "Report marked as handled.",
+    "panelText": "Report a member via the Guardian form.",
+    "panelButton": "Report a member",
+    "modalTitle": "New report",
+    "modalTarget": "Who are you reporting? (mention/username)",
+    "modalReason": "Reason for the report",
+    "modalEvidence": "Evidence (optional)",
+    "channelMissing": "The reports channel is unavailable.",
+    "embedTitle": "Member report",
+    "embedReporter": "Reported by",
+    "embedTarget": "Target",
+    "embedReason": "Reason",
+    "embedEvidence": "Evidence",
+    "none": "none",
+    "handledButton": "Mark as handled",
+    "submitted": "Your report has been sent to the staff.",
+    "notFound": "Report not found.",
+    "alreadyHandled": "This report has already been handled.",
+    "handledPublic": "Report marked as handled."
   },
   "games": {
     "title": "Guardian - My game list",

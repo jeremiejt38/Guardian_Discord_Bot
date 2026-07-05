@@ -27,8 +27,35 @@
   "members": {
     "welcome": "Bienvenue {{member}} sur **{{guild}}** ! Clique sur le bouton de demande pour devenir membre. Tu pourras etre promu apres {{delay}}h."
   },
+  "promotion": {
+    "requestButton": "Faire une demande"
+  },
+  "servers": {
+    "approved": "Serveur approuve par {{user}}.",
+    "rejected": "Serveur refuse par {{user}}.",
+    "notFound": "Serveur introuvable.",
+    "connectInfo": "Connexion: {{ip}}:{{port}}{{pwd}}"
+  },
   "reports": {
-    "handled": "Rapport marque comme traite."
+    "handled": "Rapport marque comme traite.",
+    "panelText": "Signale un membre via le formulaire Guardian.",
+    "panelButton": "Signaler un membre",
+    "modalTitle": "Nouveau signalement",
+    "modalTarget": "Qui signales-tu ? (mention/pseudo)",
+    "modalReason": "Motif du signalement",
+    "modalEvidence": "Preuve (optionnel)",
+    "channelMissing": "Le channel rapports est introuvable.",
+    "embedTitle": "Signalement membre",
+    "embedReporter": "Signale par",
+    "embedTarget": "Cible",
+    "embedReason": "Motif",
+    "embedEvidence": "Preuve",
+    "none": "aucune",
+    "handledButton": "Marquer traite",
+    "submitted": "Ton signalement a ete transmis au staff.",
+    "notFound": "Signalement introuvable.",
+    "alreadyHandled": "Ce signalement a deja ete traite.",
+    "handledPublic": "Rapport marque comme traite."
   },
   "games": {
     "title": "Guardian - Ma game list",

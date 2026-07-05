@@ -4,6 +4,8 @@ const { t } = require('../i18n');
 const { getGuildSetting } = require('../config/settings');
 const { findChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
+const { IDS: PROMOTION_IDS } = require('./promotion');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 async function handleNewMember(member) {
   try {
@@ -15,13 +17,20 @@ async function handleNewMember(member) {
     const welcomeChannel = findChannelByName(member.guild, CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
       const delayHours = Number(getGuildSetting(member.guild.id, 'members', 'promotion_delay_hours', 48));
-      await welcomeChannel.send(
-        t(member.guild.id, 'members.welcome', {
+      const requestRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(PROMOTION_IDS.request)
+          .setLabel(t(member.guild.id, 'promotion.requestButton'))
+          .setStyle(ButtonStyle.Primary)
+      );
+      await welcomeChannel.send({
+        content: t(member.guild.id, 'members.welcome', {
           member: member.toString(),
           guild: member.guild.name,
           delay: delayHours
-        })
-      );
+        }),
+        components: [requestRow]
+      });
     }
 
     const db = getDb();
