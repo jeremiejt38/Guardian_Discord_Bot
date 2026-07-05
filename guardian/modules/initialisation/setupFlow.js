@@ -129,8 +129,7 @@ function onOff(flag, guildId) {
 }
 
 function buildNavRow(guildId, step) {
-  const nextDisabled = step >= TOTAL_STEPS;
-  const finalizeDisabled = step < TOTAL_STEPS;
+  const isLastStep = step >= TOTAL_STEPS;
   const buttons = [];
   if (step > 1) {
     buttons.push(
@@ -140,20 +139,21 @@ function buildNavRow(guildId, step) {
         .setLabel(t('setup.backStep', {}, { guildId }))
     );
   }
-  buttons.push(
-    new ButtonBuilder()
-      .setCustomId(CUSTOM_IDS.next)
-      .setStyle(ButtonStyle.Primary)
-      .setLabel(t('setup.nextStep', {}, { guildId }))
-      .setDisabled(nextDisabled)
-  );
-  buttons.push(
-    new ButtonBuilder()
-      .setCustomId(CUSTOM_IDS.finalize)
-      .setStyle(ButtonStyle.Success)
-      .setLabel(t('setup.finalizeButton', {}, { guildId }))
-      .setDisabled(finalizeDisabled)
-  );
+  if (!isLastStep) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.next)
+        .setStyle(ButtonStyle.Primary)
+        .setLabel(t('setup.nextStep', {}, { guildId }))
+    );
+  } else {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.finalize)
+        .setStyle(ButtonStyle.Success)
+        .setLabel(t('setup.finalizeButton', {}, { guildId }))
+    );
+  }
   return new ActionRowBuilder().addComponents(buttons);
 }
 
@@ -211,6 +211,13 @@ function buildStepOneContent(guildId, guild) {
     `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`
   ];
 
+  const GRADE_DESCS = {
+    invite:     '👤 Nouveau venu — accès limité, en attente de validation',
+    membre:     '✅ Membre validé — accès complet aux channels communautaires',
+    moderateur: '🛡️ Modérateur — peut sanctionner et gérer les membres',
+    manager:    '⚙️ Manager — accès à la configuration Guardian',
+    owner:      '👑 Owner — tous les droits, propriétaire du serveur Guardian'
+  };
   if (autoCreated) {
     const renameMap = getGradeRenameMap(guildId);
     lines.push(t('setup.step1RenameDesc', {}, { guildId }));
@@ -219,21 +226,27 @@ function buildStepOneContent(guildId, guild) {
       const roleId = mappings[grade];
       const roleName = renameMap[grade] || gradeLabel(grade);
       lines.push(`🏷️ **${gradeLabel(grade)}** → \`${roleName}\`` + (roleId ? ` <@&${roleId}>` : ''));
+      lines.push(`> ${GRADE_DESCS[grade] || ''}`);
     }
   } else if (noRoles) {
     lines.push(t('setup.step1NoRolesDesc', {}, { guildId }));
+    lines.push('');
+    for (const [grade, desc] of Object.entries(GRADE_DESCS)) {
+      lines.push(`${desc}`);
+    }
   } else {
     const cursor = getGradeCursor(guildId);
     const currentGrade = ORDERED_GRADES[cursor];
+    lines.push(t('setup.step1Instructions', {}, { guildId }));
+    lines.push(`> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`);
+    lines.push(`> ${GRADE_DESCS[currentGrade] || ''}`);
+    lines.push('');
     const summary = ORDERED_GRADES.map((grade) => {
       const roleId = mappings[grade];
       const marker = roleId ? '✅' : '❌';
-      const roleText = roleId ? `<@&${roleId}>` : '-';
+      const roleText = roleId ? `<@&${roleId}>` : '*non mappé*';
       return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
     }).join('\n');
-    lines.push(t('setup.step1Instructions', {}, { guildId }));
-    lines.push(`> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`);
-    lines.push('');
     lines.push(summary);
   }
 
@@ -330,10 +343,15 @@ function buildStep2Content(guildId) {
     t('setup.step2Instructions', {}, { guildId }),
     '',
     `💡 **Suggestions** : ${onOff(c.suggestionsEnabled, guildId)}`,
+    '> Permet aux membres de soumettre des idées via un channel dédié.',
     `🖥️ **Liste serveurs** : ${onOff(c.serverListEnabled, guildId)}`,
+    '> Affiche une liste des serveurs de jeu liés à la communauté.',
     `🤖 **Statut bot** : ${onOff(c.statusBotEnabled, guildId)}`,
+    '> Poste un message de statut mis à jour automatiquement (uptime, version...).',
     `🔇 **Vocal AFK** : ${onOff(c.afkEnabled, guildId)}`,
-    `🎮 **Game Updates** : ${onOff(c.gameUpdatesEnabled, guildId)}`
+    '> Crée un salon vocal AFK où les membres inactifs sont déplacés automatiquement.',
+    `🎮 **Game Updates** : ${onOff(c.gameUpdatesEnabled, guildId)}`,
+    '> Publie les mises à jour Steam des jeux configurés dans le channel dédié.'
   ].join('\n');
 }
 
@@ -357,12 +375,12 @@ function buildStep2Components(guildId) {
 }
 
 const CHANNEL_SLOTS = Object.freeze([
-  { key: 'rules', label: '#règles', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '📜' },
-  { key: 'announcements', label: '#annonces', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '📢' },
-  { key: 'welcome', label: '#bienvenue', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '👋' },
-  { key: 'general', label: '#général', settingSection: 'channels', settingKey: 'general_channel_id', emoji: '💬' },
-  { key: 'voiceGeneral', label: '🔊 Vocal Général', settingSection: 'channels', settingKey: 'voice_general_id', emoji: '🔊' },
-  { key: 'voiceAfk', label: '🔇 Vocal AFK', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' }
+  { key: 'rules', label: '#règles', desc: 'Channel où le règlement du serveur est affiché.', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '📜' },
+  { key: 'announcements', label: '#annonces', desc: 'Channel réservé aux annonces officielles de l\'équipe.', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '📢' },
+  { key: 'welcome', label: '#bienvenue', desc: 'Channel où Guardian accueille les nouveaux membres.', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '👋' },
+  { key: 'general', label: '#général', desc: 'Channel de discussion principale de la communauté.', settingSection: 'channels', settingKey: 'general_channel_id', emoji: '💬' },
+  { key: 'voiceGeneral', label: '🔊 Vocal Général', desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.', settingSection: 'channels', settingKey: 'voice_general_id', emoji: '🔊' },
+  { key: 'voiceAfk', label: '🔇 Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' }
 ]);
 
 function getChannelCursor(guildId) {
@@ -422,7 +440,8 @@ function buildStep3ChannelsContent(guildId, guild) {
   }
   lines.push('', statusLines, '',
     `> Configuration en cours : **${slot.emoji} ${slot.label}**`,
-    currentChannel ? `> Actuellement lié à : #${currentChannel.name}` : '> Non configuré — choisir un channel existant ou laisser Guardian le créer'
+    slot.desc ? `> ${slot.desc}` : '',
+    currentChannel ? `> ✅ Actuellement lié à : #${currentChannel.name}` : '> Non configuré — choisir ci-dessous ou laisser Guardian le créer'
   );
   return lines.join('\n');
 }
