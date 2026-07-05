@@ -67,12 +67,14 @@ const CUSTOM_IDS = Object.freeze({
   increaseVocalDelay: 'setup:vocal:delay:inc',
   cycleVocalPrefix: 'setup:vocal:prefix:cycle',
   addGame: 'setup:games:add',
-  removeLastGame: 'setup:games:remove-last',
-  previousGame: 'setup:games:prev',
-  nextGameItem: 'setup:games:next',
+  addGameModal: 'setup:games:add:modal',
+  editGamePrefix: 'setup:games:edit',
+  editGameModal: 'setup:games:edit:modal',
+  deleteGamePrefix: 'setup:games:delete',
+  confirmGamePrefix: 'setup:games:confirm',
   toggleGameGallery: 'setup:games:gallery:toggle',
   toggleGameChangelog: 'setup:games:changelog:toggle',
-  cycleGameAppId: 'setup:games:steam:cycle',
+  toggleInviteGrade: 'setup:grade:invite:toggle',
   toggleBehaviorScore: 'setup:modules:behavior:toggle',
   decreaseSpamThreshold: 'setup:mod:spam:dec',
   increaseSpamThreshold: 'setup:mod:spam:inc',
@@ -241,7 +243,9 @@ function buildStepOneContent(guildId, guild) {
   } else {
     const cursor = getGradeCursor(guildId);
     const currentGrade = ORDERED_GRADES[cursor];
+    const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
     lines.push(t('setup.step1Instructions', {}, { guildId }));
+    lines.push(`> Grade Invité : ${onOff(inviteEnabled)} — ${inviteEnabled ? 'les nouveaux membres reçoivent ce grade en arrivant.' : 'les nouveaux membres arrivent directement en Membre.'}`);
     lines.push(`> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`);
     lines.push(`> ${GRADE_DESCS[currentGrade] || ''}`);
     lines.push('');
@@ -319,7 +323,15 @@ function buildStepOneComponents(guildId, guild) {
       .setDisabled(cursor >= ORDERED_GRADES.length - 1)
   );
 
-  return [roleSelector, gradeNavigation, buildNavRow(guildId, 1)];
+  const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
+  const toggleInviteRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(CUSTOM_IDS.toggleInviteGrade)
+      .setStyle(inviteEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel(`Grade Invité : ${onOffDot(inviteEnabled)}`)
+  );
+
+  return [roleSelector, gradeNavigation, toggleInviteRow, buildNavRow(guildId, 1)];
 }
 
 function getStep2Config(guildId) {
@@ -633,70 +645,53 @@ function getSteamCycleValue(value) {
 
 function buildStep6Content_Games(guildId) {
   const games = listSetupGames(guildId);
-  const hasGames = games.length > 0;
-  const rawCursor = getStep5Cursor(guildId);
-  const cursor = hasGames ? Math.min(rawCursor, games.length - 1) : 0;
-  if (rawCursor !== cursor) setStep5Cursor(guildId, cursor);
-  const current = hasGames ? games[cursor] : null;
   const lines = [
     `## ${t('setup.step6Title', {}, { guildId })} (6/${TOTAL_STEPS})`,
     '',
     '🎮 **Pourquoi une liste de jeux ?**',
-    '> Guardian peut créer des channels dédiés par jeu (galerie screenshots, changelog des mises à jour).',
-    '> Il surveille les mises à jour Steam et les publie automatiquement si tu fournis le Steam ID du jeu.',
+    '> Guardian crée des channels dédiés par jeu (galerie screenshots, changelog des mises à jour).',
+    '> Il surveille les mises à jour Steam et les publie automatiquement si tu fournis le Steam ID.',
     '',
     '🔗 **Steam ID** : identifiant numérique unique de chaque jeu sur Steam.',
-    '> Exemple : `730` pour CS2, `570` pour Dota 2, `440` pour TF2.',
-    '> Tu le trouves dans l’URL Steam du jeu : `store.steampowered.com/app/**730**/`.',
+    '> Exemples : `730` = CS2, `570` = Dota 2, `440` = TF2.',
+    '> Tu le trouves dans l’URL Steam : `store.steampowered.com/app/**730**/`.',
+    '> Les jeux non disponibles sur Steam peuvent être ajoutés sans Steam ID.',
     '',
   ];
-  if (!hasGames) {
-    lines.push('ℹ️ Aucun jeu configuré. Tu peux en ajouter maintenant ou plus tard via `/config games`.');
-    lines.push('> La liste vide ne bloque pas le fonctionnement du bot.');
+  if (games.length === 0) {
+    lines.push('ℹ️ **Aucun jeu configuré.** La liste vide ne bloque pas le fonctionnement du bot.');
+    lines.push('> Tu peux ajouter des jeux maintenant ou plus tard via `/config games`.');
   } else {
-    const summary = games.map((game, i) => {
-      const marker = i === cursor ? '▶' : '—';
-      return [
-        `${marker} **${game.name}**`,
-        `> Steam ID: \`${game.steam_app_id || 'non défini'}\` | Galerie: ${onOffDot(Boolean(game.galerie_enabled))} | Changelog: ${onOffDot(Boolean(game.changelog_enabled))}`
-      ].join('\n');
-    }).join('\n');
-    lines.push(`> Jeu sélectionné : **${current.name}**`);
-    lines.push('');
-    lines.push(summary);
+    lines.push(`**${games.length} jeu(x) configuré(s) :**`);
+    for (const game of games) {
+      lines.push(
+        `\n🎮 **${game.name}**`,
+        `> Steam ID : \`${game.steam_app_id || 'non défini'}\``,
+        `> Galerie : ${onOffDot(Boolean(game.galerie_enabled))} | Changelog : ${onOffDot(Boolean(game.changelog_enabled))}`
+      );
+    }
   }
   return lines.join('\n');
 }
 
 function buildStep6Components_Games(guildId) {
   const games = listSetupGames(guildId);
-  const hasGames = games.length > 0;
-  const rawCursor = getStep5Cursor(guildId);
-  const cursor = hasGames ? Math.min(rawCursor, games.length - 1) : 0;
-  if (rawCursor !== cursor) setStep5Cursor(guildId, cursor);
-  const current = hasGames ? games[cursor] : null;
-  const listActions = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.removeLastGame).setStyle(ButtonStyle.Secondary)
-      .setLabel('🗑️ Supprimer dernier').setDisabled(!hasGames)
-  );
-  const rows = [listActions];
-  if (hasGames && current) {
-    const nav = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.previousGame).setStyle(ButtonStyle.Secondary)
-        .setLabel('◀ Précédent').setDisabled(cursor === 0),
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.nextGameItem).setStyle(ButtonStyle.Secondary)
-        .setLabel('Suivant ▶').setDisabled(cursor >= games.length - 1)
-    );
-    const toggles = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameGallery).setStyle(ButtonStyle.Secondary)
-        .setLabel(`Galerie: ${onOffDot(Boolean(current.galerie_enabled))}`),
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameChangelog).setStyle(ButtonStyle.Secondary)
-        .setLabel(`Changelog: ${onOffDot(Boolean(current.changelog_enabled))}`),
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleGameAppId).setStyle(ButtonStyle.Secondary)
-        .setLabel(`Steam ID: ${current.steam_app_id || 'non défini'}`)
-    );
-    rows.push(nav, toggles);
+  const rows = [];
+  rows.push(new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu')
+  ));
+  for (let i = 0; i < Math.min(games.length, 4); i++) {
+    const game = games[i];
+    rows.push(new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${CUSTOM_IDS.editGamePrefix}:${game.game_id}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel(`✏️ ${game.name.slice(0, 22)}`),
+      new ButtonBuilder()
+        .setCustomId(`${CUSTOM_IDS.deleteGamePrefix}:${game.game_id}`)
+        .setStyle(ButtonStyle.Danger)
+        .setLabel('🗑️')
+    ));
   }
   rows.push(buildNavRow(guildId, 6));
   return rows;
@@ -903,6 +898,13 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.customId === CUSTOM_IDS.toggleInviteGrade) {
+    const current = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
+    setGuildSetting(guildId, 'setup', 'invite_grade_enabled', !current);
+    await renderStep(interaction, 1);
+    return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.createRolesAuto) {
     await interaction.deferUpdate();
     const roleColors = {
@@ -1096,41 +1098,107 @@ async function handleSetupInteraction(interaction) {
   }
 
   if (interaction.customId === CUSTOM_IDS.addGame) {
-    addSetupGame(guildId);
+    const modal = new ModalBuilder()
+      .setCustomId(CUSTOM_IDS.addGameModal)
+      .setTitle('Ajouter un jeu');
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('name').setLabel('Nom du jeu')
+          .setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(64)
+          .setPlaceholder('Ex: Counter-Strike 2, Minecraft...')
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('steam_id').setLabel('Steam ID (optionnel)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(20)
+          .setPlaceholder('Ex: 730 pour CS2')
+      )
+    );
+    await interaction.showModal(modal); return true;
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
+    const name = interaction.fields.getTextInputValue('name').trim();
+    const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
+    await interaction.deferUpdate().catch(() => {});
+    let result = null;
+    if (!steamId) {
+      try {
+        const encoded = encodeURIComponent(name);
+        const res = await fetch(`https://api.rawg.io/api/games?search=${encoded}&page_size=1&key=`);
+        if (res.ok) {
+          const data = await res.json();
+          result = data.results?.[0] || null;
+        }
+      } catch { result = null; }
+    }
+    const game = addSetupGame(guildId, {
+      name: result ? result.name : name,
+      steam_app_id: steamId || (result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null)
+    });
+    const confirmMsg = [
+      `✅ **Jeu ajouté : ${game.name}**`,
+      result ? `> Trouvé sur RAWG : *${result.released || 'date inconnue'}* — ${result.genres?.map((g) => g.name).join(', ') || 'genre inconnu'}` : '',
+      game.steam_app_id ? `> Steam ID : \`${game.steam_app_id}\`` : '> Aucun Steam ID — le suivi des mises à jour Steam ne sera pas disponible.',
+      '',
+      'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
+    ].filter(Boolean).join('\n');
+    await interaction.channel.send({ content: confirmMsg }).catch(() => {});
+    await renderStep(interaction, 6); return true;
+  }
+
+  if (interaction.customId?.startsWith(`${CUSTOM_IDS.editGamePrefix}:`)) {
+    const gameId = Number(interaction.customId.split(':').pop());
     const games = listSetupGames(guildId);
-    setStep5Cursor(guildId, games.length - 1);
+    const game = games.find((g) => g.game_id === gameId);
+    if (!game) { await interaction.deferUpdate().catch(() => {}); return true; }
+    const modal = new ModalBuilder()
+      .setCustomId(`${CUSTOM_IDS.editGameModal}:${gameId}`)
+      .setTitle(`Modifier : ${game.name.slice(0, 40)}`);
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('name').setLabel('Nom du jeu')
+          .setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(64)
+          .setValue(game.name)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('steam_id').setLabel('Steam ID (vide = supprimer)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(20)
+          .setValue(game.steam_app_id || '')
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('galerie').setLabel('Galerie activée ? (oui / non)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
+          .setValue(game.galerie_enabled ? 'oui' : 'non')
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('changelog').setLabel('Changelog activé ? (oui / non)')
+          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
+          .setValue(game.changelog_enabled ? 'oui' : 'non')
+      )
+    );
+    await interaction.showModal(modal); return true;
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
+    const gameId = Number(interaction.customId.split(':').pop());
+    const name = interaction.fields.getTextInputValue('name').trim();
+    const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
+    const galerie = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
+    const changelog = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() === 'oui';
+    updateSetupGame(guildId, gameId, { name, steam_app_id: steamId, galerie_enabled: galerie, changelog_enabled: changelog });
     await renderStep(interaction, 6); return true;
   }
-  if (interaction.customId === CUSTOM_IDS.removeLastGame) {
-    removeLastSetupGame(guildId);
-    const games = ensureAtLeastOneSetupGame(guildId);
-    setStep5Cursor(guildId, Math.min(getStep5Cursor(guildId), games.length - 1));
-    await renderStep(interaction, 6); return true;
-  }
-  if (interaction.customId === CUSTOM_IDS.previousGame) {
-    setStep5Cursor(guildId, getStep5Cursor(guildId) - 1);
-    await renderStep(interaction, 6); return true;
-  }
-  if (interaction.customId === CUSTOM_IDS.nextGameItem) {
-    setStep5Cursor(guildId, getStep5Cursor(guildId) + 1);
-    await renderStep(interaction, 6); return true;
-  }
-  if (interaction.customId === CUSTOM_IDS.toggleGameGallery) {
-    const games = ensureAtLeastOneSetupGame(guildId);
-    const cursor = Math.min(getStep5Cursor(guildId), games.length - 1);
-    updateSetupGame(guildId, games[cursor].game_id, { galerie_enabled: !Boolean(games[cursor].galerie_enabled) });
-    await renderStep(interaction, 6); return true;
-  }
-  if (interaction.customId === CUSTOM_IDS.toggleGameChangelog) {
-    const games = ensureAtLeastOneSetupGame(guildId);
-    const cursor = Math.min(getStep5Cursor(guildId), games.length - 1);
-    updateSetupGame(guildId, games[cursor].game_id, { changelog_enabled: !Boolean(games[cursor].changelog_enabled) });
-    await renderStep(interaction, 6); return true;
-  }
-  if (interaction.customId === CUSTOM_IDS.cycleGameAppId) {
-    const games = ensureAtLeastOneSetupGame(guildId);
-    const cursor = Math.min(getStep5Cursor(guildId), games.length - 1);
-    updateSetupGame(guildId, games[cursor].game_id, { steam_app_id: getSteamCycleValue(games[cursor].steam_app_id) });
+
+  if (interaction.customId?.startsWith(`${CUSTOM_IDS.deleteGamePrefix}:`)) {
+    const gameId = Number(interaction.customId.split(':').pop());
+    const db = require('../../database/db').getDb();
+    db.prepare('DELETE FROM games WHERE guild_id = ? AND game_id = ?').run(guildId, gameId);
     await renderStep(interaction, 6); return true;
   }
 
