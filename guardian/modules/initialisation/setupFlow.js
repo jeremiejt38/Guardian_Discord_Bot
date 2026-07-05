@@ -5,7 +5,9 @@ const {
   StringSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle
+  TextInputStyle,
+  CheckboxGroupBuilder,
+  CheckboxGroupOptionBuilder
 } = require('discord.js');
 const { GRADE_NAMES } = require('../../config');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
@@ -1211,10 +1213,12 @@ async function handleSetupInteraction(interaction) {
           .setPlaceholder('Ex: Counter-Strike 2, Minecraft...')
       ),
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('steam_id').setLabel('Steam ID (optionnel)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(20)
-          .setPlaceholder('Ex: 730 pour CS2')
+        new CheckboxGroupBuilder()
+          .setCustomId('options')
+          .addOptions(
+            new CheckboxGroupOptionBuilder().setLabel('Galerie (screenshots)').setValue('galerie').setDefault(false),
+            new CheckboxGroupOptionBuilder().setLabel('Changelog (mises \u00e0 jour)').setValue('changelog').setDefault(true)
+          )
       )
     );
     await interaction.showModal(modal); return true;
@@ -1222,7 +1226,9 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
-    const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
+    const checkedOptions = interaction.fields.getField('options')?.values ?? [];
+    const galerieEnabled = checkedOptions.includes('galerie');
+    const changelogEnabled = checkedOptions.includes('changelog');
     let deferredReply = false;
     try {
       await interaction.deferReply({ ephemeral: true });
@@ -1231,26 +1237,26 @@ async function handleSetupInteraction(interaction) {
       logger.warn('addGameModal: deferReply failed', { error: err?.message });
     }
     let result = null;
-    if (!steamId) {
-      try {
-        const encoded = encodeURIComponent(name);
-        const res = await fetch(`https://api.rawg.io/api/games?search=${encoded}&page_size=1&key=`);
-        if (res.ok) {
-          const data = await res.json();
-          result = data.results?.[0] || null;
-          logger.info('RAWG search', { name, found: result?.name || null });
-        } else {
-          logger.warn('RAWG search non-ok', { status: res.status, name });
-        }
-      } catch (err) {
-        logger.error('RAWG search error', { error: err?.message, name });
+    try {
+      const encoded = encodeURIComponent(name);
+      const res = await fetch(`https://api.rawg.io/api/games?search=${encoded}&page_size=1&key=`);
+      if (res.ok) {
+        const data = await res.json();
+        result = data.results?.[0] || null;
+        logger.info('RAWG search', { name, found: result?.name || null });
+      } else {
+        logger.warn('RAWG search non-ok', { status: res.status, name });
       }
+    } catch (err) {
+      logger.error('RAWG search error', { error: err?.message, name });
     }
     let game;
     try {
       game = addSetupGame(guildId, {
         name: result ? result.name : name,
-        steam_app_id: steamId || (result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null)
+        steam_app_id: result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null,
+        galerie_enabled: galerieEnabled,
+        changelog_enabled: changelogEnabled
       });
       logger.info('Game added', { guildId, name: game.name, steam_app_id: game.steam_app_id });
     } catch (err) {
@@ -1299,22 +1305,12 @@ async function handleSetupInteraction(interaction) {
           .setValue(game.name)
       ),
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('steam_id').setLabel('Steam ID (vide = supprimer)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(20)
-          .setValue(game.steam_app_id || '')
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('galerie').setLabel('Galerie activée ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue(game.galerie_enabled ? 'oui' : 'non')
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('changelog').setLabel('Changelog activé ? (oui / non)')
-          .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3)
-          .setValue(game.changelog_enabled ? 'oui' : 'non')
+        new CheckboxGroupBuilder()
+          .setCustomId('options')
+          .addOptions(
+            new CheckboxGroupOptionBuilder().setLabel('Galerie (screenshots)').setValue('galerie').setDefault(Boolean(game.galerie_enabled)),
+            new CheckboxGroupOptionBuilder().setLabel('Changelog (mises à jour)').setValue('changelog').setDefault(Boolean(game.changelog_enabled))
+          )
       )
     );
     await interaction.showModal(modal); return true;
@@ -1323,9 +1319,25 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGameModal}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const name = interaction.fields.getTextInputValue('name').trim();
-    const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
-    const galerie = interaction.fields.getTextInputValue('galerie').trim().toLowerCase() === 'oui';
-    const changelog = interaction.fields.getTextInputValue('changelog').trim().toLowerCase() === 'oui';
+    const checkedOptions = interaction.fields.getField('options')?.values ?? [];
+    const galerie = checkedOptions.includes('galerie');
+    const changelog = checkedOptions.includes('changelog');
+    const existingGame = listSetupGames(guildId).find((g) => g.game_id === gameId);
+    let steamId = existingGame?.steam_app_id || null;
+    if (name !== existingGame?.name) {
+      try {
+        const encoded = encodeURIComponent(name);
+        const res = await fetch(`https://api.rawg.io/api/games?search=${encoded}&page_size=1&key=`);
+        if (res.ok) {
+          const data = await res.json();
+          const result = data.results?.[0] || null;
+          steamId = result?.stores?.find((s) => s.store?.slug === 'steam')?.url?.match(/\/(\d+)\//)?.[1] || null;
+          logger.info('RAWG re-search on name change', { name, found: result?.name || null, steamId });
+        }
+      } catch (err) {
+        logger.error('RAWG re-search error', { error: err?.message, name });
+      }
+    }
     try {
       updateSetupGame(guildId, gameId, { name, steam_app_id: steamId, galerie_enabled: galerie, changelog_enabled: changelog });
       logger.info('Game updated', { guildId, gameId, name });
