@@ -699,6 +699,15 @@ function buildContextChoiceMessage(guildId, context) {
   return messages[context]?.join('\n') ?? '';
 }
 
+function buildSetupStartRow(guildId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(SETUP_START_BUTTON_ID)
+      .setLabel(t(guildId, 'setup.resumeWizardButton'))
+      .setStyle(ButtonStyle.Primary)
+  );
+}
+
 function buildContextChoiceRow(guildId, context) {
   if (context === 'reinstall') {
     return new ActionRowBuilder().addComponents(
@@ -754,10 +763,18 @@ async function handleSetupInstallButton(interaction) {
     return;
   }
 
-  const effectiveContext = context === 'guardian_partial' ? 'reinstall' : context;
+  if (context === 'guardian_partial') {
+    await interaction.reply({
+      content: t(guildId, 'setup.guardianPartialResume'),
+      components: [buildSetupStartRow(guildId)],
+      ephemeral: true
+    });
+    return;
+  }
+
   await interaction.reply({
-    content: buildContextChoiceMessage(guildId, effectiveContext),
-    components: [buildContextChoiceRow(guildId, effectiveContext)],
+    content: buildContextChoiceMessage(guildId, context),
+    components: [buildContextChoiceRow(guildId, context)],
     ephemeral: true
   });
 }

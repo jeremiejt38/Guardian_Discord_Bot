@@ -20,31 +20,35 @@ function detectGuardianInstall(guild) {
   return findCategoryByName(guild, CATEGORIES.setup) !== null;
 }
 
-function detectExistingStructure(guild) {
+
+function getInstallContext(guild) {
+  const installed = isGuildInstalled(guild.id);
+  console.log(`[detectInstallContext] guild=${guild.id} isInstalled=${installed}`);
+
+  if (installed) {
+    return 'reinstall';
+  }
+
+  const hasGuardianSetup = detectGuardianInstall(guild);
+  console.log(`[detectInstallContext] detectGuardianInstall=${hasGuardianSetup} (looking for category: ${CATEGORIES.setup})`);
+
+  if (hasGuardianSetup) {
+    return 'guardian_partial';
+  }
+
   const nonDefaultRoles = guild.roles.cache.filter(
     (role) => role.id !== guild.roles.everyone.id && !role.managed
   );
-
   const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
   const setupCategoryId = setupCategory?.id ?? null;
-
   const nonDefaultChannels = guild.channels.cache.filter(
     (ch) => !isDefaultDiscordChannel(ch.name) && ch.parentId !== setupCategoryId && ch.id !== setupCategoryId
   );
 
-  return nonDefaultRoles.size > 0 || nonDefaultChannels.size > 0;
-}
+  console.log(`[detectInstallContext] nonDefaultRoles=${nonDefaultRoles.size} names=[${[...nonDefaultRoles.values()].map(r => r.name).join(', ')}]`);
+  console.log(`[detectInstallContext] nonDefaultChannels=${nonDefaultChannels.size} names=[${[...nonDefaultChannels.values()].map(c => c.name).join(', ')}]`);
 
-function getInstallContext(guild) {
-  if (isGuildInstalled(guild.id)) {
-    return 'reinstall';
-  }
-
-  if (detectGuardianInstall(guild)) {
-    return 'guardian_partial';
-  }
-
-  if (detectExistingStructure(guild)) {
+  if (nonDefaultRoles.size > 0 || nonDefaultChannels.size > 0) {
     return 'existing_server';
   }
 

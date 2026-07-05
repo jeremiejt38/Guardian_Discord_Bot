@@ -63,6 +63,8 @@
     "validationOwnerRoleMissing": "Owner role not found on the server.",
     "validationOwnerCardinality": "Owner role must be assigned to exactly 1 member (current: {{count}}).",
     "validationGenericError": "Validation error. Check your configuration.",
+    "guardianPartialResume": "Guardian setup was started on this server but never finalized. Resume the wizard to complete the installation.",
+    "resumeWizardButton": "Resume wizard",
     "step5NotReady": "You must complete all steps before finalizing.",
     "finalized": "Installation complete! Guardian is now active.",
     "summary": "Guardian setup complete for **{{guild}}**. Guests can be promoted to members after {{delay}}h. Check #regles and #faq to get started."
