@@ -35,6 +35,7 @@
     "languageUpdated": "Langue d'installation mise a jour: {{language}}.",
     "startButton": "Demarrer la configuration",
     "nextStep": "Etape suivante ({{step}}/{{total}})",
+    "backStep": "Retour",
     "finalizeButton": "Finaliser l'installation",
     "enabled": "Actif",
     "disabled": "Inactif",

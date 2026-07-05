@@ -30,6 +30,7 @@ const CUSTOM_IDS = Object.freeze({
   selectRolePrefix: 'setup:grade:role',
   previousGrade: 'setup:grade:prev',
   nextGrade: 'setup:grade:next',
+  back: 'setup:step:back',
   toggleSuggestions: 'setup:modules:suggestions:toggle',
   toggleServerList: 'setup:modules:server-list:toggle',
   toggleStatusBot: 'setup:modules:status-bot:toggle',
@@ -98,18 +99,30 @@ function onOff(flag, guildId) {
 function buildNavRow(guildId, step) {
   const nextDisabled = step >= TOTAL_STEPS;
   const finalizeDisabled = step < TOTAL_STEPS;
-  return new ActionRowBuilder().addComponents(
+  const buttons = [];
+  if (step > 1) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.back)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel(t('setup.backStep', {}, { guildId }))
+    );
+  }
+  buttons.push(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.next)
       .setStyle(ButtonStyle.Primary)
       .setLabel(t('setup.nextStep', { step, total: TOTAL_STEPS }, { guildId }))
-      .setDisabled(nextDisabled),
+      .setDisabled(nextDisabled)
+  );
+  buttons.push(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.finalize)
       .setStyle(ButtonStyle.Success)
       .setLabel(t('setup.finalizeButton', {}, { guildId }))
       .setDisabled(finalizeDisabled)
   );
+  return new ActionRowBuilder().addComponents(buttons);
 }
 
 function buildRoleOptions(guild, selectedRoleId) {
@@ -475,25 +488,33 @@ function buildStep6Components(guildId) {
   return [buildNavRow(guildId, TOTAL_STEPS)];
 }
 
+function buildStepPayload(guildId, guild, step) {
+  switch (step) {
+    case 1: return { content: buildStepOneContent(guildId, guild), components: buildStepOneComponents(guildId, guild) };
+    case 2: return { content: buildStep2Content(guildId), components: buildStep2Components(guildId) };
+    case 3: return { content: buildStep3Content(guildId), components: buildStep3Components(guildId) };
+    case 4: return { content: buildStep4Content(guildId), components: buildStep4Components(guildId) };
+    case 5: return { content: buildStep5Content(guildId), components: buildStep5Components(guildId) };
+    default: return { content: buildStep6Summary(guildId), components: buildStep6Components(guildId) };
+  }
+}
+
 async function renderStep(interaction, step) {
   const guildId = interaction.guildId;
   const guild = interaction.guild;
-  const payload = (() => {
-    switch (step) {
-      case 1: return { content: buildStepOneContent(guildId, guild), components: buildStepOneComponents(guildId, guild) };
-      case 2: return { content: buildStep2Content(guildId), components: buildStep2Components(guildId) };
-      case 3: return { content: buildStep3Content(guildId), components: buildStep3Components(guildId) };
-      case 4: return { content: buildStep4Content(guildId), components: buildStep4Components(guildId) };
-      case 5: return { content: buildStep5Content(guildId), components: buildStep5Components(guildId) };
-      default: return { content: buildStep6Summary(guildId), components: buildStep6Components(guildId) };
-    }
-  })();
+  const payload = buildStepPayload(guildId, guild, step);
+  await interaction.message.edit(payload);
+  await interaction.deferUpdate().catch(() => {});
+}
 
-  if (interaction.deferred || interaction.replied) {
-    await interaction.editReply(payload);
-  } else {
-    await interaction.update(payload);
-  }
+async function startWizardInChannel(interaction) {
+  const guildId = interaction.guildId;
+  const guild = interaction.guild;
+  setGuildSetting(guildId, 'setup', 'step', 1);
+  setGradeCursor(guildId, 0);
+  const payload = buildStepPayload(guildId, guild, 1);
+  await interaction.message.edit(payload);
+  await interaction.deferUpdate().catch(() => {});
 }
 
 function explainStepOneValidation(guildId, validation) {
@@ -518,22 +539,6 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
-  if (interaction.customId === CUSTOM_IDS.start) {
-    const step = getCurrentStep(guildId);
-    if (step === 1) setGradeCursor(guildId, getGradeCursor(guildId));
-    const payload = (() => {
-      switch (step) {
-        case 1: return { content: buildStepOneContent(guildId, interaction.guild), components: buildStepOneComponents(guildId, interaction.guild) };
-        case 2: return { content: buildStep2Content(guildId), components: buildStep2Components(guildId) };
-        case 3: return { content: buildStep3Content(guildId), components: buildStep3Components(guildId) };
-        case 4: return { content: buildStep4Content(guildId), components: buildStep4Components(guildId) };
-        case 5: return { content: buildStep5Content(guildId), components: buildStep5Components(guildId) };
-        default: return { content: buildStep6Summary(guildId), components: buildStep6Components(guildId) };
-      }
-    })();
-    await interaction.reply({ ...payload, ephemeral: true });
-    return true;
-  }
 
   if (interaction.customId === CUSTOM_IDS.previousGrade) {
     setGradeCursor(guildId, getGradeCursor(guildId) - 1);
@@ -695,6 +700,14 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 5); return true;
   }
 
+  if (interaction.customId === CUSTOM_IDS.back) {
+    const currentStep = getCurrentStep(guildId);
+    const prevStep = Math.max(1, currentStep - 1);
+    setGuildSetting(guildId, 'setup', 'step', prevStep);
+    await renderStep(interaction, prevStep);
+    return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.next) {
     const currentStep = getCurrentStep(guildId);
 
@@ -736,5 +749,6 @@ async function handleSetupInteraction(interaction) {
 
 module.exports = {
   CUSTOM_IDS,
-  handleSetupInteraction
+  handleSetupInteraction,
+  startWizardInChannel
 };

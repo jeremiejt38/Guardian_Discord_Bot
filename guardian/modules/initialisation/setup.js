@@ -589,6 +589,28 @@ function getSetupMessageContent(language) {
   ].join(' ');
 }
 
+async function purgeSetupChannel(setupChannel) {
+  try {
+    let fetched;
+    do {
+      fetched = await setupChannel.messages.fetch({ limit: 100 });
+      if (fetched.size === 0) break;
+      const deletable = fetched.filter((m) => Date.now() - m.createdTimestamp < 14 * 24 * 60 * 60 * 1000);
+      const old = fetched.filter((m) => Date.now() - m.createdTimestamp >= 14 * 24 * 60 * 60 * 1000);
+      if (deletable.size > 1) {
+        await setupChannel.bulkDelete(deletable);
+      } else if (deletable.size === 1) {
+        await deletable.first().delete();
+      }
+      for (const msg of old.values()) {
+        await msg.delete().catch(() => {});
+      }
+    } while (fetched.size >= 100);
+  } catch (err) {
+    logger.error('Failed to purge setup channel', err);
+  }
+}
+
 async function ensureSetupInstallPrompt(guild) {
   const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
 
@@ -602,16 +624,10 @@ async function ensureSetupInstallPrompt(guild) {
     return;
   }
 
-  const messages = await setupChannel.messages.fetch({ limit: 20 });
-  const hasInstallButton = messages.some((message) =>
-    message.author?.id === guild.client.user.id
-    && message.components?.some((row) => row.components?.some((component) => component.customId === SETUP_INSTALL_BUTTON_ID))
-  );
+  await purgeSetupChannel(setupChannel);
 
-  if (!hasInstallButton) {
-    const language = resolveSetupLanguage(guild.id);
-    await setupChannel.send(buildSetupInstallMessagePayloadForGuild(language));
-  }
+  const language = resolveSetupLanguage(guild.id);
+  await setupChannel.send(buildSetupInstallMessagePayloadForGuild(language));
 }
 
 function buildSetupInstallMessagePayloadForGuild(language) {
