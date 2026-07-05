@@ -1,27 +1,35 @@
-const { getDb } = require('../../database/db');
+const { getDb, getGrade } = require('../../database/db');
 const { GRADE_NAMES, CHANNELS } = require('../../config');
 const { t } = require('../i18n');
+const { getGuildSetting } = require('../config/settings');
+const { findChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
-const { buildRequestButton } = require('./promotionRequest');
-
-function getGradeRoleId(guildId, gradeName) {
-  const db = getDb();
-  const row = db.prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name = ?').get(guildId, gradeName);
-  return row?.role_id;
-}
+const { IDS: PROMOTION_IDS } = require('./promotion');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 async function handleNewMember(member) {
   try {
-    const inviteRoleId = getGradeRoleId(member.guild.id, GRADE_NAMES.invite);
+    const inviteRoleId = getGrade(member.guild.id, GRADE_NAMES.invite);
     if (inviteRoleId) {
       await member.roles.add(inviteRoleId);
     }
 
-    const welcomeChannel = member.guild.channels.cache.find((channel) => channel.name === CHANNELS.welcome);
+    const welcomeChannel = findChannelByName(member.guild, CHANNELS.welcome);
     if (welcomeChannel?.isTextBased()) {
+      const delayHours = Number(getGuildSetting(member.guild.id, 'members', 'promotion_delay_hours', 48));
+      const requestRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(PROMOTION_IDS.request)
+          .setLabel(t(member.guild.id, 'promotion.requestButton'))
+          .setStyle(ButtonStyle.Primary)
+      );
       await welcomeChannel.send({
-        content: t(member.guild.id, 'members.welcome', { member: member.toString() }),
-        components: [buildRequestButton(member.guild.id)]
+        content: t(member.guild.id, 'members.welcome', {
+          member: member.toString(),
+          guild: member.guild.name,
+          delay: delayHours
+        }),
+        components: [requestRow]
       });
     }
 

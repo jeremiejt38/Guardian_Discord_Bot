@@ -1,7 +1,10 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { addServer } = require('./servers');
-const { getDb } = require('../../database/db');
+const { getModerationRoleIds } = require('../../database/db');
 const { CHANNELS } = require('../../config');
+const { findGuildTextChannelByName } = require('../utils/channels');
+const { replyEphemeral } = require('../utils/interactions');
+const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../i18n');
 
 async function handleAddServerButton(interaction) {
@@ -32,25 +35,20 @@ async function handleServerModalSubmit(interaction) {
   const port = interaction.fields.getTextInputValue('server_port');
   const pwd = interaction.fields.getTextInputValue('server_pwd');
 
-  const db = getDb();
-  const modRoles = db
-    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
-    .all(guildId, 'moderateur', 'manager', 'owner')
-    .map((r) => r.role_id)
-    .filter(Boolean);
+  const modRoles = getModerationRoleIds(guildId);
 
   const member = interaction.member;
-  const isAutoApproved = modRoles.some((roleId) => member.roles.cache.has(roleId));
+  const isAutoApproved = memberHasAnyRole(member, modRoles);
 
   const serverId = addServer(guildId, name, game, ip, Number(port), pwd || null, interaction.user.id, isAutoApproved ? 1 : 0);
 
   if (isAutoApproved) {
-    await interaction.reply({ content: t(guildId, 'init.serverAdded', { name }), ephemeral: true });
+    await replyEphemeral(interaction, t(guildId, 'init.serverAdded', { name }));
     return;
   }
 
   // create proposal message in approve channel
-  const approveChannel = interaction.guild.channels.cache.find((c) => c.name === CHANNELS.approveGames && c.type === ChannelType.GuildText);
+  const approveChannel = findGuildTextChannelByName(interaction.guild, CHANNELS.approveGames);
   const embed = new EmbedBuilder().setTitle(`Proposition de serveur: ${name}`).addFields(
     { name: 'Jeu', value: game, inline: true },
     { name: 'IP:Port', value: `${ip}:${port}`, inline: true }
@@ -67,7 +65,7 @@ async function handleServerModalSubmit(interaction) {
     await approveChannel.send({ embeds: [embed], components: [row] });
   }
 
-  await interaction.reply({ content: t(guildId, 'init.serverProposed', { name }), ephemeral: true });
+  await replyEphemeral(interaction, t(guildId, 'init.serverProposed', { name }));
 }
 
 module.exports = { handleAddServerButton, handleServerModalSubmit };

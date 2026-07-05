@@ -1,17 +1,17 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const {
-  DEFAULT_LANGUAGE,
   getAvailableLanguages,
   getLanguageLabel,
   getGuildLanguage,
   t,
-  tForLanguage
+  describe
 } = require('../modules/i18n');
+const { replyEphemeral } = require('../modules/utils/interactions');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('langues')
-    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.langues.description'))
+    .setDescription(describe('commands.langues.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
     const activeCode = getGuildLanguage(interaction.guildId);
@@ -33,9 +33,6 @@ module.exports = {
       );
     }
 
-    await interaction.reply({
-      content: lines.join('\n').trim(),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, lines.join('\n').trim());
   }
 };

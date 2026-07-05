@@ -1,4 +1,4 @@
-const { getDb } = require('../../database/db');
+const { getDb, getModerationRoleIds } = require('../../database/db');
 const {
   ChannelType,
   PermissionFlagsBits,
@@ -8,7 +8,8 @@ const {
   ButtonStyle,
   EmbedBuilder
 } = require('discord.js');
-const { GRADE_NAMES } = require('../../config');
+const { findCategoryByName, findGuildTextChannelByName } = require('../utils/channels');
+const { replyEphemeral } = require('../utils/interactions');
 const { t } = require('../i18n');
 const logger = require('../logs/logger');
 
@@ -20,15 +21,6 @@ function toChannelSlug(name) {
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-');
-}
-
-function getModerationRoleIds(guildId) {
-  const db = getDb();
-  const rows = db
-    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
-    .all(guildId, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner);
-
-  return rows.map((row) => row.role_id).filter(Boolean);
 }
 
 async function ensureGameRole(guild, game) {
@@ -58,9 +50,7 @@ async function ensureCategory(guild, gameName, permissionOverwrites, existingId)
     return existingById;
   }
 
-  const existingByName = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildCategory && channel.name === gameName
-  );
+  const existingByName = findCategoryByName(guild, gameName);
   if (existingByName) {
     await existingByName.edit({ permissionOverwrites });
     return existingByName;
@@ -80,9 +70,7 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
     return existingById;
   }
 
-  const existingByName = guild.channels.cache.find(
-    (channel) => channel.type === ChannelType.GuildText && channel.parentId === parentId && channel.name === channelName
-  );
+  const existingByName = findGuildTextChannelByName(guild, channelName, parentId);
   if (existingByName) {
     await existingByName.edit({ parent: parentId, permissionOverwrites });
     return existingByName;
@@ -315,7 +303,7 @@ async function handleCreateValidate(interaction) {
   const db = getDb();
   const game = db.prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(interaction.guildId, gameId);
   if (!game) {
-    await interaction.reply({ content: t(interaction.guildId, 'games.noneAvailable'), ephemeral: true });
+    await replyEphemeral(interaction, t(interaction.guildId, 'games.noneAvailable'));
     return;
   }
 
@@ -331,7 +319,7 @@ async function handleCreateValidate(interaction) {
   const channel = await createTemporaryVoice(interaction.guild, name);
   trackTempVoice(channel.id, interaction.guildId, game.game_id, interaction.user.id);
 
-  await interaction.reply({ content: t(interaction.guildId, 'games.createdVoice', { name }), ephemeral: true });
+  await replyEphemeral(interaction, t(interaction.guildId, 'games.createdVoice', { name }));
 }
 
 async function handleOpenGameList(interaction) {

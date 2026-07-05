@@ -13,7 +13,9 @@
     "adminOnlyInstall": "Seul le proprietaire du serveur ou un administrateur peut relancer l'installation.",
     "installSuccess": "Installation Guardian relancee avec succes.",
     "installError": "Erreur pendant la relance de l'installation. Consulte les logs du bot.",
-    "languageUpdated": "Langue d'installation mise a jour: {{language}}."
+    "languageUpdated": "Langue d'installation mise a jour: {{language}}.",
+    "startButton": "Demarrer la configuration",
+    "summary": "Installation Guardian terminee pour **{{guild}}**. Les invites peuvent etre promus membres apres {{delay}}h. Consulte #regles et #faq pour bien demarrer."
   },
   "interaction": {
     "unsupported": "Interaction non prise en charge."
@@ -23,7 +25,16 @@
     "forbiddenWord": "{{user}}, ce message contient un mot interdit."
   },
   "members": {
-    "welcome": "Bienvenue {{member}} ! Clique sur le bouton de demande pour devenir membre."
+    "welcome": "Bienvenue {{member}} sur **{{guild}}** ! Clique sur le bouton de demande pour devenir membre. Tu pourras etre promu apres {{delay}}h."
+  },
+  "promotion": {
+    "requestButton": "Faire une demande"
+  },
+  "servers": {
+    "approved": "Serveur approuve par {{user}}.",
+    "rejected": "Serveur refuse par {{user}}.",
+    "notFound": "Serveur introuvable.",
+    "connectInfo": "Connexion: {{ip}}:{{port}}{{pwd}}"
   },
   "promotion": {
     "requestButton": "Faire une demande",
@@ -104,7 +115,13 @@
     "faq3": "FAQ Guardian: pour support, ouvre une demande dans #demandes.",
     "voiceCreate": "Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.",
     "configReady": "Guardian Configuration: ce salon #{{channel}} est pret et configure.",
-    "serverPlaceholder": "Guardian Placeholder: ce salon est reserve au futur bot Pterodactyl pour la gestion serveurs."
+    "serverPlaceholder": "Guardian Placeholder: ce salon est reserve au futur bot Pterodactyl pour la gestion serveurs.",
+    "faqPostTitle": "FAQ #{{index}}",
+    "welcomeInfo": "Bienvenue sur le serveur ! Lis les #regles, consulte la #faq et ouvre une demande dans #demandes pour devenir membre.",
+    "rules": "**Reglement du serveur**\n1. Reste courtois et respectueux.\n2. Pas de spam ni de contenu interdit.\n3. Suis les consignes des Moderateurs et Managers.",
+    "announcements": "**Annonces**\nLes annonces officielles du serveur seront publiees ici.",
+    "suggestionsPostTitle": "Suggestions",
+    "suggestionsIntro": "Propose tes idees pour ameliorer le serveur en creant un nouveau post."
   },
   "commands": {
     "ban": {

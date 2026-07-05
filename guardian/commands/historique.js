@@ -6,10 +6,11 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const { getDb } = require('../database/db');
-const { GRADE_NAMES } = require('../config');
+const { getModerationRoleIds } = require('../database/db');
+const { memberHasAnyRole } = require('../modules/utils/roles');
 const { getSanctionsHistory, getBehaviorScore } = require('../modules/moderation/moderation');
-const { DEFAULT_LANGUAGE, getGuildLanguage, t, tForLanguage } = require('../modules/i18n');
+const { getGuildLanguage, t, describe } = require('../modules/i18n');
+const { replyEphemeral } = require('../modules/utils/interactions');
 
 const PAGE_SIZE = 10;
 
@@ -78,14 +79,10 @@ function buildPaginationRow(guildId, targetUserId, actorId, page, maxPage) {
 }
 
 function hasModeratorAccess(member) {
-  const db = getDb();
-  const rows = db
-    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
-    .all(member.guild.id, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner);
-  const modRoleIds = rows.map((row) => row.role_id).filter(Boolean);
+  const modRoleIds = getModerationRoleIds(member.guild.id);
 
   if (modRoleIds.length > 0) {
-    return modRoleIds.some((roleId) => member.roles.cache.has(roleId));
+    return memberHasAnyRole(member, modRoleIds);
   }
 
   return member.permissions.has(PermissionFlagsBits.ModerateMembers);
@@ -93,10 +90,7 @@ function hasModeratorAccess(member) {
 
 async function renderHistorique(interaction, targetUserId, actorId, page) {
   if (interaction.user.id !== actorId) {
-    await interaction.reply({
-      content: t(interaction.guildId, 'commands.historique.forbiddenPagination'),
-      ephemeral: true
-    });
+    await replyEphemeral(interaction, t(interaction.guildId, 'commands.historique.forbiddenPagination'));
     return;
   }
 
@@ -127,16 +121,13 @@ async function handleHistoriquePagination(interaction) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('historique')
-    .setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.historique.description'))
+    .setDescription(describe('commands.historique.description'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) => option.setName('membre').setDescription(tForLanguage(DEFAULT_LANGUAGE, 'commands.historique.memberOption')).setRequired(true)),
+    .addUserOption((option) => option.setName('membre').setDescription(describe('commands.historique.memberOption')).setRequired(true)),
   async execute(interaction) {
     const actorMember = await interaction.guild.members.fetch(interaction.user.id);
     if (!hasModeratorAccess(actorMember)) {
-      await interaction.reply({
-        content: t(interaction.guildId, 'commands.historique.moderatorOnly'),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t(interaction.guildId, 'commands.historique.moderatorOnly'));
       return;
     }
 

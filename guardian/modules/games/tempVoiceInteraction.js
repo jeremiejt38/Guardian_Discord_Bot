@@ -2,6 +2,8 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectM
 const { getDb } = require('../../database/db');
 const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { findTextChannelByName } = require('../utils/channels');
+const { replyEphemeral } = require('../utils/interactions');
 const { getGuildGames } = require('./gameList');
 const { createTemporaryVoice, trackTempVoice } = require('./gamesVocal');
 const { t } = require('../../locales');
@@ -71,7 +73,7 @@ function buildGameSelect(guildId, games) {
 }
 
 async function ensureTempVoicePanelForGuild(guild) {
-  const channel = guild.channels.cache.find((item) => item.name === CHANNEL_NAMES.voiceCreate && item.isTextBased());
+  const channel = findTextChannelByName(guild, CHANNEL_NAMES.voiceCreate);
   if (!channel) {
     return;
   }
@@ -107,19 +109,13 @@ async function handleTempVoiceInteraction(interaction) {
 
   if (interaction.isButton() && interaction.customId === IDS.createButton) {
     if (!canCreateTempVoice(interaction.guildId, interaction.user.id)) {
-      await interaction.reply({
-        content: t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }));
       return true;
     }
 
     const games = getGuildGames(interaction.guildId);
     if (!games.length) {
-      await interaction.reply({
-        content: t('tempVoice.noGames', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('tempVoice.noGames', {}, { guildId: interaction.guildId }));
       return true;
     }
 

@@ -2,6 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } 
 const { getDb } = require('../../database/db');
 const { CHANNEL_NAMES } = require('../../config');
 const { getGuildGames, getMemberGames, setMemberGames } = require('./gameList');
+const { replyEphemeral } = require('../utils/interactions');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
@@ -105,19 +106,13 @@ async function handleGamesInteraction(interaction) {
 
   if (interaction.isButton() && interaction.customId === IDS.manage) {
     if (!canManageGames(interaction.guildId, interaction.user.id)) {
-      await interaction.reply({
-        content: t('games.forbiddenInvite', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('games.forbiddenInvite', {}, { guildId: interaction.guildId }));
       return true;
     }
 
     const games = getGuildGames(interaction.guildId);
     if (!games.length) {
-      await interaction.reply({
-        content: t('games.noGamesConfigured', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('games.noGamesConfigured', {}, { guildId: interaction.guildId }));
       return true;
     }
 
@@ -133,10 +128,7 @@ async function handleGamesInteraction(interaction) {
   if (interaction.isStringSelectMenu() && interaction.customId === IDS.select) {
     const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
     if (!member) {
-      await interaction.reply({
-        content: t('games.memberMissing', {}, { guildId: interaction.guildId }),
-        ephemeral: true
-      });
+      await replyEphemeral(interaction, t('games.memberMissing', {}, { guildId: interaction.guildId }));
       return true;
     }
 
