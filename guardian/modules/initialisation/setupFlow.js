@@ -727,8 +727,17 @@ async function startWizardInChannel(interaction) {
   setGuildSetting(guildId, 'setup', 'step', 1);
   setGradeCursor(guildId, 0);
   const payload = buildStepPayload(guildId, guild, 1);
-  await interaction.message.edit(payload);
-  await interaction.deferUpdate().catch(() => {});
+  try {
+    await interaction.message.edit(payload);
+    await interaction.deferUpdate().catch(() => {});
+  } catch (err) {
+    if (err.code === 10008 && interaction.channel?.send) {
+      await interaction.channel.send(payload);
+      await interaction.deferUpdate().catch(() => {});
+    } else {
+      throw err;
+    }
+  }
 }
 
 function explainStepOneValidation(guildId, validation) {

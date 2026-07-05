@@ -1,8 +1,24 @@
 const { getGuildSetting } = require('../modules/config/settings');
-const fr = require('./fr');
+const frJs = require('./fr');
+const frJson = require('./fr.json');
+const enJson = require('./en.json');
+
+function deepMerge(base, override) {
+  const result = Object.assign({}, base);
+  for (const key of Object.keys(override)) {
+    if (override[key] && typeof override[key] === 'object' && !Array.isArray(override[key])
+        && base[key] && typeof base[key] === 'object') {
+      result[key] = deepMerge(base[key], override[key]);
+    } else {
+      result[key] = override[key];
+    }
+  }
+  return result;
+}
 
 const locales = Object.freeze({
-  fr
+  fr: deepMerge(frJs, frJson),
+  en: enJson
 });
 
 function getByPath(object, path) {

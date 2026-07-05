@@ -118,7 +118,7 @@ test('setup:start rejects non-owner if setup owner already exists', async () => 
   const handled = await handleSetupInteraction(interaction);
 
   assert.strictEqual(handled, true);
-  assert.ok(interaction.replied?.content.includes('Seul le propriétaire'), 'Expected forbidden message for non-owner');
+  assert.ok(interaction.replied?.content.includes('proprietaire'), 'Expected forbidden message for non-owner');
 });
 
 test('setup:grade:role selects a role and rerenders the first step', async () => {
