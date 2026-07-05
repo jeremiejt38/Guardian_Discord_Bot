@@ -882,9 +882,24 @@ function detectDuplicateGradeRoles(guild) {
   return dupes;
 }
 
+function getIgnoredChannelSlots(guildId) {
+  const raw = getGuildSetting(guildId, 'setup', 'ignored_channel_slots', null);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function addIgnoredChannelSlot(guildId, slotKey) {
+  const ignored = getIgnoredChannelSlots(guildId);
+  if (!ignored.includes(slotKey)) ignored.push(slotKey);
+  setGuildSetting(guildId, 'setup', 'ignored_channel_slots', JSON.stringify(ignored));
+}
+
 function autoPositionChannelCursor(guildId) {
   const slots = getActiveSlotsForInstall(guildId);
-  const firstUnconfigured = slots.findIndex((s) => !getGuildSetting(guildId, s.settingSection, s.settingKey, null));
+  const ignored = getIgnoredChannelSlots(guildId);
+  const firstUnconfigured = slots.findIndex(
+    (s) => !ignored.includes(s.key) && !getGuildSetting(guildId, s.settingSection, s.settingKey, null)
+  );
   if (firstUnconfigured !== -1) setChannelCursor(guildId, firstUnconfigured);
 }
 
@@ -1157,6 +1172,7 @@ async function handleSetupInteraction(interaction) {
     if (action === 'ignore') {
       const slot = activeSlots[cursor];
       if (slot) {
+        addIgnoredChannelSlot(guildId, slot.key);
         setGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
         if (slot.key === 'voiceAfk') {
           setGuildSetting(guildId, 'modules', 'afk_enabled', false);
