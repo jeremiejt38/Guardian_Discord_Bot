@@ -51,10 +51,11 @@ function buildFakeRolesCacheFromRoles(roles) {
 
 let nextGuildIndex = 1;
 
-function buildFakeGuild({ id } = {}) {
+function buildFakeGuild({ id, community = true } = {}) {
   return {
     id: id || `test-guild-${nextGuildIndex++}`,
     ownerId: 'owner',
+    features: community ? ['COMMUNITY'] : [],
     roles: {
       cache: buildFakeRolesCache(),
       everyone: { id: 'everyone' }

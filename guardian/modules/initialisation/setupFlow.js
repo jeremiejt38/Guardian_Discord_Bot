@@ -95,6 +95,8 @@ const CUSTOM_IDS = Object.freeze({
   channelSelectPrefix: 'setup:channel:select',
   channelSkip: 'setup:channel:skip',
   next: 'setup:step:next',
+  communityCheckContinue: 'setup:community:continue',
+  communityCheckRetry: 'setup:community:retry',
   finalize: 'setup:finalize'
 });
 
@@ -931,6 +933,39 @@ function autoPositionChannelCursor(guildId, guild) {
   if (firstUnconfigured !== -1) setChannelCursor(guildId, firstUnconfigured);
 }
 
+function buildCommunityCheckContent(guildId) {
+  return [
+    `## ⚠️ Serveur non communautaire (3/${TOTAL_STEPS})`,
+    '',
+    'Ton serveur Discord est actuellement un **serveur classique** (non communautaire).',
+    'Certains channels du setup sont **réservés aux serveurs communautaires** :',
+    '> 📜 **#règles** — requis par Discord pour les serveurs communautaires',
+    '> 🛡️ **#logs-modération** — correspond au salon "Moderator Only"',
+    '> 🔒 **#maj-securite** — canal de mises à jour de sécurité Discord',
+    '',
+    '**Comment activer le mode communautaire ?**',
+    '> ⚙️ Paramètres du serveur → **Activer la communauté** → Suivre les étapes Discord',
+    '',
+    'Une fois activé, clique sur **🔄 Vérifier à nouveau** — ces salons seront alors proposés.',
+    'Tu peux aussi **continuer sans activer** la communauté, ces salons seront ignorés.'
+  ].join('\n');
+}
+
+function buildCommunityCheckComponents() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.communityCheckRetry)
+        .setStyle(ButtonStyle.Primary)
+        .setLabel('🔄 Vérifier à nouveau'),
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.communityCheckContinue)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel('Continuer sans activer')
+    )
+  ];
+}
+
 function buildStepPayload(guildId, guild, step) {
   function pad(content) { return content + '\n\u200b'; }
   switch (step) {
@@ -1653,9 +1688,41 @@ async function handleSetupInteraction(interaction) {
     }
 
     const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
+    if (nextStep === 3 && interaction.guild && !isCommunityGuild(interaction.guild)) {
+      await interaction.deferUpdate().catch(() => {});
+      await interaction.message.edit({
+        content: buildCommunityCheckContent(guildId) + '\n\u200b',
+        components: buildCommunityCheckComponents()
+      }).catch(() => {});
+      return true;
+    }
     setGuildSetting(guildId, 'setup', 'step', nextStep);
-    if (nextStep === 3) autoPositionChannelCursor(guildId);
+    if (nextStep === 3) autoPositionChannelCursor(guildId, interaction.guild);
     await renderStep(interaction, nextStep);
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.communityCheckRetry) {
+    await interaction.deferUpdate().catch(() => {});
+    if (interaction.guild) await interaction.guild.fetch().catch(() => {});
+    if (isCommunityGuild(interaction.guild)) {
+      setGuildSetting(guildId, 'setup', 'step', 3);
+      autoPositionChannelCursor(guildId, interaction.guild);
+      await renderStep(interaction, 3);
+    } else {
+      await interaction.message.edit({
+        content: buildCommunityCheckContent(guildId) + '\n\u200b',
+        components: buildCommunityCheckComponents()
+      }).catch(() => {});
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.communityCheckContinue) {
+    await interaction.deferUpdate().catch(() => {});
+    setGuildSetting(guildId, 'setup', 'step', 3);
+    setChannelCursor(guildId, 0);
+    await renderStep(interaction, 3);
     return true;
   }
 
