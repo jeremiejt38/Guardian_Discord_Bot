@@ -9,6 +9,8 @@ const ORDERED_GRADES = Object.freeze([
   GRADE_NAMES.owner
 ]);
 
+const REQUIRED_GRADES = Object.freeze([GRADE_NAMES.membre, GRADE_NAMES.owner]);
+
 function setGradeRole(guildId, gradeName, roleId) {
   const db = getDb();
   db.prepare(
@@ -34,7 +36,7 @@ function getGradeMappings(guildId) {
 function validateStepOneMappings(guild) {
   const mappings = getGradeMappings(guild.id);
 
-  const missingGrades = ORDERED_GRADES.filter((grade) => !mappings[grade]);
+  const missingGrades = REQUIRED_GRADES.filter((grade) => !mappings[grade]);
   if (missingGrades.length) {
     return {
       ok: false,
@@ -44,9 +46,9 @@ function validateStepOneMappings(guild) {
     };
   }
 
-  const roleIds = ORDERED_GRADES.map((grade) => mappings[grade]);
-  const uniqueRoleCount = new Set(roleIds).size;
-  if (uniqueRoleCount !== roleIds.length) {
+  const mappedIds = ORDERED_GRADES.map((grade) => mappings[grade]).filter(Boolean);
+  const uniqueRoleCount = new Set(mappedIds).size;
+  if (uniqueRoleCount !== mappedIds.length) {
     return {
       ok: false,
       reason: 'duplicate_roles',
@@ -83,6 +85,7 @@ function validateStepOneMappings(guild) {
 
 module.exports = {
   ORDERED_GRADES,
+  REQUIRED_GRADES,
   setGradeRole,
   getGradeMappings,
   validateStepOneMappings

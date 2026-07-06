@@ -14,6 +14,7 @@ const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
 const {
   ORDERED_GRADES,
+  REQUIRED_GRADES,
   setGradeRole,
   getGradeMappings,
   validateStepOneMappings
@@ -281,8 +282,9 @@ function buildStepOneContent(guildId, guild) {
     const summary = ORDERED_GRADES.map((grade) => {
       const roleId = mappings[grade];
       const roleExists = roleId && guild?.roles?.cache?.get(roleId);
-      const marker = roleExists ? '✅' : '❌';
-      const roleText = roleExists ? `<@&${roleId}>` : '*non mappé*';
+      const required = REQUIRED_GRADES.includes(grade);
+      const marker = roleExists ? '✅' : (required ? '❌' : '⬜');
+      const roleText = roleExists ? `<@&${roleId}>` : (required ? '*obligatoire*' : '*optionnel*');
       return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
     }).join('\n');
     lines.push(summary);
