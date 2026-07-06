@@ -225,8 +225,9 @@ function buildStepOneContent(guildId, guild) {
   const mappings = getGradeMappings(guildId);
   const autoCreated = getRolesAutoCreated(guildId);
   const noRoles = !hasMapableRoles(guild);
+  const { version } = require('../../package.json');
   const lines = [
-    `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS})`
+    `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS}) — Guardian v${version}`
   ];
 
   const GRADE_DESCS = {
@@ -2013,7 +2014,10 @@ async function handleSetupInteraction(interaction) {
     await interaction.deferUpdate().catch(() => {});
     try {
       const { completeGuildSetup } = require('./setup');
+      const { recordInstallVersion } = require('../migrations/channelMigrations');
+      const { version } = require('../../package.json');
       await completeGuildSetup(interaction.guild);
+      recordInstallVersion(guildId, version);
       if (interaction.channel?.send) {
         await interaction.channel.send({ content: t('setup.finalized', {}, { guildId }) });
       }

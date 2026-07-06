@@ -9,6 +9,7 @@ const { runPassiveScoreRegen } = require('../modules/moderation/behavior');
 const { seedGuildMessages } = require('../modules/initialisation/seeds');
 const { sendDmNotification } = require('../modules/notifications/dmNotifier');
 const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
+const { runChannelMigrations } = require('../modules/migrations/channelMigrations');
 const logger = require('../modules/logs/logger');
 const { version } = require('../package.json');
 
@@ -29,6 +30,8 @@ module.exports = {
         await applyPersistedSlowModeForGuild(guild);
         await ensureMemberGameInterfaces(guild);
         await seedGuildMessages(guild).catch(() => undefined);
+
+        await runChannelMigrations(guild);
 
         const lastVersion = getGuildSetting(guild.id, 'bot', 'last_version', null);
         if (lastVersion && lastVersion !== version) {
