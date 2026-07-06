@@ -973,7 +973,7 @@ const LINKED_CHANNEL_MAP = [
   { settingSection: 'channels', settingKey: 'voice_general_id',            targetName: CHANNELS.voiceGeneral,  targetCategory: CATEGORIES.vocaux,        type: 'voice' },
   { settingSection: 'channels', settingKey: 'voice_afk_id',                targetName: CHANNELS.voiceAfk,      targetCategory: CATEGORIES.vocaux,        type: 'voice' },
   { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',   targetName: CHANNELS.moderationLogs,    targetCategory: CATEGORIES.moderation, type: 'text'  },
-  { settingSection: 'channels', settingKey: 'security_updates_channel_id', targetName: CHANNELS.securityUpdates,   targetCategory: CATEGORIES.moderation, type: 'text'  }
+  { settingSection: 'channels', settingKey: 'security_updates_channel_id', targetName: CHANNELS.securityUpdates,   targetCategory: CATEGORIES.moderation, type: 'text', customPerms: true }
 ];
 
 const DEFAULT_DISCORD_CATEGORIES = [
@@ -1002,11 +1002,18 @@ async function adoptLinkedChannels(guild) {
     if (alreadyCorrect) continue;
 
     try {
-      await channel.edit({
+      const editPayload = {
         name: mapping.targetName,
-        parent: targetCategory.id,
-        lockPermissions: true
-      });
+        parent: targetCategory.id
+      };
+      if (mapping.customPerms) {
+        const roleMap = getGradeMappings(guildId);
+        editPayload.lockPermissions = false;
+        editPayload.permissionOverwrites = buildConfigPermissions(guild, roleMap, guild.ownerId, GRADE_NAMES.manager);
+      } else {
+        editPayload.lockPermissions = true;
+      }
+      await channel.edit(editPayload);
     } catch (err) {
       logger.error(`adoptLinkedChannels: failed to migrate channel ${channelId}`, err);
     }
