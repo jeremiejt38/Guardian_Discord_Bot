@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.9.3-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.10.3-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -26,6 +26,8 @@
 | 🛡️ **Modération** | Anti-spam, blacklist, logs, score comportemental, expulsion auto |
 | 🖥️ **Serveurs de jeu** | Proposition, approbation et suivi des serveurs communautaires |
 | ⚙️ **Panels de config** | Panneaux d'administration persistants par module (channels, rôles, jeux…) |
+| 🔔 **Notifications DM** | Alertes privées configurables par catégorie (MAJ bot, erreurs, modération, promotions…) |
+| 🔄 **Migrations** | Migrations DB et Discord versionnées — montées de version sans perte de données |
 | 🌐 **i18n** | Support français / anglais avec clés de traduction complètes |
 
 ---
@@ -82,9 +84,11 @@ Guardian_Discord_Bot/
 │   │   ├── games/         # Gestion jeux, opt-in, Steam changelogs
 │   │   ├── initialisation/# Wizard setup, création channels/rôles, seeds
 │   │   ├── members/       # Promotions, parrainage, score comportemental
+│   │   ├── migrations/    # Migrations Discord versionnées (channels, rôles)
 │   │   ├── moderation/    # Anti-spam, blacklist, logs de modération
+│   │   ├── notifications/ # Notifications DM configurables par guilde
 │   │   ├── servers/       # Monitor serveurs de jeu
-│   │   └── utils/         # Utilitaires partagés
+│   │   └── utils/         # Utilitaires partagés (discordErrors, channels…)
 │   └── tests/             # Suite de tests unitaires
 └── .lando.yml             # Environnement de test isolé (Docker)
 ```
@@ -102,12 +106,20 @@ Les tests tournent sur une base SQLite en mémoire et couvrent le wizard setup, 
 
 ---
 
-##  Changelog
+## Changelog
+
+### v0.10.x — Robustesse & Notifications
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.10.3** | 2026-07-06 | Gestion erreurs Discord 50013/50001 — `safeDiscordAction`, filet global `interactionCreate` ← *actuel* |
+| v0.10.2 | 2026-07-06 | Validation `#général` requis step 3 + pagination jeux step 6 (3/page, illimité) |
+| v0.10.1 | 2026-07-06 | Migrations DB versionnées (`MIGRATIONS` array), migrations Discord versionnées (`channelMigrations`), version bot dans wizard |
+| v0.10.0 | 2026-07-06 | Notifications DM configurables — 8 catégories, panel `#guardian`, détection MAJ bot au démarrage |
 
 ### v0.9.x — UX & Polish
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.9.3** | 2026-07-06 | Écran communautaire enrichi (prérequis vérifiés dynamiquement, avantages, procédure), polish UX steps 2/5/7, i18n FR+EN aligné ← *actuel* |
+| **v0.9.3** | 2026-07-06 | Écran communautaire enrichi (prérequis vérifiés dynamiquement, avantages, procédure), polish UX steps 2/5/7, i18n FR+EN aligné |
 | v0.9.2 | 2026-07-06 | README réécriture complète, badges, tableau versioning |
 | v0.9.1 | 2026-07-06 | Détection jeux existants au setup, liaison channels par jeu, `text_channel_enabled` désactivé par défaut, emojis sur tous les boutons |
 | v0.9.0 | 2026-07-05 | Topics i18n sur tous les channels Guardian, suppression messages `configReady`, slots `communityOnly` filtrés |
@@ -163,15 +175,15 @@ Ce qui reste à faire avant la **release publique** :
 
 ### 🔴 Bloquant
 - [ ] **Tests d'intégration end-to-end** — couvrir les flows complets (setup → finalisation → jeu → modération)
-- [ ] **Gestion des erreurs Discord 50013** — permissions manquantes : afficher un message explicite au lieu de crash silencieux
-- [ ] **Migration DB automatique** — gérer les montées de version de schéma sans perte de données
+- [x] **Gestion des erreurs Discord 50013** — `safeDiscordAction` + filet global interactionCreate ✅ v0.10.3
+- [x] **Migration DB automatique** — système `MIGRATIONS` array versionné ✅ v0.10.1
 - [ ] **Commande `/help`** — aide contextuelle par module avec exemples
 
 ### 🟠 Important
 - [ ] **Multi-langues** — ajouter ES, DE, PT, IT, NL, PL, RU, ZH, JA, KO (structure prête, fichiers JSON à créer)
 - [ ] **Résumé post-installation** — message `#bienvenue` avec checklist des prochaines actions admins
-- [ ] **Pagination liste de jeux** — dépasser la limite de 3 jeux modifiables dans le wizard
-- [ ] **Validation step 3** — vérifier que le channel `#général` est bien configuré avant de passer à l'étape suivante
+- [x] **Pagination liste de jeux** — 3 jeux par page, illimité ✅ v0.10.2
+- [x] **Validation step 3** — `#général` requis avant passage à l'étape suivante ✅ v0.10.2
 - [ ] **Rate limiting** — protection contre les interactions trop rapides (debounce sur les boutons)
 
 ### 🟡 Nice-to-have
@@ -188,7 +200,11 @@ Ce qui reste à faire avant la **release publique** :
 - [x] `text_channel_enabled` désactivé par défaut, activable par jeu
 - [x] Polish UX complet (emojis, mise en page, descriptions claires)
 - [x] i18n FR + EN aligné sur toutes les clés
-- [x] Versioning sémantique complet (v0.1.0 → v0.9.3)
+- [x] Versioning sémantique complet (v0.1.0 → v0.10.3)
+- [x] Notifications DM configurables — 8 catégories, panel `#guardian`
+- [x] Migrations DB + Discord versionnées
+- [x] Gestion erreurs Discord 50013 — crash silencieux éliminé
+- [x] Pagination jeux illimitée dans le wizard
 
 ---
 
