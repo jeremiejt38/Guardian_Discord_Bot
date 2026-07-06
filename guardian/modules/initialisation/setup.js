@@ -627,6 +627,7 @@ async function ensureSetupInstallPrompt(guild, { forceCreateIfMissing = false } 
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel] }
     ]);
+    await setupCategory.setPosition(0).catch(() => {});
     setupChannel = await ensureTextChannel(guild, setupCategory.id, CHANNELS.setup, [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
@@ -697,6 +698,7 @@ async function createSetupArea(guild) {
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel] }
     ]);
+    await category.setPosition(0).catch(() => {});
 
     const channel = await ensureTextChannel(guild, category.id, CHANNELS.setup, [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
