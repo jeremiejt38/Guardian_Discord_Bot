@@ -5,7 +5,6 @@ const { handleMembresInteraction } = require('../modules/config/membresPanel');
 const { handleChannelsInteraction } = require('../modules/config/channelsPanel');
 const { handleVocauxInteraction } = require('../modules/config/vocauxPanel');
 const { handleJeuxInteraction } = require('../modules/config/jeuxPanel');
-const { handleChangelogsInteraction } = require('../modules/config/changelogsPanel');
 const { handleServeursJeuInteraction } = require('../modules/config/serveursJeuPanel');
 const { handleRolesInteraction } = require('../modules/config/rolesPanel');
 const { handleBotInteraction } = require('../modules/config/botPanel');
@@ -97,11 +96,15 @@ module.exports = {
     }
 
     if (interaction.customId?.startsWith('changelogs:')) {
-      const handled = await handleChangelogsInteraction(interaction);
+      const handled = await handleJeuxInteraction(interaction);
       if (handled) return;
     }
 
-    if (interaction.customId?.startsWith('serveurs-jeu:')) {
+    if (
+      interaction.customId?.startsWith('serveurs-jeu:') ||
+      interaction.customId?.startsWith('servers:approve:') ||
+      interaction.customId?.startsWith('servers:reject:')
+    ) {
       const handled = await handleServeursJeuInteraction(interaction);
       if (handled) return;
     }

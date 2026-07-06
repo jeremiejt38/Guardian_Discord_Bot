@@ -10,10 +10,8 @@ const { seedMembresPanel } = require('../config/membresPanel');
 const { seedChannelsPanel } = require('../config/channelsPanel');
 const { seedVocauxPanel } = require('../config/vocauxPanel');
 const { seedJeuxPanel } = require('../config/jeuxPanel');
-const { seedChangelogsPanel } = require('../config/changelogsPanel');
-const { seedServeursJeuPanel } = require('../config/serveursJeuPanel');
+const { seedServeursJeuPanel, refreshServerListPanel } = require('../config/serveursJeuPanel');
 const { seedRolesPanel } = require('../config/rolesPanel');
-const { seedStatusBotPanel } = require('../config/statusBotPanel');
 const { seedBotPanel } = require('../config/botPanel');
 const { seedGuardianPanel } = require('../config/guardianPanel');
 
@@ -35,12 +33,6 @@ async function seedGuildMessages(guild) {
     const suggestions = findGuildTextChannelByName(guild, CHANNEL_NAMES.suggestions);
     if (suggestions && !suggestions.lastMessageId) {
       await suggestions.send(t('setup.suggestionsPlaceholder', {}, { guildId: guild.id }) || '💡 SUGGESTIONS & IDÉES\nProposez vos idées ici en créant un nouveau post !');
-    }
-
-    // Server list placeholder
-    const serverList = findGuildTextChannelByName(guild, CHANNEL_NAMES.serverList);
-    if (serverList && !serverList.lastMessageId) {
-      await serverList.send(t('setup.serverListPlaceholder', {}, { guildId: guild.id }) || '🖥️ SERVEURS DE JEU DISPONIBLES\nAucun serveur configuré pour le moment.');
     }
 
     const voiceCreate = findGuildTextChannelByName(guild, CHANNEL_NAMES.voiceCreate);
@@ -73,10 +65,9 @@ async function seedGuildMessages(guild) {
     await seedChannelsPanel(guild);
     await seedVocauxPanel(guild);
     await seedJeuxPanel(guild);
-    await seedChangelogsPanel(guild);
     await seedServeursJeuPanel(guild);
+    await refreshServerListPanel(guild);
     await seedRolesPanel(guild);
-    await seedStatusBotPanel(guild);
     await seedBotPanel(guild);
     await seedGuardianPanel(guild);
   } catch (error) {
