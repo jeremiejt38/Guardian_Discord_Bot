@@ -103,13 +103,16 @@ function decodeSnapshot(encoded) {
 // ─── Channel helpers ─────────────────────────────────────────────────────────
 
 function buildBackupPerms(guild) {
+  const botUserId = guild.client?.user?.id ?? guild.members?.me?.id;
   const perms = [
-    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-    {
-      id: guild.client.user.id,
-      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]
-    }
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }
   ];
+  if (botUserId) {
+    perms.push({
+      id: botUserId,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]
+    });
+  }
   if (guild.ownerId) {
     perms.push({ id: guild.ownerId, allow: [PermissionFlagsBits.ViewChannel] });
   }
@@ -126,7 +129,7 @@ async function findOrCreateBackupChannel(guild) {
   );
 
   if (existing) {
-    await existing.permissionOverwrites.set(buildBackupPerms(guild)).catch(() => {});
+    await existing.edit({ permissionOverwrites: buildBackupPerms(guild) }).catch(() => {});
     await positionBackupChannelLast(existing, guardianCategory).catch(() => {});
     return existing;
   }
