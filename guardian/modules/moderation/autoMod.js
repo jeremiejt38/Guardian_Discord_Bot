@@ -1,5 +1,7 @@
 const { saveSanction } = require('./moderation');
+const { sendModLog } = require('./modLog');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
+const { t } = require('../i18n');
 
 const windows = new Map();
 
@@ -60,6 +62,7 @@ function evaluateSpam(message, options = {}) {
       appliedBy: message.client.user.id,
       auto: 1
     });
+    sendModLog(message.guild, t(message.guildId, 'modLog.autoModLog', { type: 'warn', userId: message.author.id, reason: 'Anti-spam trigger' })).catch(() => {});
     return true;
   }
 

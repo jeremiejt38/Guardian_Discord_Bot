@@ -826,6 +826,9 @@ function buildStep8Summary(guildId) {
   const vocal = getStep4VocalConfig(guildId);
   const games = listSetupGames(guildId);
   const mod = getStep7Config(guildId);
+  const modLogsEnabled = Boolean(getGuildSetting(guildId, 'modules', 'mod_logs_enabled', false));
+  const modLogsChannelId = getGuildSetting(guildId, 'channels', 'moderation_logs_channel_id', null);
+  const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
 
   return [
     `## ${t('setup.step8Title', {}, { guildId })} (8/${TOTAL_STEPS})`,
@@ -842,13 +845,14 @@ function buildStep8Summary(guildId) {
     `  🚪 Expulsion: ${onOffDot(members.inviteExpulsionEnabled)} (${members.inviteExpulsionDays}j)`,
     '',
     '**Vocaux**',
-    `  ${vocal.prefix} | Limite: ${vocal.memberLimit === 0 ? '∞' : vocal.memberLimit} | Délai supp: ${vocal.deleteDelayMinutes}min`,
+    `  Préfixe: ${vocal.prefix || '*aucun*'} | Suffixe: ${onOffDot(suffixEnabled)} | Limite: ${vocal.memberLimit === 0 ? '∞' : vocal.memberLimit} | Délai supp: ${vocal.deleteDelayMinutes}min`,
     '',
     `**Jeux configurés** : ${games.length}`,
     '',
     '**Modération**',
     `  ⚖️ Score: ${onOffDot(mod.behaviorScoreEnabled)} | 🛡️ Spam max: ${mod.spamThreshold}/3s | 🚫 Blacklist: ${mod.blacklistWarn ? 'warn' : 'silent'}`,
     `  📋 Mots bannis: ${mod.blacklistWords.length}`,
+    `  🛡️ Logs modération: ${onOffDot(modLogsEnabled)}${modLogsChannelId ? ` → <#${modLogsChannelId}>` : ''}`,
     '',
     `> ⚠️ ${t('setup.step8ConfirmWarning', {}, { guildId })}`
   ].join('\n');

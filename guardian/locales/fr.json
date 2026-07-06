@@ -84,6 +84,11 @@
     "finalized": "Installation terminee ! Guardian est maintenant actif.",
     "summary": "🎉 **INSTALLATION RÉUSSIE — Guardian est maintenant actif sur {{guild}} !**\n\n👥 **Grades & Accès**\nLes invités peuvent demander à devenir Membre après **{{delay}}h**.\n\n⚙️ **Prochaines étapes pour les admins**\n1️⃣ Va dans `#règles` et personnalise le règlement\n2️⃣ Va dans `#faq` et complète les questions fréquentes\n3️⃣ Va dans `#configuration` → `#channels` pour affiner les permissions\n4️⃣ Ajoute tes jeux et configure les vocaux dans `#configuration`\n\n📚 **Ressources**\n• `#faq` — Questions fréquentes\n• `#statut-bot` — Statut et logs du bot\n• `/help` — Aide sur les commandes Guardian\n\nBonne chance ! 🚀"
   },
+  "modLog": {
+    "sanctionLog": "🛡️ **Sanction** | Type: `{{type}}` | Membre: <@{{userId}}> | Par: <@{{appliedBy}}> | Raison: {{reason}}",
+    "autoModLog": "🤖 **AutoMod** | Type: `{{type}}` | Membre: <@{{userId}}> | Raison: {{reason}}",
+    "reportHandledLog": "📋 **Rapport #{{id}} traité** | Par: <@{{staffId}}>"
+  },
   "interaction": {
     "unsupported": "Interaction non prise en charge."
   },
@@ -363,6 +368,30 @@
       "next": "Suivant",
       "forbiddenPagination": "Tu ne peux pas manipuler cette pagination.",
       "moderatorOnly": "Commande reservee a Moderateur+."
+    },
+    "configGames": {
+      "description": "Gerer la liste des jeux Guardian",
+      "subAdd": "Ajouter un jeu",
+      "subRemove": "Supprimer un jeu",
+      "subList": "Lister les jeux",
+      "subToggleGalerie": "Activer/désactiver la galerie",
+      "subToggleChangelog": "Activer/désactiver les changelogs",
+      "subToggleText": "Activer/désactiver le channel texte",
+      "subSetSteam": "Definir le Steam AppID",
+      "optionNom": "Nom du jeu",
+      "optionNomDesc": "Nom exact du jeu (recherche insensible a la casse)",
+      "optionSteamId": "Steam AppID",
+      "optionSteamIdDesc": "Identifiant numerique Steam du jeu (ex: 730 pour CS2)",
+      "forbidden": "Cette commande est reservee aux Managers et Owners.",
+      "notFound": "Jeu introuvable : **{{name}}**.",
+      "added": "Jeu **{{name}}** ajoute avec succes.",
+      "removed": "Jeu **{{name}}** supprime.",
+      "listEmpty": "Aucun jeu configure sur ce serveur.",
+      "listTitle": "🎮 Jeux configures ({{count}})",
+      "toggled": "{{feature}} pour **{{name}}** : {{state}}.",
+      "steamUpdated": "Steam AppID de **{{name}}** mis a jour : {{appId}}.",
+      "steamCleared": "Steam AppID de **{{name}}** supprime (jeu non-Steam).",
+      "syncDone": "Structure Discord synchronisee pour **{{name}}**."
     },
     "langue": {
       "description": "Changer la langue du bot",

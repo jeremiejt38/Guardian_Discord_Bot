@@ -13,6 +13,7 @@ const { t } = require('../i18n');
 const { replyEphemeral } = require('../utils/interactions');
 const { findTextChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
+const { sendModLog } = require('./modLog');
 
 function createReport(guildId, reporterId, targetText, reason, evidence) {
   const db = getDb();
@@ -139,6 +140,8 @@ async function markReportHandled(interaction) {
     interaction.guild,
     t(guildId, 'reports.handledPublic', { staff: `<@${interaction.user.id}>`, id: String(reportId) })
   ).catch(() => undefined);
+
+  await sendModLog(interaction.guild, t(guildId, 'modLog.reportHandledLog', { id: String(reportId), staffId: interaction.user.id }));
 
   await interaction.update({
     content: t(guildId, 'reports.handledPublic', { staff: `<@${interaction.user.id}>`, id: String(reportId) }),
