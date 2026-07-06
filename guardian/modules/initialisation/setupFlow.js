@@ -1403,8 +1403,8 @@ function buildSecurityComponents(dangerous, unused, _, resolvedIds = new Set()) 
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.securityRoleAction}:${r.id}`)
-        .setLabel((resolved ? '🟢 ' : '🔐 ') + `@${r.name}`.slice(0, 77))
-        .setStyle(resolved ? ButtonStyle.Secondary : ButtonStyle.Danger)
+        .setLabel(resolved ? `🟢 Réglé — @${r.name}`.slice(0, 80) : `🔐 Régler le problème — @${r.name}`.slice(0, 80))
+        .setStyle(resolved ? ButtonStyle.Success : ButtonStyle.Danger)
         .setDisabled(resolved)
     ));
   }
@@ -1439,8 +1439,9 @@ function buildSecurityComponents(dangerous, unused, _, resolvedIds = new Set()) 
   rows.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.securityContinue)
-      .setLabel(_('roleSecurity.btnContinue'))
-      .setStyle(allResolved ? ButtonStyle.Success : ButtonStyle.Primary)
+      .setLabel(allResolved ? '✅ Continuer' : _('roleSecurity.btnContinue'))
+      .setStyle(allResolved ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setDisabled(false)
   ));
 
   return rows;
