@@ -405,10 +405,6 @@ async function seedServeursListMessage(channel) {
 }
 
 async function createInformationsArea(guild, roleMap) {
-  const informationsCategory = await ensureCategory(guild, CATEGORIES.informations, [
-    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
-  ]);
-
   const readOnlyPermissions = [
     {
       id: guild.roles.everyone.id,
@@ -417,17 +413,23 @@ async function createInformationsArea(guild, roleMap) {
     }
   ];
 
-  const welcomeChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.welcome, readOnlyPermissions);
-  const rulesChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.rules, readOnlyPermissions);
-  const announcementsChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.annonces, readOnlyPermissions);
-  const faqChannel = await ensureForumChannel(guild, informationsCategory.id, CHANNELS.faq, readOnlyPermissions);
+  const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions);
+  const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions);
+  const announcementsChannel = await ensureTextChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
+  const faqChannel = await ensureForumChannel(guild, null, CHANNELS.faq, readOnlyPermissions);
 
-  await ensureTextChannel(guild, informationsCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+  await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
 
   await seedStaticInfoMessage(welcomeChannel, 'init.welcomeInfo');
   await seedStaticInfoMessage(rulesChannel, 'init.rules');
   await seedStaticInfoMessage(announcementsChannel, 'init.announcements');
   await seedFaqMessages(faqChannel);
+
+  const existingCat = findCategoryByName(guild, CATEGORIES.informations);
+  if (existingCat) {
+    const children = guild.channels.cache.filter((c) => c.parentId === existingCat.id);
+    if (children.size === 0) await existingCat.delete('Guardian — catégorie Informations supprimée').catch(() => {});
+  }
 }
 
 async function createCommunauteArea(guild, roleMap, ownerId) {
@@ -651,7 +653,6 @@ function buildSetupInstallMessagePayloadForGuild(language) {
 
 async function repositionCategories(guild) {
   const order = [
-    CATEGORIES.informations,
     CATEGORIES.communaute,
     CATEGORIES.vocaux,
     CATEGORIES.moderation
@@ -662,7 +663,7 @@ async function repositionCategories(guild) {
 
   const allCategories = guild.channels.cache.filter((c) => c.type === 4);
   const gameCats = allCategories.filter(
-    (c) => !order.includes(c.name) && !fixedEnd.includes(c.name) && c.name !== CATEGORIES.setup
+    (c) => !order.includes(c.name) && !fixedEnd.includes(c.name) && c.name !== CATEGORIES.setup && c.name !== CATEGORIES.informations
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const ordered = [
@@ -975,10 +976,10 @@ async function seedExistingMembers(guild) {
 
 const LINKED_CHANNEL_MAP = [
   { settingSection: 'channels', settingKey: 'general_channel_id',         targetName: CHANNELS.general,       targetCategory: CATEGORIES.communaute,   type: 'text'  },
-  { settingSection: 'channels', settingKey: 'rules_channel_id',            targetName: CHANNELS.rules,         targetCategory: CATEGORIES.informations, type: 'text'  },
-  { settingSection: 'channels', settingKey: 'announcements_channel_id',    targetName: CHANNELS.annonces,      targetCategory: CATEGORIES.informations, type: 'text'  },
-  { settingSection: 'channels', settingKey: 'faq_channel_id',              targetName: CHANNELS.faq,           targetCategory: CATEGORIES.informations, type: 'text'  },
-  { settingSection: 'channels', settingKey: 'welcome_channel_id',          targetName: CHANNELS.welcome,       targetCategory: CATEGORIES.informations, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'rules_channel_id',            targetName: CHANNELS.rules,         targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'announcements_channel_id',    targetName: CHANNELS.annonces,      targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'faq_channel_id',              targetName: CHANNELS.faq,           targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'welcome_channel_id',          targetName: CHANNELS.welcome,       targetCategory: null, type: 'text'  },
   { settingSection: 'channels', settingKey: 'voice_general_id',            targetName: CHANNELS.voiceGeneral,  targetCategory: CATEGORIES.vocaux,        type: 'voice' },
   { settingSection: 'channels', settingKey: 'voice_afk_id',                targetName: CHANNELS.voiceAfk,      targetCategory: CATEGORIES.vocaux,        type: 'voice' },
   { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',   targetName: CHANNELS.moderationLogs,    targetCategory: CATEGORIES.moderation, type: 'text'  },
@@ -1004,16 +1005,18 @@ async function adoptLinkedChannels(guild) {
     const channel = guild.channels.cache.get(channelId);
     if (!channel) continue;
 
-    const targetCategory = findCategoryByName(guild, mapping.targetCategory);
-    if (!targetCategory) continue;
+    const targetCategoryId = mapping.targetCategory
+      ? (findCategoryByName(guild, mapping.targetCategory)?.id ?? null)
+      : null;
+    if (mapping.targetCategory && !targetCategoryId) continue;
 
-    const alreadyCorrect = channel.parentId === targetCategory.id && channel.name === mapping.targetName;
+    const alreadyCorrect = channel.parentId === targetCategoryId && channel.name === mapping.targetName;
     if (alreadyCorrect) continue;
 
     try {
       const editPayload = {
         name: mapping.targetName,
-        parent: targetCategory.id
+        parent: targetCategoryId
       };
       if (mapping.customPerms) {
         const roleMap = getGradeMappings(guildId);
