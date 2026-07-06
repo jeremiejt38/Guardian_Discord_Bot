@@ -2145,25 +2145,16 @@ async function handleSetupInteraction(interaction) {
     const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
     const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
     const _s = (key, vars) => t(key, vars || {}, { guildId });
-    const securityContent = buildSecurityCheckContent(dangerous, unused, _s);
-    if (securityContent) {
-      const rows = buildSecurityComponents(dangerous, unused, _s);
-      await interaction.channel.send({ content: securityContent, components: rows }).catch(() => {}); 
+    const acknowledgedOnEntry = new Set(getGuildSetting(guildId, 'setup', 'security_acknowledged', []));
+    const hasIssues = dangerous.length > 0 || unused.length > 0;
+    const alreadyAllResolved = hasIssues && !hasUnresolvedIssues(dangerous, unused, acknowledgedOnEntry);
+    if (!hasIssues || alreadyAllResolved) {
+      const fakeIx = { guildId, guild, channel: interaction.channel, client: interaction.client, message: { delete: async () => {} } };
+      await advanceToStep2AfterSecurity(fakeIx, guildId);
     } else {
-      const nextStep = 2;
-      setGuildSetting(guildId, 'setup', 'step', nextStep);
-      const wizardChannel = interaction.channel;
-      if (wizardChannel) {
-        const msgs = await wizardChannel.messages.fetch({ limit: 20 }).catch(() => null);
-        const botId = interaction.client.user.id;
-        const wizardMsg = msgs?.find((m) => m.author.id === botId && m.components.length > 0)
-          ?? msgs?.find((m) => m.author.id === botId);
-        if (wizardMsg) {
-          await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
-        } else {
-          await wizardChannel.send(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
-        }
-      }
+      const securityContent = buildSecurityCheckContent(dangerous, unused, _s, acknowledgedOnEntry);
+      const rows = buildSecurityComponents(dangerous, unused, _s, acknowledgedOnEntry);
+      await interaction.channel.send({ content: securityContent, components: rows }).catch(() => {});
     }
     return true;
   }
@@ -2219,15 +2210,17 @@ async function handleSetupInteraction(interaction) {
     const guardianIdsRA = Object.values(mappingsRA).filter(Boolean);
     const { dangerous: dRA, unused: uRA } = analyzeNonGuardianRoles(guild, guardianIdsRA);
     const _ra = (key, vars) => t(key, vars || {}, { guildId });
+    const allDone = !hasUnresolvedIssues(dRA, uRA, acknowledged);
     const secContent = buildSecurityCheckContent(dRA, uRA, _ra, acknowledged);
-    if (secContent) {
+    if (!secContent || allDone) {
+      await interaction.deferUpdate().catch(() => {});
+      await advanceToStep2AfterSecurity(interaction, guildId);
+    } else {
       await interaction.update({ content: secContent, components: buildSecurityComponents(dRA, uRA, _ra, acknowledged) }).catch(() => {
         interaction.deferUpdate().catch(() => {});
       });
-    } else {
-      await interaction.deferUpdate().catch(() => {});
+      if (msg) await replyEphemeral(interaction, msg).catch(() => {});
     }
-    if (msg) await replyEphemeral(interaction, msg).catch(() => {});
     return true;
   }
 
