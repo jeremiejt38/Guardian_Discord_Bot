@@ -55,7 +55,11 @@ module.exports = {
       return;
     }
 
-    if (interaction.customId?.startsWith('tempvoice:')) {
+    if (
+      interaction.customId?.startsWith('tempvoice:') ||
+      interaction.customId === 'init.createChannel' ||
+      interaction.customId === 'creer:open'
+    ) {
       const handled = await handleTempVoiceInteraction(interaction);
       if (handled) return;
     }
@@ -221,23 +225,6 @@ module.exports = {
       return;
     }
 
-    if (interaction.isButton() && interaction.customId === 'creer:open') {
-      const { handleCreateOpen } = require('../modules/games/gameList');
-      await handleCreateOpen(interaction);
-      return;
-    }
-
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('creer:select')) {
-      const { handleCreateSelection } = require('../modules/games/gameList');
-      await handleCreateSelection(interaction);
-      return;
-    }
-
-    if (interaction.isButton() && interaction.customId.startsWith('creer:validate')) {
-      const { handleCreateValidate } = require('../modules/games/gameList');
-      await handleCreateValidate(interaction);
-      return;
-    }
 
     if (interaction.isModalSubmit() && interaction.customId === 'servers:add:modal') {
       await handleServerModalSubmit(interaction);
