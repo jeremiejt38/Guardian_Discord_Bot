@@ -503,6 +503,7 @@ async function createModerationArea(guild, roleMap, ownerId) {
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.autoModeration, moderationPermissions);
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.behavior, moderationPermissions);
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderationLogs, moderationPermissions);
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.securityUpdates, buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager));
 }
 
 async function createConfigurationArea(guild, roleMap, ownerId) {
@@ -971,7 +972,8 @@ const LINKED_CHANNEL_MAP = [
   { settingSection: 'channels', settingKey: 'welcome_channel_id',          targetName: CHANNELS.welcome,       targetCategory: CATEGORIES.informations, type: 'text'  },
   { settingSection: 'channels', settingKey: 'voice_general_id',            targetName: CHANNELS.voiceGeneral,  targetCategory: CATEGORIES.vocaux,        type: 'voice' },
   { settingSection: 'channels', settingKey: 'voice_afk_id',                targetName: CHANNELS.voiceAfk,      targetCategory: CATEGORIES.vocaux,        type: 'voice' },
-  { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',  targetName: CHANNELS.moderationLogs, targetCategory: CATEGORIES.moderation,  type: 'text'  }
+  { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',   targetName: CHANNELS.moderationLogs,    targetCategory: CATEGORIES.moderation, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'security_updates_channel_id', targetName: CHANNELS.securityUpdates,   targetCategory: CATEGORIES.moderation, type: 'text'  }
 ];
 
 const DEFAULT_DISCORD_CATEGORIES = [
@@ -979,7 +981,7 @@ const DEFAULT_DISCORD_CATEGORIES = [
 ];
 
 const DEFAULT_DISCORD_ORPHAN_CHANNELS = [
-  'maj-securite', 'update-safety', 'safety-updates'
+  'update-safety', 'safety-updates'
 ];
 
 async function adoptLinkedChannels(guild) {
