@@ -156,12 +156,25 @@
     "alreadyHandled": "Ce signalement a deja ete traite.",
     "handledPublic": "Rapport #{{id}} marque comme traite par {{staff}}."
   },
+  "tempVoice": {
+    "createButton": "Créer un vocal",
+    "panelText": "🎙️ Crée ton salon vocal temporaire. Il sera supprimé automatiquement quand tu le quittes.",
+    "selectPlaceholder": "Choisir un jeu (ou Chat)",
+    "selectPrompt": "Sélectionne un jeu pour créer ton vocal, ou choisis Chat pour un salon sans jeu.",
+    "chatOption": "💬 Chat — salon sans jeu",
+    "created": "✅ Ton salon vocal {{channel}} a été créé !",
+    "forbiddenInvite": "Tu dois être Membre pour créer un vocal temporaire.",
+    "noGames": "Aucun jeu configuré sur ce serveur. Choisis Chat pour créer un vocal sans jeu.",
+    "invalidGame": "Jeu introuvable."
+  },
   "games": {
     "title": "Guardian - Ma game list",
     "noneConfigured": "Aucun jeu configure sur ce serveur.",
     "selectPlaceholder": "Selectionne tes jeux",
     "noneAvailable": "Aucun jeu disponible",
-    "openButton": "Ouvrir ma game list"
+    "openButton": "Ouvrir ma game list",
+    "createValidate": "Créer ce vocal",
+    "createdVoice": "✅ Vocal **{{name}}** créé !"
   },
   "settings": {
     "gameChannelsHint": "Guardian Interface: utilise le bouton **gamelist:open** pour configurer tes channels de jeux.",

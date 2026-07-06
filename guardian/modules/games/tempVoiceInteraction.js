@@ -57,7 +57,12 @@ function getNextVoiceName(guild, prefix, gameName, suffix) {
 }
 
 function buildGameSelect(guildId, games) {
-  const options = games.slice(0, 25).map((game) => ({
+  const chatOption = {
+    label: t('tempVoice.chatOption', {}, { guildId }) || '💬 Chat — salon sans jeu',
+    value: 'chat',
+    description: 'Créer un vocal sans jeu spécifique'
+  };
+  const gameOptions = games.slice(0, 24).map((game) => ({
     label: game.name.slice(0, 100),
     value: String(game.game_id)
   }));
@@ -68,7 +73,7 @@ function buildGameSelect(guildId, games) {
       .setPlaceholder(t('tempVoice.selectPlaceholder', {}, { guildId }))
       .setMinValues(1)
       .setMaxValues(1)
-      .addOptions(options)
+      .addOptions([chatOption, ...gameOptions])
   );
 }
 
@@ -114,10 +119,6 @@ async function handleTempVoiceInteraction(interaction) {
     }
 
     const games = getGuildGames(interaction.guildId);
-    if (!games.length) {
-      await replyEphemeral(interaction, t('tempVoice.noGames', {}, { guildId: interaction.guildId }));
-      return true;
-    }
 
     await interaction.reply({
       content: t('tempVoice.selectPrompt', {}, { guildId: interaction.guildId }),
@@ -136,27 +137,37 @@ async function handleTempVoiceInteraction(interaction) {
       return true;
     }
 
-    const gameId = Number.parseInt(interaction.values[0], 10);
-    const games = getGuildGames(interaction.guildId);
-    const game = games.find((item) => Number(item.game_id) === gameId);
-    if (!game) {
-      await interaction.update({
-        content: t('tempVoice.invalidGame', {}, { guildId: interaction.guildId }),
-        components: []
-      });
-      return true;
+    const selectedValue = interaction.values[0];
+    const isChat = selectedValue === 'chat';
+
+    let gameName = null;
+    if (!isChat) {
+      const gameId = Number.parseInt(selectedValue, 10);
+      const games = getGuildGames(interaction.guildId);
+      const game = games.find((item) => Number(item.game_id) === gameId);
+      if (!game) {
+        await interaction.update({
+          content: t('tempVoice.invalidGame', {}, { guildId: interaction.guildId }),
+          components: []
+        });
+        return true;
+      }
+      gameName = game.name;
     }
 
     const prefix = getGuildSetting(interaction.guildId, 'vocaux', 'name_prefix', '🎮');
-    const suffix = getGuildSetting(interaction.guildId, 'vocaux', 'name_suffix', 'Partie');
+    const suffix = isChat ? '' : getGuildSetting(interaction.guildId, 'vocaux', 'name_suffix', 'Partie');
     const userLimit = Math.max(0, Number(getGuildSetting(interaction.guildId, 'vocaux', 'max_members', 0)));
     const category = interaction.guild.channels.cache.find(
       (channel) => channel.type === ChannelType.GuildCategory && channel.name.toLowerCase() === 'vocaux'
     );
 
-    const channelName = getNextVoiceName(interaction.guild, prefix, game.name, suffix);
+    const channelName = isChat
+      ? getNextVoiceName(interaction.guild, '💬', 'Chat', '')
+      : getNextVoiceName(interaction.guild, prefix, gameName, suffix);
     const created = await createTemporaryVoice(interaction.guild, channelName, userLimit, category?.id || null);
-    trackTempVoice(created.id, interaction.guildId, gameId, interaction.user.id);
+    const trackGameId = isChat ? null : Number.parseInt(selectedValue, 10);
+    trackTempVoice(created.id, interaction.guildId, trackGameId, interaction.user.id);
 
     const requester = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
     if (requester?.voice?.channel) {
