@@ -1334,6 +1334,27 @@ function explainStepOneValidation(guildId, validation) {
   return t('setup.validationGenericError', {}, { guildId });
 }
 
+async function advanceToStep2AfterSecurity(interaction, guildId) {
+  const nextStep = 2;
+  setGuildSetting(guildId, 'setup', 'step', nextStep);
+  await interaction.message.delete().catch(() => {});
+  const wizardChannel = interaction.channel;
+  if (!wizardChannel) return;
+  const msgs = await wizardChannel.messages.fetch({ limit: 20 }).catch(() => null);
+  if (!msgs) return;
+  const botId = interaction.client.user.id;
+  const wizardMsg = msgs.find((m) => m.author.id === botId && m.components.length > 0)
+    ?? msgs.find((m) => m.author.id === botId);
+  if (wizardMsg) {
+    await wizardMsg.edit(buildStepPayload(guildId, interaction.guild, nextStep)).catch((err) => {
+      logger.warn(`[security] failed to edit wizardMsg: ${err?.message}`);
+    });
+  } else {
+    logger.warn('[security] no wizardMsg found, sending new');
+    await wizardChannel.send(buildStepPayload(guildId, interaction.guild, nextStep)).catch(() => {});
+  }
+}
+
 function buildSecurityComponents(dangerous, unused, _) {
   const rows = [];
 
@@ -2070,9 +2091,15 @@ async function handleSetupInteraction(interaction) {
       setGuildSetting(guildId, 'setup', 'step', nextStep);
       const wizardChannel = interaction.channel;
       if (wizardChannel) {
-        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
-        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
-        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
+        const msgs = await wizardChannel.messages.fetch({ limit: 20 }).catch(() => null);
+        const botId = interaction.client.user.id;
+        const wizardMsg = msgs?.find((m) => m.author.id === botId && m.components.length > 0)
+          ?? msgs?.find((m) => m.author.id === botId);
+        if (wizardMsg) {
+          await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
+        } else {
+          await wizardChannel.send(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
+        }
       }
     }
     return true;
@@ -2080,25 +2107,15 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.securityContinue) {
     await interaction.deferUpdate().catch(() => {});
-    await interaction.message.delete().catch(() => {});
-    const nextStep = 2;
-    setGuildSetting(guildId, 'setup', 'step', nextStep);
-    const wizardChannel = interaction.channel;
-    if (wizardChannel) {
-      const msgs = await wizardChannel.messages.fetch({ limit: 10 });
-      const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
-      if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, interaction.guild, nextStep)).catch(() => {});
-    }
+    await advanceToStep2AfterSecurity(interaction, guildId);
     return true;
   }
 
   if (interaction.customId.startsWith(`${CUSTOM_IDS.securityDeleteUnused}:`)) {
     const roleId = interaction.customId.split(':').pop();
     await interaction.deferUpdate().catch(() => {});
-    try {
-      const role = interaction.guild?.roles.cache.get(roleId);
-      if (role) await role.delete('Guardian setup — suppression rôle inutilisé').catch(() => {});
-    } catch {}
+    const roleToDelete = interaction.guild?.roles.cache.get(roleId);
+    if (roleToDelete) await roleToDelete.delete('Guardian setup — suppression rôle inutilisé').catch(() => {});
     const guild = interaction.guild;
     const mappingsForSecurity = getGradeMappings(guildId);
     const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
@@ -2107,18 +2124,9 @@ async function handleSetupInteraction(interaction) {
     const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
     const securityContent = buildSecurityCheckContent(dangerous, unused, _sd);
     if (securityContent) {
-      const rows = buildSecurityComponents(dangerous, unused, _sd);
-      await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
+      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerous, unused, _sd) }).catch(() => {});
     } else {
-      await interaction.message.delete().catch(() => {});
-      const nextStep = 2;
-      setGuildSetting(guildId, 'setup', 'step', nextStep);
-      const wizardChannel = interaction.channel;
-      if (wizardChannel) {
-        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
-        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
-        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
-      }
+      await advanceToStep2AfterSecurity(interaction, guildId);
     }
     return true;
   }
@@ -2133,18 +2141,9 @@ async function handleSetupInteraction(interaction) {
     const { dangerous, unused: remainingUnused } = analyzeNonGuardianRoles(guild, [...guardianRoleIds, roleId]);
     const securityContent = buildSecurityCheckContent(dangerous, remainingUnused, _sk);
     if (securityContent) {
-      const rows = buildSecurityComponents(dangerous, remainingUnused, _sk);
-      await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
+      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerous, remainingUnused, _sk) }).catch(() => {});
     } else {
-      await interaction.message.delete().catch(() => {});
-      const nextStep = 2;
-      setGuildSetting(guildId, 'setup', 'step', nextStep);
-      const wizardChannel = interaction.channel;
-      if (wizardChannel) {
-        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
-        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
-        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
-      }
+      await advanceToStep2AfterSecurity(interaction, guildId);
     }
     return true;
   }
@@ -2165,18 +2164,9 @@ async function handleSetupInteraction(interaction) {
     const { dangerous: dangerousAfter, unused: unusedAfter } = analyzeNonGuardianRoles(guild, guardianRoleIds);
     const securityContent = buildSecurityCheckContent(dangerousAfter, unusedAfter, _da);
     if (securityContent) {
-      const rows = buildSecurityComponents(dangerousAfter, unusedAfter, _da);
-      await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
+      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerousAfter, unusedAfter, _da) }).catch(() => {});
     } else {
-      await interaction.message.delete().catch(() => {});
-      const nextStep = 2;
-      setGuildSetting(guildId, 'setup', 'step', nextStep);
-      const wizardChannel = interaction.channel;
-      if (wizardChannel) {
-        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
-        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
-        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
-      }
+      await advanceToStep2AfterSecurity(interaction, guildId);
     }
     return true;
   }
