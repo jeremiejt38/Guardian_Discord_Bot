@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 const { DATABASE_PATH, GRADE_NAMES } = require('../config');
+const logger = require('../modules/logs/logger');
 
 let db;
 
@@ -209,41 +210,75 @@ function initDatabase(customPath = DATABASE_PATH) {
       handled_by TEXT
     );
   `);
-  try {
-    db.exec('ALTER TABLE servers_jeu ADD COLUMN status_message_id TEXT');
-  } catch {
-    // Column already exists on upgraded databases.
-  }
   db.prepare('INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (1, ?)').run(new Date().toISOString());
 
   return db;
 }
 
-// run migrations for existing DB
+/**
+ * Versioned migrations. Each entry runs once and is tracked in schema_version.
+ * Add new entries at the END only — never edit existing ones.
+ */
+const MIGRATIONS = [
+  {
+    version: 2,
+    description: 'servers_jeu: add status_message_id',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(servers_jeu)').all().map((c) => c.name);
+      if (!cols.includes('status_message_id')) {
+        conn.exec('ALTER TABLE servers_jeu ADD COLUMN status_message_id TEXT');
+      }
+    }
+  },
+  {
+    version: 3,
+    description: 'servers_jeu: add approved',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(servers_jeu)').all().map((c) => c.name);
+      if (!cols.includes('approved')) {
+        conn.exec('ALTER TABLE servers_jeu ADD COLUMN approved INTEGER NOT NULL DEFAULT 1');
+      }
+    }
+  },
+  {
+    version: 4,
+    description: 'members: add last_regen_at',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(members)').all().map((c) => c.name);
+      if (!cols.includes('last_regen_at')) {
+        conn.exec('ALTER TABLE members ADD COLUMN last_regen_at TEXT');
+      }
+    }
+  },
+  {
+    version: 5,
+    description: 'games: add text_channel_enabled (default 0)',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(games)').all().map((c) => c.name);
+      if (!cols.includes('text_channel_enabled')) {
+        conn.exec('ALTER TABLE games ADD COLUMN text_channel_enabled INTEGER NOT NULL DEFAULT 0');
+      }
+    }
+  }
+];
+
 function migrateDatabase() {
   const conn = getDb();
-  const cols = conn.prepare(`PRAGMA table_info(servers_jeu)`).all();
-  const names = cols.map((c) => c.name);
-  if (!names.includes('approved')) {
-    try {
-      conn.exec('ALTER TABLE servers_jeu ADD COLUMN approved INTEGER NOT NULL DEFAULT 1');
-    } catch (e) {
-    }
-  }
+  const applied = new Set(
+    conn.prepare('SELECT version FROM schema_version').all().map((r) => r.version)
+  );
 
-  const memberCols = conn.prepare(`PRAGMA table_info(members)`).all().map((c) => c.name);
-  if (!memberCols.includes('last_regen_at')) {
+  for (const migration of MIGRATIONS) {
+    if (applied.has(migration.version)) continue;
     try {
-      conn.exec('ALTER TABLE members ADD COLUMN last_regen_at TEXT');
+      migration.up(conn);
+      conn.prepare('INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)').run(
+        migration.version,
+        new Date().toISOString()
+      );
     } catch (e) {
+      logger.error(`Migration v${migration.version} failed: ${migration.description}`, e);
     }
-  }
-
-  const gamesCols = conn.prepare(`PRAGMA table_info(games)`).all().map((c) => c.name);
-  if (!gamesCols.includes('text_channel_enabled')) {
-    try {
-      conn.exec('ALTER TABLE games ADD COLUMN text_channel_enabled INTEGER NOT NULL DEFAULT 1');
-    } catch (e) {}
   }
 }
 
