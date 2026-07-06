@@ -14,6 +14,7 @@ const {
   getLanguageLabel,
   getGuildLanguage,
   setGuildLanguage,
+  detectLanguageFromLocale,
   t,
   tForLanguage
 } = require('../i18n');
@@ -724,6 +725,13 @@ async function createSetupArea(guild, { inviterId } = {}) {
     setGuildSetting(guild.id, 'setup', 'owner_id', owner.id);
     if (!Number.isInteger(getGuildSetting(guild.id, 'setup', 'step', null))) {
       setGuildSetting(guild.id, 'setup', 'step', 1);
+    }
+
+    const currentLang = getGuildLanguage(guild.id);
+    const detectedLang = detectLanguageFromLocale(guild.preferredLocale);
+    if (!getGuildSetting(guild.id, 'i18n', 'language', null) && detectedLang !== currentLang) {
+      setGuildLanguage(guild.id, detectedLang);
+      logger.info(`Guild ${guild.id}: language auto-set to '${detectedLang}' from preferredLocale '${guild.preferredLocale}'`);
     }
 
     const language = resolveSetupLanguage(guild.id);

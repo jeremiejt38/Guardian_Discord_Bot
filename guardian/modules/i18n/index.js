@@ -110,6 +110,51 @@ function setGuildLanguage(guildId, language) {
   return normalized;
 }
 
+const DISCORD_LOCALE_MAP = {
+  'fr':    'fr',
+  'en-US': 'en',
+  'en-GB': 'en',
+  'de':    'de',
+  'es-ES': 'es',
+  'es-419':'es',
+  'pt-BR': 'pt',
+  'nl':    'nl',
+  'it':    'it',
+  'pl':    'pl',
+  'ro':    'ro',
+  'sv-SE': 'sv',
+  'da':    'da',
+  'fi':    'fi',
+  'nb':    'nb',
+  'tr':    'tr',
+  'cs':    'cs',
+  'hr':    'hr',
+  'bg':    'bg',
+  'ru':    'ru',
+  'uk':    'uk',
+  'hi':    'hi',
+  'th':    'th',
+  'zh-CN': 'zh',
+  'zh-TW': 'zh',
+  'ja':    'ja',
+  'ko':    'ko',
+  'vi':    'vi',
+  'id':    'id',
+};
+
+/**
+ * Maps a Discord locale string to a supported Guardian language code.
+ * Falls back to DEFAULT_LANGUAGE if not supported.
+ * @param {string} discordLocale
+ * @returns {string}
+ */
+function detectLanguageFromLocale(discordLocale) {
+  if (!discordLocale) return normalizeLanguage(DEFAULT_LANGUAGE);
+  const available = getAvailableLanguages();
+  const mapped = DISCORD_LOCALE_MAP[discordLocale] ?? discordLocale.split('-')[0];
+  return available.includes(mapped) ? mapped : normalizeLanguage(DEFAULT_LANGUAGE);
+}
+
 function tForLanguage(language, key, variables = {}) {
   const locales = getLocales();
   const currentLanguage = normalizeLanguage(language);
@@ -142,6 +187,7 @@ module.exports = {
   getLanguageLabel,
   getGuildLanguage,
   setGuildLanguage,
+  detectLanguageFromLocale,
   t,
   tForLanguage,
   describe

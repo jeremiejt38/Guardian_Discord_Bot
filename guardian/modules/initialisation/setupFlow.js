@@ -1337,6 +1337,11 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.locale && !getGuildSetting(guildId, 'i18n', 'language', null)) {
+    const { detectLanguageFromLocale: _dlfl, setGuildLanguage: _sgl } = require('../i18n');
+    _sgl(guildId, _dlfl(interaction.locale));
+  }
+
 
   if (interaction.customId === CUSTOM_IDS.previousGrade) {
     setGradeCursor(guildId, getGradeCursor(guildId) - 1);
