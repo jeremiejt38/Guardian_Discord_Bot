@@ -104,6 +104,8 @@ const CUSTOM_IDS = Object.freeze({
   gameLinkChannelPrefix: 'setup:gamelink:channel',
   gamePagePrev: 'setup:games:page:prev',
   gamePageNext: 'setup:games:page:next',
+  newOptionsNext: 'setup:newoptions:next',
+  newOptionsSkip: 'setup:newoptions:skip',
   finalize: 'setup:finalize'
 });
 
@@ -421,17 +423,17 @@ function buildStep2Components(guildId) {
 
 const CHANNEL_SLOTS = Object.freeze([
   // ── Vocals (proposés en premier car souvent déjà là)
-  { key: 'voiceGeneral', label: 'Vocal Général',   desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                    settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '�' },
-  { key: 'voiceAfk',    label: 'Vocal AFK',         desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                          settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇' },
+  { key: 'voiceGeneral', label: 'Vocal Général',   desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                    settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '�', addedInVersion: '0.1.0' },
+  { key: 'voiceAfk',    label: 'Vocal AFK',         desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                          settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇', addedInVersion: '0.1.0' },
   // ── Channels communautaires existants
-  { key: 'general',     label: '#général',           desc: 'Channel de discussion principale de la communauté.',                                               settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '�' },
-  { key: 'rules',       label: '#règles',            desc: 'Channel où le règlement du serveur est affiché.',                                                  settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜', communityOnly: true },
-  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                    settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '�️', communityOnly: true },
-  { key: 'securityUpdates', label: '#maj-securite', desc: 'Channel mises à jour de sécurité Discord — visible manager et owner uniquement.',                   settingSection: 'channels', settingKey: 'security_updates_channel_id',   emoji: '🔒', communityOnly: true },
+  { key: 'general',     label: '#général',           desc: 'Channel de discussion principale de la communauté.',                                               settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '�', addedInVersion: '0.1.0' },
+  { key: 'rules',       label: '#règles',            desc: 'Channel où le règlement du serveur est affiché.',                                                  settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜', communityOnly: true , addedInVersion: '0.1.0' },
+  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                    settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '�️', communityOnly: true , addedInVersion: '0.1.0' },
+  { key: 'securityUpdates', label: '#maj-securite', desc: 'Channel mises à jour de sécurité Discord — visible manager et owner uniquement.',                   settingSection: 'channels', settingKey: 'security_updates_channel_id',   emoji: '🔒', communityOnly: true , addedInVersion: '0.1.0' },
   // ── Channels créés par Guardian si absents (en dernier)
-  { key: 'announcements', label: '#annonces',       desc: 'Channel réservé aux annonces officielles de l\'équipe. Guardian le crée si absent.',               settingSection: 'channels', settingKey: 'announcements_channel_id',      emoji: '�' },
-  { key: 'faq',         label: '#faq',               desc: 'Channel FAQ — Guardian le crée sous forme de forum si absent.',                                    settingSection: 'channels', settingKey: 'faq_channel_id',                emoji: '❓' },
-  { key: 'welcome',     label: '#bienvenue',         desc: 'Channel où Guardian accueille les nouveaux membres. Guardian le crée si absent.',                  settingSection: 'channels', settingKey: 'welcome_channel_id',            emoji: '�' }
+  { key: 'announcements', label: '#annonces',       desc: 'Channel réservé aux annonces officielles de l\'équipe. Guardian le crée si absent.',               settingSection: 'channels', settingKey: 'announcements_channel_id',      emoji: '�', addedInVersion: '0.1.0' },
+  { key: 'faq',         label: '#faq',               desc: 'Channel FAQ — Guardian le crée sous forme de forum si absent.',                                    settingSection: 'channels', settingKey: 'faq_channel_id',                emoji: '❓', addedInVersion: '0.1.0' },
+  { key: 'welcome',     label: '#bienvenue',         desc: 'Channel où Guardian accueille les nouveaux membres. Guardian le crée si absent.',                  settingSection: 'channels', settingKey: 'welcome_channel_id',            emoji: '�', addedInVersion: '0.1.0' }
 ]);
 
 function getChannelCursor(guildId) {
@@ -2054,6 +2056,30 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  // ── Nouvelles options MAJ ──────────────────────────────────────────────────
+  if (interaction.customId === CUSTOM_IDS.newOptionsNext) {
+    const pending = getPendingNewOptions(guildId, interaction.guild);
+    const cursor = getGuildSetting(guildId, 'setup', 'new_options_cursor', 0);
+    const next = cursor + 1;
+    if (next >= pending.length) {
+      setGuildSetting(guildId, 'setup', 'new_options_done', 1);
+      await interaction.message?.edit({ content: buildNewOptionsDoneContent(guildId), components: [buildNewOptionsDoneRow(guildId)] }).catch(() => {});
+      await interaction.deferUpdate().catch(() => {});
+    } else {
+      setGuildSetting(guildId, 'setup', 'new_options_cursor', next);
+      await interaction.message?.edit({ content: buildNewOptionsContent(guildId, interaction.guild), components: buildNewOptionsComponents(guildId, interaction.guild) }).catch(() => {});
+      await interaction.deferUpdate().catch(() => {});
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.newOptionsSkip) {
+    setGuildSetting(guildId, 'setup', 'new_options_done', 1);
+    await interaction.message?.edit({ content: buildNewOptionsDoneContent(guildId), components: [buildNewOptionsDoneRow(guildId)] }).catch(() => {});
+    await interaction.deferUpdate().catch(() => {});
+    return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.finalize) {
     if (getCurrentStep(guildId) < TOTAL_STEPS) {
       await sendSetupMessage(interaction, t('setup.finalizeNotReady', {}, { guildId }));
@@ -2061,13 +2087,28 @@ async function handleSetupInteraction(interaction) {
     }
     if (!interaction.guild) return true;
 
+    // Intercept : nouvelles options à configurer ?
+    const pending = getPendingNewOptions(guildId, interaction.guild);
+    const newOptionsDone = getGuildSetting(guildId, 'setup', 'new_options_done', 0);
+    if (pending.length > 0 && !newOptionsDone) {
+      setGuildSetting(guildId, 'setup', 'new_options_cursor', 0);
+      await interaction.message?.edit({
+        content: buildNewOptionsContent(guildId, interaction.guild),
+        components: buildNewOptionsComponents(guildId, interaction.guild)
+      }).catch(() => {});
+      await interaction.deferUpdate().catch(() => {});
+      return true;
+    }
+
     await interaction.deferUpdate().catch(() => {});
     try {
       const { completeGuildSetup } = require('./setup');
       const { recordInstallVersion } = require('../migrations/channelMigrations');
+      const { saveConfigBackup } = require('../config/configBackup');
       const { version } = require('../../package.json');
       await completeGuildSetup(interaction.guild);
       recordInstallVersion(guildId, version);
+      await saveConfigBackup(interaction.guild);
       if (interaction.channel?.send) {
         await interaction.channel.send({ content: t('setup.finalized', {}, { guildId }) });
       }
@@ -2081,6 +2122,79 @@ async function handleSetupInteraction(interaction) {
   }
 
   return false;
+}
+
+// ─── Nouvelles options MAJ helpers ──────────────────────────────────────────
+
+function semverToInt(v) {
+  const [major = 0, minor = 0, patch = 0] = (v || '0.0.0').split('.').map(Number);
+  return major * 10000 + minor * 100 + patch;
+}
+
+function getPendingNewOptions(guildId, guild) {
+  const installVersion = getGuildSetting(guildId, 'bot', 'install_version', null);
+  if (!installVersion) return [];
+  const installInt = semverToInt(installVersion);
+  const slots = guild ? getFilteredSlots(guild) : CHANNEL_SLOTS;
+  return slots.filter((slot) => {
+    const slotInt = semverToInt(slot.addedInVersion || '0.1.0');
+    if (slotInt <= installInt) return false;
+    const configured = getGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
+    return !configured;
+  });
+}
+
+function buildNewOptionsContent(guildId, guild) {
+  const pending = getPendingNewOptions(guildId, guild);
+  const cursor = getGuildSetting(guildId, 'setup', 'new_options_cursor', 0);
+  const slot = pending[cursor];
+  if (!slot) return '✅ Toutes les nouvelles options ont été configurées.';
+  return [
+    `## 🆕 Nouvelles options disponibles depuis votre installation (${cursor + 1}/${pending.length})`,
+    '',
+    `**${slot.emoji} ${slot.label}**`,
+    `> ${slot.desc}`,
+    '',
+    `Lier un channel existant ou ignorer pour laisser Guardian le créer.`
+  ].join('\n');
+}
+
+function buildNewOptionsComponents(guildId, guild) {
+  const pending = getPendingNewOptions(guildId, guild);
+  const cursor = getGuildSetting(guildId, 'setup', 'new_options_cursor', 0);
+  const slot = pending[cursor];
+  if (!slot) return [];
+  const isLast = cursor >= pending.length - 1;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`${CUSTOM_IDS.channelSelectPrefix}:${slot.key}`)
+      .setLabel(`Lier ${slot.label}`)
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(isLast ? CUSTOM_IDS.newOptionsSkip : CUSTOM_IDS.newOptionsNext)
+      .setLabel(isLast ? 'Terminer' : 'Passer →')
+      .setStyle(ButtonStyle.Secondary)
+  );
+  return [row];
+}
+
+function buildNewOptionsDoneContent(guildId) {
+  return [
+    '## ✅ Nouvelles options configurées',
+    '',
+    'Toutes les nouvelles options ont été traitées. Tu peux maintenant finaliser le setup.',
+    '',
+    '> Appuie sur **Finaliser** pour terminer.'
+  ].join('\n');
+}
+
+function buildNewOptionsDoneRow(guildId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(CUSTOM_IDS.finalize)
+      .setLabel('Finaliser ✅')
+      .setStyle(ButtonStyle.Success)
+  );
 }
 
 module.exports = {
