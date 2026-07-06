@@ -1183,10 +1183,11 @@ function buildGameLinkComponents(guildId, guild) {
   const CHANNEL_TYPE_LABELS = { text: '💬 Chat', galerie: '🖼️ Galerie', changelog: '📢 Updates', forum: '💬 Forum' };
 
   for (const ch of game.channels) {
+    const allowedDiscordTypes = ch.type === 'forum' ? [15] : [0, 5];
     const candidates = [...guild.channels.cache.values()]
-      .filter((c) => (c.type === 0 || c.type === 5 || c.type === 15) && c.name.includes(normalizeGameSlug(game.baseName)))
+      .filter((c) => allowedDiscordTypes.includes(c.type) && c.name.toLowerCase().includes(normalizeGameSlug(game.baseName)))
       .slice(0, 25)
-      .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `Type ${c.type}`.slice(0, 50) }));
+      .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
     if (candidates.length === 0) continue;
     rows.push(new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
