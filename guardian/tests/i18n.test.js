@@ -23,7 +23,7 @@ test('i18n module loads locales and translates with interpolation', () => {
   assert.ok(Array.isArray(langs));
   assert.ok(langs.includes('fr'));
 
-  assert.equal(i18n.DEFAULT_LANGUAGE, 'fr');
+  assert.equal(i18n.DEFAULT_LANGUAGE, 'en');
 
   const label = i18n.getLanguageLabel('fr');
   assert.ok(typeof label === 'string');
@@ -33,10 +33,10 @@ test('i18n module loads locales and translates with interpolation', () => {
   assert.equal(unknownLabel, 'zz');
 
   const defaultLang = i18n.getGuildLanguage(null);
-  assert.equal(defaultLang, 'fr');
+  assert.equal(defaultLang, 'en');
 
   const guildLang = i18n.getGuildLanguage('nonexistent-guild');
-  assert.equal(guildLang, 'fr');
+  assert.equal(guildLang, 'en');
 
   const result = i18n.tForLanguage('fr', 'nonexistent.key.path');
   assert.equal(result, 'nonexistent.key.path');

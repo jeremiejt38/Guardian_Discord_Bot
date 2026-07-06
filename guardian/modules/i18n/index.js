@@ -105,9 +105,10 @@ function getGuildLanguage(guildId) {
 }
 
 function setGuildLanguage(guildId, language) {
-  const normalized = normalizeLanguage(language);
-  setConfig(guildId, 'i18n', 'language', normalized);
-  return normalized;
+  const locales = getLocales();
+  if (!language || !locales[language]) return getGuildLanguage(guildId);
+  setConfig(guildId, 'i18n', 'language', language);
+  return language;
 }
 
 const DISCORD_LOCALE_MAP = {

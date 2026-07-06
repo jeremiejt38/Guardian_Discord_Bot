@@ -108,7 +108,8 @@ const CUSTOM_IDS = Object.freeze({
   gamePageNext: 'setup:games:page:next',
   newOptionsNext: 'setup:newoptions:next',
   newOptionsSkip: 'setup:newoptions:skip',
-  finalize: 'setup:finalize'
+  finalize: 'setup:finalize',
+  confirmOwner: 'setup:grade:owner-confirm'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -1929,12 +1930,74 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isStringSelectMenu() && interaction.customId === CUSTOM_IDS.selectOwnerMember) {
     const memberId = interaction.values[0];
     if (memberId === 'none') { await interaction.deferUpdate().catch(() => {}); return true; }
+    setGuildSetting(guildId, 'setup', 'pending_owner_id', memberId);
+    await interaction.deferUpdate().catch(() => {});
+    const members = await interaction.guild.members.fetch().catch(() => null);
+    const nonBots = members ? [...members.filter((m) => !m.user.bot).values()].slice(0, 25) : [];
+    const mappings = getGradeMappings(guildId);
+    const ownerRoleId = mappings[GRADE_NAMES.owner];
+    const inviterId = getGuildSetting(guildId, 'setup', 'inviter_id', null);
+    const sorted = inviterId
+      ? [...nonBots].sort((a, b) => (a.id === inviterId ? -1 : b.id === inviterId ? 1 : 0))
+      : nonBots;
+    const options = sorted.map((m) => {
+      let tag = '';
+      if (m.id === memberId) tag = '✅ Sélectionné — ';
+      else if (m.id === inviterId) tag = '⭐ A invité le bot — ';
+      return {
+        label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
+        value: m.id,
+        description: (tag + `@${m.user.username}`).slice(0, 50)
+      };
+    });
+    const selectedMember = nonBots.find((m) => m.id === memberId);
+    const selectedName = selectedMember ? (selectedMember.nickname || selectedMember.user.displayName || selectedMember.user.username) : memberId;
+    const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : '**Owner**';
+    const selectRow = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(CUSTOM_IDS.selectOwnerMember)
+        .setPlaceholder(`Sélectionné : ${selectedName.slice(0, 40)}`)
+        .setMinValues(1).setMaxValues(1)
+        .addOptions(options.length ? options : [{ label: 'Aucun membre', value: 'none' }])
+    );
+    const confirmRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${CUSTOM_IDS.confirmOwner}:${memberId}`)
+        .setLabel(`✅ Confirmer ${selectedName.slice(0, 30)} comme Owner`)
+        .setStyle(ButtonStyle.Success)
+    );
+    await interaction.message.edit({
+      content: [
+        `## 👑 Confirmation de l'Owner`,
+        '',
+        `Le rôle ${ownerRoleMention} sera attribué à **${selectedName}**.`,
+        '',
+        '> ⚠️ **L\'Owner aura tous les droits Guardian sur ce serveur** : gestion des grades, modération, configuration complète.',
+        '> Confirme le membre Owner avant de continuer.'
+      ].join('\n'),
+      components: [selectRow, confirmRow]
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId.startsWith(`${CUSTOM_IDS.confirmOwner}:`)) {
+    const memberId = interaction.customId.split(':').pop();
+    await interaction.deferUpdate().catch(() => {});
     const mappings = getGradeMappings(guildId);
     const ownerRoleId = mappings[GRADE_NAMES.owner];
     if (ownerRoleId && interaction.guild) {
       try {
+        const allMembers = await interaction.guild.members.fetch().catch(() => null);
+        if (allMembers) {
+          for (const [, m] of allMembers) {
+            if (!m.user.bot && m.roles.cache.has(ownerRoleId) && m.id !== memberId) {
+              await m.roles.remove(ownerRoleId, 'Guardian setup — retrait Owner précédent').catch(() => {});
+            }
+          }
+        }
         const member = await interaction.guild.members.fetch(memberId);
         await member.roles.add(ownerRoleId, 'Guardian setup — attribution rôle Owner');
+        setGuildSetting(guildId, 'setup', 'owner_id', memberId);
       } catch (err) {
         logger.error('Failed to assign owner role', err);
       }
@@ -1998,29 +2061,44 @@ async function handleSetupInteraction(interaction) {
         };
       });
       const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : '**Owner**';
+      const preSelectedId = currentOwnerMember?.id ?? null;
+      const preSelectedMember = preSelectedId ? nonBots.find((m) => m.id === preSelectedId) : null;
+      const preSelectedName = preSelectedMember
+        ? (preSelectedMember.nickname || preSelectedMember.user.displayName || preSelectedMember.user.username)
+        : null;
       const selectRow = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId(CUSTOM_IDS.selectOwnerMember)
-          .setPlaceholder(currentOwnerMember
-            ? `Owner actuel : ${(currentOwnerMember.nickname || currentOwnerMember.user.displayName).slice(0, 40)}`
+          .setPlaceholder(preSelectedName
+            ? `Owner actuel : ${preSelectedName.slice(0, 40)}`
             : inviterId && sorted[0]?.id === inviterId
               ? `Suggéré : ${(sorted[0].nickname || sorted[0].user.displayName || sorted[0].user.username).slice(0, 35)}`
               : 'Choisir le membre Owner')
           .setMinValues(1).setMaxValues(1)
           .addOptions(options.length ? options : [{ label: 'Aucun membre', value: 'none' }])
       );
+      const confirmBtn = new ButtonBuilder()
+        .setCustomId(preSelectedId
+          ? `${CUSTOM_IDS.confirmOwner}:${preSelectedId}`
+          : `${CUSTOM_IDS.confirmOwner}:none`)
+        .setLabel(preSelectedName
+          ? `✅ Confirmer ${preSelectedName.slice(0, 28)} comme Owner`
+          : '✅ Confirmer le membre Owner')
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!preSelectedId);
+      const confirmRow = new ActionRowBuilder().addComponents(confirmBtn);
       await interaction.channel.send({
         content: [
           `## 👑 Confirmation de l'Owner`,
           '',
-          currentOwnerMember
-            ? `Le rôle ${ownerRoleMention} est actuellement attribué à **${currentOwnerMember.nickname || currentOwnerMember.user.displayName}**.`
+          preSelectedName
+            ? `Le rôle ${ownerRoleMention} est actuellement attribué à **${preSelectedName}**.`
             : `Aucun membre n'a encore le rôle ${ownerRoleMention}.`,
           '',
           '> ⚠️ **L\'Owner aura tous les droits Guardian sur ce serveur** : gestion des grades, modération, configuration complète.',
           '> Confirme ou modifie le membre Owner avant de continuer.'
         ].join('\n'),
-        components: [selectRow]
+        components: [selectRow, confirmRow]
       });
       return true;
     }
