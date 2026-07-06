@@ -379,7 +379,14 @@ function buildStepOneComponents(guildId, guild) {
       .setLabel(`Grade Invité : ${onOffDot(inviteEnabled)}`)
   );
 
-  return [roleSelector, gradeNavigation, toggleInviteRow, buildNavRow(guildId, 1)];
+  const autoCreateRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(CUSTOM_IDS.createRolesAuto)
+      .setStyle(ButtonStyle.Primary)
+      .setLabel(t('setup.step1CreateRolesAuto', {}, { guildId }))
+  );
+
+  return [roleSelector, gradeNavigation, toggleInviteRow, autoCreateRow, buildNavRow(guildId, 1)];
 }
 
 function getStep2Config(guildId) {
