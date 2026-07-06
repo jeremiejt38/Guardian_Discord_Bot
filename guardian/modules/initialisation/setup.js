@@ -963,9 +963,63 @@ async function seedExistingMembers(guild) {
   }
 }
 
+const LINKED_CHANNEL_MAP = [
+  { settingSection: 'channels', settingKey: 'general_channel_id',         targetName: CHANNELS.general,       targetCategory: CATEGORIES.communaute,   type: 'text'  },
+  { settingSection: 'channels', settingKey: 'rules_channel_id',            targetName: CHANNELS.rules,         targetCategory: CATEGORIES.informations, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'announcements_channel_id',    targetName: CHANNELS.annonces,      targetCategory: CATEGORIES.informations, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'faq_channel_id',              targetName: CHANNELS.faq,           targetCategory: CATEGORIES.informations, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'welcome_channel_id',          targetName: CHANNELS.welcome,       targetCategory: CATEGORIES.informations, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'voice_general_id',            targetName: CHANNELS.voiceGeneral,  targetCategory: CATEGORIES.vocaux,        type: 'voice' },
+  { settingSection: 'channels', settingKey: 'voice_afk_id',                targetName: CHANNELS.voiceAfk,      targetCategory: CATEGORIES.vocaux,        type: 'voice' },
+  { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',  targetName: CHANNELS.moderationLogs, targetCategory: CATEGORIES.moderation,  type: 'text'  }
+];
+
+const DEFAULT_DISCORD_CATEGORIES = [
+  'Text Channels', 'Voice Channels', 'Salons vocaux', 'Salons textuels'
+];
+
+async function adoptLinkedChannels(guild) {
+  const guildId = guild.id;
+  await guild.channels.fetch().catch(() => {});
+
+  for (const mapping of LINKED_CHANNEL_MAP) {
+    const channelId = getGuildSetting(guildId, mapping.settingSection, mapping.settingKey, null);
+    if (!channelId) continue;
+
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) continue;
+
+    const targetCategory = findCategoryByName(guild, mapping.targetCategory);
+    if (!targetCategory) continue;
+
+    const alreadyCorrect = channel.parentId === targetCategory.id && channel.name === mapping.targetName;
+    if (alreadyCorrect) continue;
+
+    try {
+      await channel.edit({
+        name: mapping.targetName,
+        parent: targetCategory.id,
+        lockPermissions: true
+      });
+    } catch (err) {
+      logger.error(`adoptLinkedChannels: failed to migrate channel ${channelId}`, err);
+    }
+  }
+
+  for (const catName of DEFAULT_DISCORD_CATEGORIES) {
+    const cat = findCategoryByName(guild, catName);
+    if (!cat) continue;
+    const children = guild.channels.cache.filter((c) => c.parentId === cat.id);
+    if (children.size === 0) {
+      await cat.delete('Guardian setup — empty default category').catch(() => {});
+    }
+  }
+}
+
 async function completeGuildSetup(guild) {
   const owner = await guild.fetchOwner();
   await runSetupInstallationPhases(guild, owner.id);
+  await adoptLinkedChannels(guild);
   await seedExistingMembers(guild);
   await postSetupSummary(guild);
   await cleanupSetupArea(guild);
