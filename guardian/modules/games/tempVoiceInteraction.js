@@ -1,7 +1,8 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectMenuBuilder } = require('discord.js');
 const { getDb } = require('../../database/db');
-const { CHANNEL_NAMES } = require('../../config');
+const { CHANNEL_NAMES, GRADE_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { findTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
 const { getGuildGames } = require('./gameList');
@@ -22,9 +23,22 @@ function getMemberGrade(guildId, userId) {
   return row?.grade || null;
 }
 
-function canCreateTempVoice(guildId, userId) {
+function canCreateTempVoice(guildId, userId, discordMember) {
   const grade = getMemberGrade(guildId, userId);
-  return Boolean(grade && grade !== 'invite');
+  if (grade && grade !== GRADE_NAMES.invite) return true;
+
+  if (discordMember) {
+    const mappings = getGradeMappings(guildId);
+    const nonInviteRoleIds = [
+      mappings[GRADE_NAMES.membre],
+      mappings[GRADE_NAMES.moderateur],
+      mappings[GRADE_NAMES.manager],
+      mappings[GRADE_NAMES.owner]
+    ].filter(Boolean);
+    if (nonInviteRoleIds.some((id) => discordMember.roles?.cache?.has(id))) return true;
+  }
+
+  return false;
 }
 
 function buildName(prefix, gameName, suffix, index = 0) {
@@ -115,7 +129,7 @@ async function handleTempVoiceInteraction(interaction) {
   }
 
   if (interaction.isButton() && (interaction.customId === IDS.createButton || LEGACY_CREATE_IDS.includes(interaction.customId))) {
-    if (!canCreateTempVoice(interaction.guildId, interaction.user.id)) {
+    if (!canCreateTempVoice(interaction.guildId, interaction.user.id, interaction.member)) {
       await replyEphemeral(interaction, t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }));
       return true;
     }
@@ -131,7 +145,7 @@ async function handleTempVoiceInteraction(interaction) {
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === IDS.gameSelect) {
-    if (!canCreateTempVoice(interaction.guildId, interaction.user.id)) {
+    if (!canCreateTempVoice(interaction.guildId, interaction.user.id, interaction.member)) {
       await interaction.update({
         content: t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }),
         components: []
