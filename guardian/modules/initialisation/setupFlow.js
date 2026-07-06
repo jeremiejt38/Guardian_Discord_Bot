@@ -1258,10 +1258,23 @@ function buildGameLinkComponents(guildId, guild) {
   if (activeType) {
     const allowedDiscordTypes = activeType === 'forum' ? [15] : [0, 5];
     const slug = normalizeGameSlug(game.baseName);
-    const candidates = [...guild.channels.cache.values()]
-      .filter((c) => allowedDiscordTypes.includes(c.type) && c.name.toLowerCase().includes(slug))
+    const TYPE_SUFFIXES = { text: ['texte', 'chat', 'discussion', 'general'], changelog: ['changelogs', 'updates', 'annonces', 'news'], forum: ['forum', 'discussion'] };
+    const suffixes = TYPE_SUFFIXES[activeType] || [];
+    const allCompatible = [...guild.channels.cache.values()].filter((c) => allowedDiscordTypes.includes(c.type));
+    const scored = allCompatible.map((c) => {
+      const n = c.name.toLowerCase();
+      let score = 0;
+      if (n === slug) score = 100;
+      else if (n.startsWith(slug)) score = 90;
+      else if (n.includes(slug)) score = 70;
+      else if (slug.split('-').some((part) => part.length >= 3 && n.includes(part))) score = 40;
+      if (suffixes.some((s) => n.endsWith(s) || n.includes(`-${s}`))) score += 15;
+      return { c, score };
+    });
+    const candidates = scored
+      .sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name))
       .slice(0, 25)
-      .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
+      .map(({ c }) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
     if (candidates.length > 0) {
       rows.push(new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
