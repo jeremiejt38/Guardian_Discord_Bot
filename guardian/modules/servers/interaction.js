@@ -48,7 +48,7 @@ async function handleServerModalSubmit(interaction) {
   }
 
   // create proposal message in approve channel
-  const approveChannel = findGuildTextChannelByName(interaction.guild, CHANNELS.approveGames);
+  const approveChannel = findGuildTextChannelByName(interaction.guild, CHANNELS.serveurs);
   const embed = new EmbedBuilder().setTitle(`Proposition de serveur: ${name}`).addFields(
     { name: 'Jeu', value: game, inline: true },
     { name: 'IP:Port', value: `${ip}:${port}`, inline: true }

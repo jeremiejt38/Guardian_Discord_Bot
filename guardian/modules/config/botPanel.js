@@ -2,6 +2,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  EmbedBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle
@@ -14,6 +15,43 @@ const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { getAvailableLanguages, getGuildLanguage, setGuildLanguage } = require('../i18n');
 const { logConfigChange } = require('./configLogger');
+const { version } = require('../../package.json');
+
+const botStartTime = Date.now();
+
+function formatUptime() {
+  const ms = Date.now() - botStartTime;
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const parts = [];
+  if (d > 0) parts.push(`${d}j`);
+  if (h > 0) parts.push(`${h}h`);
+  parts.push(`${m}min`);
+  return parts.join(' ');
+}
+
+const ACTIVE_MODULES = [
+  'Initialisation', 'Nouveaux Membres', 'Gamelist & Opt-in',
+  'Vocaux Temporaires', 'Changelogs Steam', 'Modération',
+  'AutoMod', 'Signalements', 'Score Comportemental',
+  'Surveillance Serveurs', 'Slow Mode', 'Behavior Panel'
+];
+
+function buildStatusEmbed(guild) {
+  const guildId = guild.id;
+  return new EmbedBuilder()
+    .setTitle(t(guildId, 'config.statusBot.title'))
+    .setColor(0x5865f2)
+    .addFields(
+      { name: t(guildId, 'config.statusBot.version'), value: `v${version}`, inline: true },
+      { name: t(guildId, 'config.statusBot.uptime'), value: formatUptime(), inline: true },
+      { name: t(guildId, 'config.statusBot.modules'), value: ACTIVE_MODULES.map((m) => `✅ ${m}`).join('\n') },
+      { name: t(guildId, 'config.statusBot.lastUpdate'), value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
+    )
+    .setTimestamp();
+}
 
 const IDS = Object.freeze({
   editSteamKey: 'bot:edit:steamkey',
@@ -46,6 +84,19 @@ function buildPanelContent(guildId) {
   ].join('\n');
 }
 
+async function upsertStatusEmbed(guild) {
+  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  if (!channel) return;
+  const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
+  const existing = msgs?.find((m) => m.author.id === guild.client.user.id && m.embeds.length > 0);
+  const embed = buildStatusEmbed(guild);
+  if (existing) {
+    await existing.edit({ embeds: [embed] }).catch(() => undefined);
+  } else {
+    await channel.send({ embeds: [embed] }).catch(() => undefined);
+  }
+}
+
 function buildRows(guildId) {
   return [
     new ActionRowBuilder().addComponents(
@@ -64,21 +115,29 @@ function buildRows(guildId) {
 async function seedBotPanel(guild) {
   const channel = findTextChannelByName(guild, CHANNELS.botConfig);
   if (!channel) return;
-  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+  const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
-  if (hasPanel) return;
-  const guildId = guild.id;
-  await channel.send({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+  if (!hasPanel) {
+    const guildId = guild.id;
+    await channel.send({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+  }
+  await upsertStatusEmbed(guild);
 }
 
 async function refreshBotPanel(guild) {
   const channel = findTextChannelByName(guild, CHANNELS.botConfig);
   if (!channel) return;
-  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+  const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
-  if (!panel) return;
-  const guildId = guild.id;
-  await panel.edit({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+  if (panel) {
+    const guildId = guild.id;
+    await panel.edit({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+  }
+  await upsertStatusEmbed(guild);
+}
+
+async function refreshStatusBotPanel(guild) {
+  await upsertStatusEmbed(guild);
 }
 
 async function handleBotInteraction(interaction) {

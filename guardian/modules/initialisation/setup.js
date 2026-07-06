@@ -442,6 +442,13 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
 
   await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions);
 
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+
+  const memberReadPermissions = [
+    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] }
+  ];
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.serverList, memberReadPermissions);
+
   const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
   if (suggestionsEnabled) {
     const suggestionsForum = await ensureForumChannel(guild, communauteCategory.id, CHANNELS.suggestions, [
@@ -506,12 +513,10 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     { name: CHANNELS.gameChannels, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre) },
     { name: CHANNELS.gameList, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre) },
 
-    // servers listing and management
-    { name: CHANNELS.jeuxServeur, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
-    { name: CHANNELS.serverList, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur) },
+    // servers management (moderateur+)
+    { name: CHANNELS.serveurs, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
 
-    // bot & status
-    { name: CHANNELS.statutBot, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
+    // bot & status (manager+)
     { name: CHANNELS.botConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
 
     // admin configuration channels
@@ -519,13 +524,13 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     { name: CHANNELS.channelsConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
     { name: CHANNELS.vocauxConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
     { name: CHANNELS.jeux, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.changelogs, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.approveGames, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
-    { name: CHANNELS.serveursJeu, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
 
     // logs and guardian config
     { name: CHANNELS.configLogs, permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.guardian, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+
+    // owner only
+    { name: CHANNELS.roles, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner) },
+    { name: CHANNELS.guardian, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner) },
 
     // legacy management channel (future Pterodactyl control)
     { name: CHANNELS.serverManagement, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner) }
@@ -535,8 +540,6 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
     const channel = await ensureTextChannel(guild, configurationCategory.id, item.name, item.permissions);
     if (item.name === CHANNELS.serverManagement) {
       await seedServerManagementPlaceholder(channel);
-    } else if (item.name === CHANNELS.jeuxServeur) {
-      await seedServeursListMessage(channel);
     } else {
       const withGameListButton = item.name === CHANNELS.gameChannels || item.name === CHANNELS.gameList;
       await seedGuardianConfigMessage(channel, { withGameListButton });
