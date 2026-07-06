@@ -355,7 +355,8 @@ async function seedFaqMessages(channel) {
   }
 
   for (const message of defaultMessages) {
-    await channel.send(message);
+    const msg = await channel.send(message).catch(() => null);
+    if (msg) setTimeout(() => msg.delete().catch(() => {}), 8000);
   }
 }
 
@@ -428,7 +429,7 @@ async function createInformationsArea(guild, roleMap) {
   const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions, { topic: t('init.topics.welcome', {}, { guildId: guildIdI }) });
   const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions, { topic: t('init.topics.rules', {}, { guildId: guildIdI }) });
   const announcementsChannel = await ensureAnnouncementChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
-  const faqChannel = await ensureForumChannel(guild, null, CHANNELS.faq, readOnlyPermissions);
+  const faqChannel = await ensureTextChannel(guild, null, CHANNELS.faq, readOnlyPermissions, { topic: t('init.topics.faq', {}, { guildId: guildIdI }) });
 
   await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap), { topic: t('init.topics.requests', {}, { guildId: guildIdI }) });
 
