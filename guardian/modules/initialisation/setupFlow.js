@@ -102,6 +102,7 @@ const CUSTOM_IDS = Object.freeze({
   gameLinkNext: 'setup:gamelink:next',
   gameLinkSkip: 'setup:gamelink:skip',
   gameLinkChannelPrefix: 'setup:gamelink:channel',
+  gameLinkTypeSelect: 'setup:gamelink:type',
   gamePagePrev: 'setup:games:page:prev',
   gamePageNext: 'setup:games:page:next',
   newOptionsNext: 'setup:newoptions:next',
@@ -1151,6 +1152,20 @@ function buildGameDetectComponents(guild) {
   ];
 }
 
+const GAMELINK_TYPE_LABELS = Object.freeze({
+  text:      { icon: '💬', label: 'Chat texte' },
+  changelog: { icon: '📢', label: 'Annonces/Updates' },
+  forum:     { icon: '🗂️', label: 'Forum' }
+});
+const GAMELINK_LINKABLE_TYPES = ['text', 'changelog', 'forum'];
+
+function getGameLinkActiveType(guildId) {
+  return getGuildSetting(guildId, 'setup', 'gamelink_active_type', null);
+}
+function setGameLinkActiveType(guildId, type) {
+  setGuildSetting(guildId, 'setup', 'gamelink_active_type', type);
+}
+
 function buildGameLinkContent(guildId) {
   const games = getDetectedGames(guildId);
   const cursor = getGameLinkCursor(guildId);
@@ -1158,18 +1173,24 @@ function buildGameLinkContent(guildId) {
   if (!game) return '## Configuration des jeux\n\nAucun jeu à configurer.';
 
   const total = games.length;
+  const activeType = getGameLinkActiveType(guildId);
   const lines = [
-    `## 🎮 Lier les channels — ${game.baseName} (${cursor + 1}/${total})`,
+    `## 🎮 Lier les channels — **${game.baseName}** (${cursor + 1}/${total})`,
     '',
-    `Configuration des channels pour le jeu **${game.baseName}** :`,
-    '> Sélectionne quel channel correspond à chaque type, ou ignore si tu n\'en as pas.',
-    '',
+    `Associe tes channels existants à **${game.baseName}** :`,
+    '> Clique sur un type puis sélectionne le channel correspondant.',
+    '> Tu peux ignorer les types que tu n\'as pas.',
+    ''
   ];
-  for (const ch of game.channels) {
-    const icon = ch.type === 'galerie' ? '🖼️' : ch.type === 'changelog' ? '📢' : '💬';
-    const linked = ch.linkedId ? `✅ \`#${ch.linkedName}\`` : '— *non lié*';
-    lines.push(`> ${icon} **${ch.type}** : ${linked}`);
+
+  for (const type of GAMELINK_LINKABLE_TYPES) {
+    const ch = game.channels.find((c) => c.type === type);
+    const { icon, label } = GAMELINK_TYPE_LABELS[type];
+    const linked = ch?.linkedId ? `✅ \`#${ch.linkedName}\`` : '❌ *non lié*';
+    const active = activeType === type ? ' ◀ en cours' : '';
+    lines.push(`> ${icon} **${label}** : ${linked}${active}`);
   }
+
   return lines.join('\n');
 }
 
@@ -1179,23 +1200,36 @@ function buildGameLinkComponents(guildId, guild) {
   const game = games[cursor];
   if (!game) return [buildNavRow(guildId, 3)];
 
+  const activeType = getGameLinkActiveType(guildId);
   const rows = [];
-  const CHANNEL_TYPE_LABELS = { text: '💬 Chat', galerie: '🖼️ Galerie', changelog: '📢 Updates', forum: '💬 Forum' };
 
-  for (const ch of game.channels) {
-    const allowedDiscordTypes = ch.type === 'forum' ? [15] : [0, 5];
+  const typeButtons = GAMELINK_LINKABLE_TYPES.map((type) => {
+    const { icon, label } = GAMELINK_TYPE_LABELS[type];
+    const ch = game.channels.find((c) => c.type === type);
+    const linked = ch?.linkedId;
+    const isActive = activeType === type;
+    return new ButtonBuilder()
+      .setCustomId(`${CUSTOM_IDS.gameLinkTypeSelect}:${cursor}:${type}`)
+      .setLabel(`${icon} ${label}${linked ? ' ✅' : ''}`)
+      .setStyle(isActive ? ButtonStyle.Primary : (linked ? ButtonStyle.Success : ButtonStyle.Secondary));
+  });
+  rows.push(new ActionRowBuilder().addComponents(...typeButtons));
+
+  if (activeType) {
+    const allowedDiscordTypes = activeType === 'forum' ? [15] : [0, 5];
+    const slug = normalizeGameSlug(game.baseName);
     const candidates = [...guild.channels.cache.values()]
-      .filter((c) => allowedDiscordTypes.includes(c.type) && c.name.toLowerCase().includes(normalizeGameSlug(game.baseName)))
+      .filter((c) => allowedDiscordTypes.includes(c.type) && c.name.toLowerCase().includes(slug))
       .slice(0, 25)
       .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
-    if (candidates.length === 0) continue;
-    rows.push(new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId(`${CUSTOM_IDS.gameLinkChannelPrefix}:${cursor}:${ch.type}`)
-        .setPlaceholder(`${CHANNEL_TYPE_LABELS[ch.type] || ch.type} — choisir un channel`)
-        .addOptions(candidates)
-    ));
-    if (rows.length >= 4) break;
+    if (candidates.length > 0) {
+      rows.push(new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`${CUSTOM_IDS.gameLinkChannelPrefix}:${cursor}:${activeType}`)
+          .setPlaceholder(`${GAMELINK_TYPE_LABELS[activeType].icon} Choisir le channel ${GAMELINK_TYPE_LABELS[activeType].label}`)
+          .addOptions(candidates)
+      ));
+    }
   }
 
   const navButtons = [
@@ -2029,6 +2063,19 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.customId.startsWith(`${CUSTOM_IDS.gameLinkTypeSelect}:`)) {
+    const parts = interaction.customId.split(':');
+    const selectedType = parts[parts.length - 1];
+    const currentActive = getGameLinkActiveType(guildId);
+    setGameLinkActiveType(guildId, currentActive === selectedType ? null : selectedType);
+    await interaction.deferUpdate().catch(() => {});
+    await interaction.message.edit({
+      content: buildGameLinkContent(guildId) + '\n\u200b',
+      components: buildGameLinkComponents(guildId, interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
   if (interaction.customId.startsWith(`${CUSTOM_IDS.gameLinkChannelPrefix}:`)) {
     const parts = interaction.customId.split(':');
     const gameCursor = Number(parts[parts.length - 2]);
@@ -2079,6 +2126,7 @@ async function handleSetupInteraction(interaction) {
     await interaction.deferUpdate().catch(() => {});
     const games = getDetectedGames(guildId);
     const cursor = getGameLinkCursor(guildId);
+    setGameLinkActiveType(guildId, null);
     if (cursor < games.length - 1) {
       setGameLinkCursor(guildId, cursor + 1);
       await interaction.message.edit({
