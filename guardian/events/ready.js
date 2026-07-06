@@ -7,7 +7,12 @@ const { applyPersistedSlowModeForGuild } = require('../modules/moderation/autoMo
 const { ensureMemberGameInterfaces } = require('../modules/config/settings');
 const { runPassiveScoreRegen } = require('../modules/moderation/behavior');
 const { seedGuildMessages } = require('../modules/initialisation/seeds');
+const { sendDmNotification } = require('../modules/notifications/dmNotifier');
+const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
+const { runChannelMigrations } = require('../modules/migrations/channelMigrations');
+const { restoreConfigFromBackup, saveConfigBackup } = require('../modules/config/configBackup');
 const logger = require('../modules/logs/logger');
+const { version } = require('../package.json');
 
 module.exports = {
   name: 'clientReady',
@@ -17,8 +22,15 @@ module.exports = {
 
     for (const guild of client.guilds.cache.values()) {
       try {
-        if (!isGuildInstalled(guild.id)) {
-          await createSetupArea(guild);
+        const alreadyInstalled = isGuildInstalled(guild.id);
+
+        if (!alreadyInstalled) {
+          const restored = await restoreConfigFromBackup(guild);
+          if (restored) {
+            logger.info(`Guild ${guild.id}: config restored from backup — skipping full setup area creation`);
+          } else {
+            await createSetupArea(guild);
+          }
         }
 
         await ensureSetupInstallPrompt(guild, { forceCreateIfMissing: true });
@@ -26,6 +38,27 @@ module.exports = {
         await applyPersistedSlowModeForGuild(guild);
         await ensureMemberGameInterfaces(guild);
         await seedGuildMessages(guild).catch(() => undefined);
+
+        await runChannelMigrations(guild);
+
+        const lastVersion = getGuildSetting(guild.id, 'bot', 'last_version', null);
+        if (lastVersion && lastVersion !== version) {
+          const msg = [
+            `## 🔄 Guardian mis à jour — v${lastVersion} → **v${version}**`,
+            ``,
+            `> Le bot vient de redémarrer sur **${guild.name}** avec une nouvelle version.`,
+            `> Aucune action requise — la configuration est préservée.`,
+            ``,
+            `📋 Consulte le changelog complet : https://github.com/jeremiejt38/Guardian_Discord_Bot/releases`
+          ].join('\n');
+          await sendDmNotification(guild, 'bot_update', msg);
+          logger.info(`Bot update notified for guild ${guild.id}: ${lastVersion} → ${version}`);
+        }
+        setGuildSetting(guild.id, 'bot', 'last_version', version);
+
+        if (alreadyInstalled) {
+          await saveConfigBackup(guild).catch(() => {});
+        }
       } catch (error) {
         logger.error(`Failed ready setup check for guild ${guild.id}`, error);
       }

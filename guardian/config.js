@@ -55,7 +55,8 @@ const CHANNELS = Object.freeze({
   suggestions: 'suggestions',
   annonces: 'annonces',
   serveurs: 'serveurs',
-  securityUpdates: 'maj-securite'
+  securityUpdates: 'maj-securite',
+  guardianBackup: 'guardian-backup'
 });
 
 const CHANNEL_NAMES = Object.freeze({

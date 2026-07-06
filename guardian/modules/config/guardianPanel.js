@@ -11,10 +11,12 @@ const { getGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { getDb } = require('../../database/db');
 const { logConfigChange } = require('./configLogger');
+const { NOTIFICATION_CATEGORIES, getNotifPrefs, setNotifPref } = require('../notifications/dmNotifier');
 
 const IDS = Object.freeze({
   refreshPanels: 'guardian:refresh:panels',
-  syncMembers: 'guardian:sync:members'
+  syncMembers: 'guardian:sync:members',
+  notifTogglePrefix: 'guardian:notif:toggle:'
 });
 
 function hasOwnerGrade(member, guildId) {
@@ -57,17 +59,66 @@ function buildRows(guildId) {
   ];
 }
 
+function buildNotifPanelContent(guildId) {
+  const prefs = getNotifPrefs(guildId);
+  const lines = [
+    `**🔔 ${t(guildId, 'notifications.panelTitle')}**`,
+    `*${t(guildId, 'notifications.panelDesc')}*`,
+    ''
+  ];
+  for (const cat of Object.values(NOTIFICATION_CATEGORIES)) {
+    const on = prefs[cat.key];
+    const label = t(guildId, cat.labelKey) !== cat.labelKey ? t(guildId, cat.labelKey) : cat.key;
+    const desc = t(guildId, cat.descKey) !== cat.descKey ? t(guildId, cat.descKey) : '';
+    const state = on ? '🟢 Actif' : '⚪ Inactif';
+    const crit = cat.critical ? ' *(critique)*' : '';
+    lines.push(`${cat.emoji} **${label}**${crit} — ${state}`);
+    if (desc) lines.push(`> ${desc}`);
+  }
+  return lines.join('\n');
+}
+
+function buildNotifRows(guildId) {
+  const prefs = getNotifPrefs(guildId);
+  const cats = Object.values(NOTIFICATION_CATEGORIES);
+  const rows = [];
+  for (let i = 0; i < cats.length; i += 4) {
+    const chunk = cats.slice(i, i + 4);
+    const row = new ActionRowBuilder().addComponents(
+      chunk.map((cat) => {
+        const on = prefs[cat.key];
+        const label = t(guildId, cat.labelKey) !== cat.labelKey ? t(guildId, cat.labelKey) : cat.key;
+        return new ButtonBuilder()
+          .setCustomId(`${IDS.notifTogglePrefix}${cat.key}`)
+          .setLabel(`${cat.emoji} ${label}`)
+          .setStyle(on ? ButtonStyle.Success : ButtonStyle.Secondary);
+      })
+    );
+    rows.push(row);
+    if (rows.length >= 4) break;
+  }
+  return rows;
+}
+
 async function seedGuardianPanel(guild) {
   const channel = findTextChannelByName(guild, CHANNELS.guardian);
   if (!channel) return;
-  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
-  const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
-  if (hasPanel) {
-    const panel = msgs.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
-    await panel.edit({ content: buildPanelContent(guild, guild.id), components: buildRows(guild.id) }).catch(() => undefined);
-    return;
+  const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
+  const botMsgs = msgs?.filter((m) => m.author.id === guild.client.user.id && m.components.length > 0);
+
+  const mainPanel = botMsgs?.find((m) => !m.content.includes('🔔'));
+  if (mainPanel) {
+    await mainPanel.edit({ content: buildPanelContent(guild, guild.id), components: buildRows(guild.id) }).catch(() => undefined);
+  } else {
+    await channel.send({ content: buildPanelContent(guild, guild.id), components: buildRows(guild.id) }).catch(() => undefined);
   }
-  await channel.send({ content: buildPanelContent(guild, guild.id), components: buildRows(guild.id) }).catch(() => undefined);
+
+  const notifPanel = botMsgs?.find((m) => m.content.includes('🔔'));
+  if (notifPanel) {
+    await notifPanel.edit({ content: buildNotifPanelContent(guild.id), components: buildNotifRows(guild.id) }).catch(() => undefined);
+  } else {
+    await channel.send({ content: buildNotifPanelContent(guild.id), components: buildNotifRows(guild.id) }).catch(() => undefined);
+  }
 }
 
 async function handleGuardianInteraction(interaction) {
@@ -86,6 +137,19 @@ async function handleGuardianInteraction(interaction) {
     await seedGuardianPanel(interaction.guild);
     await interaction.editReply({ content: t(guildId, 'config.guardian.panelsRefreshed') }).catch(() => {});
     await logConfigChange(interaction.guild, interaction.user.id, 'guardian.refresh_panels', null, 'triggered');
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.notifTogglePrefix)) {
+    const catKey = customId.slice(IDS.notifTogglePrefix.length);
+    const prefs = getNotifPrefs(guildId);
+    const current = prefs[catKey] ?? false;
+    setNotifPref(guildId, catKey, !current);
+    await interaction.update({
+      content: buildNotifPanelContent(guildId),
+      components: buildNotifRows(guildId)
+    }).catch(() => {});
+    await logConfigChange(interaction.guild, interaction.user.id, `notifications.${catKey}`, current, !current);
     return true;
   }
 
@@ -124,4 +188,4 @@ async function handleGuardianInteraction(interaction) {
   return false;
 }
 
-module.exports = { seedGuardianPanel, handleGuardianInteraction };
+module.exports = { seedGuardianPanel, handleGuardianInteraction, buildNotifPanelContent, buildNotifRows };
