@@ -70,7 +70,8 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
     return existingById;
   }
 
-  const existingByName = findGuildTextChannelByName(guild, channelName, parentId);
+  const existingByName = findGuildTextChannelByName(guild, channelName, parentId)
+    ?? findGuildTextChannelByName(guild, channelName);
   if (existingByName) {
     await existingByName.edit({ parent: parentId, permissionOverwrites });
     return existingByName;
