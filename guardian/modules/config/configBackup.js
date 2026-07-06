@@ -17,7 +17,7 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getDb } = require('../../database/db');
 const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
-const { CHANNELS } = require('../../config');
+const { CHANNELS, CATEGORIES } = require('../../config');
 const logger = require('../logs/logger');
 
 const BACKUP_CHANNEL_NAME = CHANNELS.guardianBackup;
@@ -125,7 +125,7 @@ async function findOrCreateBackupChannel(guild) {
   );
 
   const guardianCategory = guild.channels.cache.find(
-    (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('guardian')
+    (c) => c.type === ChannelType.GuildCategory && c.name === CATEGORIES.configuration
   );
 
   if (existing) {
