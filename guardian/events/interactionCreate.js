@@ -38,6 +38,7 @@ const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
 const { findGuildTextChannelByName } = require('../modules/utils/channels');
 const { handleInteractionError } = require('../modules/utils/discordErrors');
+const { checkRateLimit } = require('../modules/utils/rateLimit');
 const logger = require('../modules/logs/logger');
 
 module.exports = {
@@ -57,6 +58,13 @@ module.exports = {
 
       await command.execute(interaction);
       return;
+    }
+
+    if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.customId) {
+      if (checkRateLimit(interaction.user.id, interaction.customId)) {
+        await interaction.deferUpdate().catch(() => {});
+        return;
+      }
     }
 
     if (
