@@ -375,20 +375,25 @@ function setStep2Config(guildId, config) {
 
 function buildStep2Content(guildId) {
   const c = getStep2Config(guildId);
+  const dot = (v) => v ? '🟢 Actif' : '⚪ Inactif';
   return [
     `## ${t('setup.step2Title', {}, { guildId })} (2/${TOTAL_STEPS})`,
     t('setup.step2Instructions', {}, { guildId }),
     '',
-    `💡 **Suggestions** : ${onOff(c.suggestionsEnabled)}`,
-    '> Permet aux membres de soumettre des idées via un channel dédié.',
-    `🖥️ **Liste serveurs** : ${onOff(c.serverListEnabled)}`,
-    '> Affiche une liste des serveurs de jeu liés à la communauté.',
-    `🤖 **Statut bot** : ${onOff(c.statusBotEnabled)}`,
-    '> Poste un message de statut mis à jour automatiquement (uptime, version...).',
-    `🔇 **Vocal AFK** : ${onOff(c.afkEnabled)}`,
-    '> Crée un salon vocal AFK où les membres inactifs sont déplacés automatiquement.',
-    `🎮 **Game Updates** : ${onOff(c.gameUpdatesEnabled)}`,
-    '> Publie les mises à jour Steam des jeux configurés dans le channel dédié.'
+    `💡 **Suggestions** — ${dot(c.suggestionsEnabled)}`,
+    '> Les membres peuvent soumettre des idées et voter via un forum dédié.',
+    '',
+    `🖥️ **Liste de serveurs** — ${dot(c.serverListEnabled)}`,
+    '> Affiche les serveurs de jeu approuvés par la communauté.',
+    '',
+    `🤖 **Statut du bot** — ${dot(c.statusBotEnabled)}`,
+    '> Message automatique affichant l\'uptime et la version de Guardian.',
+    '',
+    `🔇 **Vocal AFK** — ${dot(c.afkEnabled)}`,
+    '> Salon où Discord déplace automatiquement les membres inactifs.',
+    '',
+    `📢 **Game Updates** — ${dot(c.gameUpdatesEnabled)}`,
+    '> Publie les changelogs Steam des jeux configurés dans un channel dédié.'
   ].join('\n');
 }
 
@@ -621,21 +626,25 @@ function formatDelay(minutes) {
 
 function buildStep5VocalContent(guildId) {
   const c = getStep4VocalConfig(guildId);
-  const limitDisplay = c.memberLimit === 0 ? 'illimité' : `${c.memberLimit} membres max`;
+  const limitDisplay = c.memberLimit === 0 ? '\u221e illimité' : `${c.memberLimit} membre(s) max`;
   const prefixDisplay = c.prefix === '' ? '*aucun*' : c.prefix;
   const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
+  const exampleName = `${c.prefix ? c.prefix + ' ' : ''}Partie${suffixEnabled ? ' — Partie' : ''}`;
   return [
     `## ${t('setup.step5Title', {}, { guildId })} (5/${TOTAL_STEPS})`,
     t('setup.step5Instructions', {}, { guildId }),
     '',
-    `🔊 **Préfixe des salons vocaux** : ${prefixDisplay}`,
-    '> Emoji ou texte affiché au début du nom de chaque room vocale créée automatiquement.',
-    `📛 **Suffixe** : ${onOffDot(suffixEnabled)}`,
-    '> Texte affiché à la fin du nom de la room (ex : « — Partie »).',
+    `🏷️ **Préfixe** : ${prefixDisplay}`,
+    '> Emoji ou texte au début du nom — identifie visuellement les rooms Guardian.',
+    '',
+    `� **Suffixe** : ${onOffDot(suffixEnabled)}`,
+    `> Texte « — Partie » ajouté à la fin du nom (ex : \`${exampleName}\`).`,
+    '',
     `👥 **Limite de membres** : ${limitDisplay}`,
-    '> Nombre max de personnes autorisées dans chaque room vocale. 0 = illimité.',
+    '> Capacité max par room. Laisse à 0 pour illimité.',
+    '',
     `⏱️ **Délai de suppression** : ${formatDelay(c.deleteDelayMinutes)}`,
-    '> Temps après lequel une room vocale vide est supprimée automatiquement.'
+    '> Délai avant qu\'une room vocale vide soit supprimée automatiquement.'
   ].join('\n');
 }
 
@@ -785,24 +794,28 @@ function setStep7Config(guildId, config) {
 function buildStep7Content(guildId) {
   const c = getStep7Config(guildId);
   const wordList = c.blacklistWords.length > 0
-    ? c.blacklistWords.slice(0, 8).map((w) => `\`${w}\``).join(', ') + (c.blacklistWords.length > 8 ? ` +${c.blacklistWords.length - 8}` : '')
-    : '*aucun*';
-  const slowDisplay = c.slowModeSeconds === 0 ? 'désactivé' : `${c.slowModeSeconds}s entre messages`;
-  const logsDisplay = c.logsEnabled ? `✅ ${c.logsLevel}` : '❌';
+    ? c.blacklistWords.slice(0, 8).map((w) => `\`${w}\``).join(', ') + (c.blacklistWords.length > 8 ? ` *(+${c.blacklistWords.length - 8} autres)*` : '')
+    : '*aucune*';
+  const slowDisplay = c.slowModeSeconds === 0 ? '*désactivé*' : `${c.slowModeSeconds}s entre messages`;
+  const logsDisplay = c.logsEnabled ? `🟢 ${c.logsLevel}` : '⚪ désactivé';
   return [
     `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
     t('setup.step7Instructions', {}, { guildId }),
     '',
-    `⚖️ **Score comportemental** : ${onOff(c.behaviorScoreEnabled)}`,
-    '> Attribue un score aux membres selon leur comportement (messages, sanctions, ancienneté).',
-    `🛡️ **Anti-spam** : max ${c.spamThreshold} msg/3s`,
-    '> Guardian supprime les messages si un membre dépasse ce seuil en 3 secondes.',
-    `⏱️ **Slow mode** : ${slowDisplay}`,
-    '> Impose un délai entre les messages pour calmer les discussions agitées.',
-    `🚫 **Blacklist** : ${c.blacklistWarn ? '⚠️ Avertissement public' : '🤫 Suppression silencieuse'} — ${c.blacklistWords.length} mot(s)`,
-    wordList !== '*aucun*' ? `> Mots bannis : ${wordList}` : '> Aucun mot banni configuré.',
-    `📋 **Logs Guardian** : ${logsDisplay}`,
-    '> Enregistre les actions du bot (sanctions, promotions, erreurs) dans un channel dédié.'
+    `⚖️ **Score comportemental** — ${onOff(c.behaviorScoreEnabled)}`,
+    '> Note chaque membre selon ses messages, sanctions et ancienneté.',
+    '',
+    `🛡️ **Anti-spam** — max ${c.spamThreshold} msg / 3s`,
+    '> Messages supprimés automatiquement si le seuil est dépassé.',
+    '',
+    `🐌 **Slow mode** — ${slowDisplay}`,
+    '> Délai imposé entre deux messages dans tous les salons.',
+    '',
+    `🚫 **Blacklist** — ${c.blacklistWarn ? '⚠️ warn public' : '🤫 suppression silencieuse'} — ${c.blacklistWords.length} mot(s)`,
+    `> ${wordList !== '*aucune*' ? wordList : 'Aucun mot banni configuré.'}`,
+    '',
+    `📋 **Logs Guardian** — ${logsDisplay}`,
+    '> Historique des actions du bot dans un salon dédié (sanctions, promotions, erreurs).'
   ].join('\n');
 }
 
@@ -938,21 +951,45 @@ function autoPositionChannelCursor(guildId, guild) {
   if (firstUnconfigured !== -1) setChannelCursor(guildId, firstUnconfigured);
 }
 
-function buildCommunityCheckContent(guildId) {
+function buildCommunityCheckContent(guildId, guild) {
+  const memberCount = guild?.memberCount ?? 0;
+  const hasRules = guild?.rulesChannelId != null;
+  const hasVerification = guild ? guild.verificationLevel >= 1 : false;
+  const hasModChannel = guild?.publicUpdatesChannelId != null;
+
+  const req = (ok, label) => `${ok ? '✅' : '❌'} ${label}`;
+
   return [
-    `## ⚠️ Serveur non communautaire (3/${TOTAL_STEPS})`,
+    `## ⚠️ Serveur classique détecté (${TOTAL_STEPS > 0 ? `${TOTAL_STEPS}/` : ''}${TOTAL_STEPS})`,
     '',
-    'Ton serveur Discord est actuellement un **serveur classique** (non communautaire).',
-    'Certains channels du setup sont **réservés aux serveurs communautaires** :',
-    '> 📜 **#règles** — requis par Discord pour les serveurs communautaires',
-    '> 🛡️ **#logs-modération** — correspond au salon "Moderator Only"',
-    '> 🔒 **#maj-securite** — canal de mises à jour de sécurité Discord',
+    '> Ton serveur n\'est pas encore en mode **Communautaire**.',
+    '> Certains salons Guardian sont exclusifs à ce mode et seront ignorés si tu continues sans l\'activer.',
     '',
-    '**Comment activer le mode communautaire ?**',
-    '> ⚙️ Paramètres du serveur → **Activer la communauté** → Suivre les étapes Discord',
+    '### 🔒 Salons exclusifs au mode Communautaire',
+    '> 📜 **#règles** — salon officiel du règlement (requis par Discord)',
+    '> 🛡️ **#logs-modération** — corresponds au salon « Moderator Only » de Discord',
+    '> 🔒 **#maj-securite** — reçoit les mises à jour de sécurité Discord',
     '',
-    'Une fois activé, clique sur **🔄 Vérifier à nouveau** — ces salons seront alors proposés.',
-    'Tu peux aussi **continuer sans activer** la communauté, ces salons seront ignorés.'
+    '### ✨ Ce que le mode Communautaire apporte',
+    '> 📣 Salons **Annonces** (abonnements croisés entre serveurs)',
+    '> 🎪 Accès aux **Événements** programmés (agenda communautaire)',
+    '> 📊 **Insights serveur** — statistiques d\'audience et de croissance',
+    '> 🎭 **Salons Stage** (conférences audio publiques)',
+    '> 🏷️ **Répertoire Discord** — ton serveur devient découvrable',
+    '',
+    '### ✅ Prérequis pour activer la Communauté',
+    req(memberCount >= 0, 'Serveur créé (toujours vrai)'),
+    req(hasVerification, 'Niveau de vérification ≥ Faible (e-mail requis)'),
+    req(hasRules, 'Salon « Règles » désigné'),
+    req(hasModChannel, 'Salon « Mises à jour de la communauté » désigné'),
+    '',
+    '### ⚙️ Comment activer la Communauté',
+    '> 1. Ouvre les **Paramètres du serveur** (roue dentée à côté du nom)',
+    '> 2. Menu **Activer la communauté** → clique sur **Commencer**',
+    '> 3. Suis les étapes Discord (vérification, règles, sécurité)',
+    '> 4. Reviens ici et clique **🔄 Vérifier à nouveau**',
+    '',
+    '*Tu peux aussi continuer sans activer — les salons communautaires seront simplement ignorés.*'
   ].join('\n');
 }
 
@@ -1852,7 +1889,7 @@ async function handleSetupInteraction(interaction) {
       await interaction.deferUpdate().catch(() => {});
       if (!isCommunityGuild(interaction.guild)) {
         await interaction.message.edit({
-          content: buildCommunityCheckContent(guildId) + '\n\u200b',
+          content: buildCommunityCheckContent(guildId, interaction.guild) + '\n\u200b',
           components: buildCommunityCheckComponents()
         }).catch(() => {});
         return true;
@@ -1878,7 +1915,7 @@ async function handleSetupInteraction(interaction) {
       await renderStep(interaction, 3);
     } else {
       await interaction.message.edit({
-        content: buildCommunityCheckContent(guildId) + '\n\u200b',
+        content: buildCommunityCheckContent(guildId, interaction.guild) + '\n\u200b',
         components: buildCommunityCheckComponents()
       }).catch(() => {});
     }
