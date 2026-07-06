@@ -978,6 +978,10 @@ const DEFAULT_DISCORD_CATEGORIES = [
   'Text Channels', 'Voice Channels', 'Salons vocaux', 'Salons textuels'
 ];
 
+const DEFAULT_DISCORD_ORPHAN_CHANNELS = [
+  'maj-securite', 'update-safety', 'safety-updates'
+];
+
 async function adoptLinkedChannels(guild) {
   const guildId = guild.id;
   await guild.channels.fetch().catch(() => {});
@@ -1006,12 +1010,18 @@ async function adoptLinkedChannels(guild) {
     }
   }
 
+  for (const orphanName of DEFAULT_DISCORD_ORPHAN_CHANNELS) {
+    const ch = guild.channels.cache.find((c) => c.name === orphanName && !c.parentId);
+    if (ch) await ch.delete('Guardian setup — channel système Discord non utilisé').catch(() => {});
+  }
+
   for (const catName of DEFAULT_DISCORD_CATEGORIES) {
     const cat = findCategoryByName(guild, catName);
     if (!cat) continue;
+    await guild.channels.fetch().catch(() => {});
     const children = guild.channels.cache.filter((c) => c.parentId === cat.id);
     if (children.size === 0) {
-      await cat.delete('Guardian setup — empty default category').catch(() => {});
+      await cat.delete('Guardian setup — catégorie Discord par défaut vide').catch(() => {});
     }
   }
 }
