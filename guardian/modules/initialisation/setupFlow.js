@@ -958,6 +958,19 @@ async function createRolesAutoHelper(interaction, guild, guildId) {
   setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
   setGuildSetting(guildId, 'setup', 'fresh_install', false);
   setGradeCursor(guildId, 0);
+  try {
+    const ownerRoleId = getGradeMappings(guildId)[GRADE_NAMES.owner];
+    const ownerRole = ownerRoleId && guild.roles.cache.get(ownerRoleId);
+    const botMember = guild.members.me;
+    const botRole = botMember?.roles?.botRole;
+    if (ownerRole && botRole && botRole.position <= ownerRole.position) {
+      await guild.roles.setPositions([
+        { role: botRole.id, position: ownerRole.position + 1 }
+      ]).catch((err) => logger.warn(`[setup] Failed to reposition bot role: ${err?.message}`));
+    }
+  } catch (err) {
+    logger.warn(`[setup] Failed to reposition bot role: ${err?.message}`);
+  }
   await renderStep(interaction, 1);
 }
 
@@ -2088,6 +2101,15 @@ async function handleSetupInteraction(interaction) {
     }
     await interaction.message.delete().catch(() => {});
     const guild = interaction.guild;
+    try {
+      const ownerRoleForPos = guild?.roles?.cache?.get(ownerRoleId);
+      const botRole = guild?.members?.me?.roles?.botRole;
+      if (ownerRoleForPos && botRole && botRole.position <= ownerRoleForPos.position) {
+        await guild.roles.setPositions([
+          { role: botRole.id, position: ownerRoleForPos.position + 1 }
+        ]).catch((err) => logger.warn(`[setup] reposition bot role failed: ${err?.message}`));
+      }
+    } catch {}
     const mappingsForSecurity = getGradeMappings(guildId);
     const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
     const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
