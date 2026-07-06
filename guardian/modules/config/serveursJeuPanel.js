@@ -3,6 +3,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
   ModalBuilder,
+  StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle
 } = require('discord.js');
@@ -15,8 +16,8 @@ const { logConfigChange } = require('./configLogger');
 const { getDb } = require('../../database/db');
 
 const IDS = Object.freeze({
-  addServer: 'serveurs-jeu:add',
-  addModal: 'serveurs-jeu:modal:add',
+  gameSelect: 'serveurs-jeu:game-select',
+  addModalPrefix: 'serveurs-jeu:modal:add:',
   removePrefix: 'serveurs-jeu:remove:',
   approvePrefix: 'servers:approve:',
   rejectPrefix: 'servers:reject:'
@@ -54,20 +55,35 @@ function buildPanelContent(guildId) {
   return lines.join('\n');
 }
 
+function getGuildGames(guildId) {
+  return getDb().prepare('SELECT game_id, name FROM games WHERE guild_id = ? ORDER BY name').all(guildId);
+}
+
 function buildRows(guildId) {
   const servers = getServers(guildId).slice(0, 4);
+  const games = getGuildGames(guildId);
+  const rows = [];
+
+  if (games.length > 0) {
+    const options = games.slice(0, 25).map((g) => ({
+      label: g.name.slice(0, 100),
+      value: String(g.game_id),
+      description: `Ajouter un serveur pour ${g.name}`.slice(0, 100)
+    }));
+    rows.push(new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(IDS.gameSelect)
+        .setPlaceholder(t(guildId, 'config.serveursJeu.add'))
+        .addOptions(options)
+    ));
+  }
+
   const removeButtons = servers.map((s) =>
     new ButtonBuilder()
       .setCustomId(`${IDS.removePrefix}${s.server_id}`)
       .setLabel(`Retirer: ${s.name.slice(0, 20)}`)
       .setStyle(ButtonStyle.Danger)
   );
-
-  const rows = [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(IDS.addServer).setLabel(t(guildId, 'config.serveursJeu.add')).setStyle(ButtonStyle.Primary)
-    )
-  ];
   if (removeButtons.length > 0) {
     rows.push(new ActionRowBuilder().addComponents(removeButtons));
   }
@@ -127,31 +143,33 @@ async function handleServeursJeuInteraction(interaction) {
     return true;
   }
 
-  if (interaction.isButton() && customId === IDS.addServer) {
+  if (interaction.isStringSelectMenu() && customId === IDS.gameSelect) {
+    const gameId = interaction.values?.[0];
+    const game = getDb().prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(guildId, gameId);
+    if (!game) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
     const modal = new ModalBuilder()
-      .setCustomId(IDS.addModal)
+      .setCustomId(`${IDS.addModalPrefix}${game.game_id}`)
       .setTitle(t(guildId, 'config.serveursJeu.addModalTitle'))
       .addComponents(
         new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('name').setLabel(t(guildId, 'config.serveursJeu.nameLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50)
+          new TextInputBuilder().setCustomId('name').setLabel(t(guildId, 'config.serveursJeu.nameLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50).setValue(game.name)
         ),
         new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('game').setLabel(t(guildId, 'config.serveursJeu.gameLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50)
+          new TextInputBuilder().setCustomId('ip').setLabel(t(guildId, 'config.serveursJeu.ipLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(100).setPlaceholder('Ex: 192.168.1.1 ou play.monserveur.com')
         ),
         new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('ip').setLabel(t(guildId, 'config.serveursJeu.ipLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50)
-        ),
-        new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('port').setLabel(t(guildId, 'config.serveursJeu.portLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(6)
+          new TextInputBuilder().setCustomId('port').setLabel(t(guildId, 'config.serveursJeu.portLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(6).setPlaceholder('Ex: 25565')
         )
       );
     await interaction.showModal(modal);
     return true;
   }
 
-  if (interaction.isModalSubmit() && customId === IDS.addModal) {
+  if (interaction.isModalSubmit() && customId?.startsWith(IDS.addModalPrefix)) {
+    const gameId = customId.slice(IDS.addModalPrefix.length);
+    const game = getDb().prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(guildId, gameId);
+    const gameName = game?.name ?? 'Inconnu';
     const name = interaction.fields.getTextInputValue('name').trim();
-    const game = interaction.fields.getTextInputValue('game').trim();
     const ip = interaction.fields.getTextInputValue('ip').trim();
     const portRaw = interaction.fields.getTextInputValue('port').trim();
     const port = Number.parseInt(portRaw, 10);
@@ -163,9 +181,9 @@ async function handleServeursJeuInteraction(interaction) {
 
     getDb().prepare(
       'INSERT INTO servers_jeu (guild_id, name, game, ip, port, approved) VALUES (?, ?, ?, ?, ?, 1)'
-    ).run(guildId, name, game, ip, port);
+    ).run(guildId, name, gameName, ip, port);
 
-    await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.add', null, { name, game, ip, port });
+    await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.add', null, { name, game: gameName, ip, port });
     await refreshServeursJeuPanel(interaction.guild);
     await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.added', { name }));
     return true;

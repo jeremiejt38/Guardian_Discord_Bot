@@ -363,25 +363,25 @@ async function seedStaticInfoMessage(channel, key) {
   if (!channel?.isTextBased?.() || channel.lastMessageId) {
     return;
   }
-
-  await channel.send(tForLanguage(getGuildLanguage(channel.guild.id), key));
+  const content = tForLanguage(getGuildLanguage(channel.guild.id), key);
+  const msg = await channel.send(content).catch(() => null);
+  if (msg) setTimeout(() => msg.delete().catch(() => {}), 8000);
 }
 
 async function seedVoiceCreateMessage(channel) {
   if (channel.lastMessageId) {
     return;
   }
-
   const button = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('creer:open').setLabel(t(channel.guild.id, 'init.createChannel')).setStyle(ButtonStyle.Primary)
   );
-
   await channel.send({ content: t(channel.guild.id, 'init.voiceCreate'), components: [button] });
 }
 
 async function seedGuardianConfigMessage(channel, options = {}) {
   if (options.withGameListButton && !channel.lastMessageId) {
-    await channel.send({ components: [buildOpenButtonRow(channel.guild.id)] }).catch(() => {});
+    const msg = await channel.send({ components: [buildOpenButtonRow(channel.guild.id)] }).catch(() => null);
+    if (msg) setTimeout(() => msg.delete().catch(() => {}), 8000);
   }
 }
 
@@ -389,8 +389,8 @@ async function seedServerManagementPlaceholder(channel) {
   if (channel.lastMessageId) {
     return;
   }
-
-  await channel.send(t(channel.guild.id, 'init.serverPlaceholder'));
+  const msg = await channel.send(t(channel.guild.id, 'init.serverPlaceholder')).catch(() => null);
+  if (msg) setTimeout(() => msg.delete().catch(() => {}), 8000);
 }
 
 async function seedServeursListMessage(channel) {
@@ -424,12 +424,13 @@ async function createInformationsArea(guild, roleMap) {
     }
   ];
 
-  const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions);
-  const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions);
+  const guildIdI = guild.id;
+  const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions, { topic: t('init.topics.welcome', {}, { guildId: guildIdI }) });
+  const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions, { topic: t('init.topics.rules', {}, { guildId: guildIdI }) });
   const announcementsChannel = await ensureAnnouncementChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
   const faqChannel = await ensureForumChannel(guild, null, CHANNELS.faq, readOnlyPermissions);
 
-  await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+  await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap), { topic: t('init.topics.requests', {}, { guildId: guildIdI }) });
 
   await seedStaticInfoMessage(welcomeChannel, 'init.welcomeInfo');
   await seedStaticInfoMessage(rulesChannel, 'init.rules');
@@ -453,14 +454,15 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
     ? buildGeneralPermissions(guild, roleMap)
     : buildHiddenPermissions(guild, ownerId);
 
-  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions);
+  const guildIdC = guild.id;
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions, { topic: t('init.topics.general', {}, { guildId: guildIdC }) });
 
-  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap), { topic: t('init.topics.requests', {}, { guildId: guildIdC }) });
 
   const memberReadPermissions = [
     { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] }
   ];
-  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.serverList, memberReadPermissions);
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.serverList, memberReadPermissions, { topic: t('init.topics.serverList', {}, { guildId: guildIdC }) });
 
   const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
   if (suggestionsEnabled) {
@@ -480,12 +482,13 @@ async function createVocalArea(guild, ownerId) {
     { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
   ]);
 
+  const guildIdV = guild.id;
   const voiceCreateChannel = await ensureTextChannel(guild, vocauxCategory.id, CHANNELS.voiceCreate, [
     {
       id: guild.roles.everyone.id,
       allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
     }
-  ]);
+  ], { topic: t('init.topics.voiceCreate', {}, { guildId: guildIdV }) });
 
   await ensureVoiceChannel(guild, vocauxCategory.id, CHANNELS.voiceGeneral, [
     {
