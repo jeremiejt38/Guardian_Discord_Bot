@@ -1,6 +1,63 @@
 const path = require('path');
 const GAMES_LIST = require(path.join(__dirname, '../../data/steamGames.json'));
 
+const ALIASES = {
+  'cs2': 'counter-strike 2',
+  'csgo': 'counter-strike 2',
+  'cs': 'counter-strike 2',
+  'counterstrike': 'counter-strike 2',
+  'gta': 'grand theft auto v',
+  'gtav': 'grand theft auto v',
+  'gta5': 'grand theft auto v',
+  'gta-v': 'grand theft auto v',
+  'tf2': 'team fortress 2',
+  'poe': 'path of exile',
+  'poe2': 'path of exile 2',
+  'dbd': 'dead by daylight',
+  'r6': 'rainbow six siege',
+  'r6s': 'rainbow six siege',
+  'lol': 'league of legends',
+  'wow': 'world of warcraft',
+  'wow2': 'world of warcraft',
+  'eft': 'escape from tarkov',
+  'wot': 'world of tanks',
+  'wows': 'world of warships',
+  'ff14': 'final fantasy xiv',
+  'ffxiv': 'final fantasy xiv',
+  'bdo': 'black desert online',
+  'gw2': 'guild wars 2',
+  'bo3': 'call of duty',
+  'warzone': 'call of duty',
+  'mw2': 'call of duty',
+  'cod': 'call of duty',
+  'hll': 'hell let loose',
+  'rdr2': 'red dead redemption 2',
+  'nms': 'no mans sky',
+  'ror2': 'risk of rain 2',
+  'sts': 'slay the spire',
+  'ck3': 'crusader kings iii',
+  'ck2': 'crusader kings iii',
+  'eu4': 'europa universalis iv',
+  'hoi4': 'hearts of iron iv',
+  'vic3': 'victoria 3',
+  'bg3': 'baldurs gate 3',
+  'dos2': 'divinity original sin 2',
+  'mhw': 'monster hunter world',
+  'mhr': 'monster hunter rise',
+  'mhwilds': 'monster hunter wilds',
+  'ds3': 'dark souls iii',
+  'er': 'elden ring',
+  'sekiro': 'sekiro shadows die twice',
+  'dmc5': 'devil may cry 5',
+  'fc24': 'ea sports fc 25',
+  'fc25': 'ea sports fc 25',
+  'fc26': 'ea sports fc 26',
+  'fifa24': 'ea sports fc 25',
+  'v-rising': 'v rising',
+  'vrising': 'v rising',
+};
+
+
 const GENERIC_CHANNEL_NAMES = new Set([
   'general', 'general-vocal', 'general-text', 'annonces', 'announcements',
   'news', 'info', 'infos', 'help', 'aide', 'bot', 'bots', 'log', 'logs',
@@ -26,11 +83,13 @@ function normalize(str) {
  * @returns {{ name: string, appid: number } | null}
  */
 function matchGameFromChannelName(channelBaseName) {
-  const input = normalize(channelBaseName);
+  const raw = channelBaseName.toLowerCase().trim();
+  if (GENERIC_CHANNEL_NAMES.has(raw)) return null;
+
+  const resolvedName = ALIASES[normalize(channelBaseName)] ?? channelBaseName;
+  const input = normalize(resolvedName);
 
   if (input.length < 2) return null;
-  if (GENERIC_CHANNEL_NAMES.has(channelBaseName.toLowerCase())) return null;
-  if (GENERIC_CHANNEL_NAMES.has(input)) return null;
 
   let bestMatch = null;
   let bestScore = 0;
