@@ -141,32 +141,51 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 ### v0.10.x — Robustesse & Notifications
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.10.5** | 2026-07-06 | Tests E2E intégration — 8 tests, 6 flows complets (setup, jeux, membres, modération, migrations, notifs), 89 tests total ← *actuel* |
+| v0.10.5 | 2026-07-06 | Tests E2E intégration — 6 flows complets (setup, jeux, membres, modération, migrations, notifs) |
 | v0.10.4 | 2026-07-06 | Commande `/help` contextuelle — 7 modules, embeds couleur, i18n FR+EN |
+| v0.10.3.1 | 2026-07-06 | Chore: bump version + suppression module richPresence orphelin + console.log → logger.debug |
 | v0.10.3 | 2026-07-06 | Gestion erreurs Discord 50013/50001 — `safeDiscordAction`, filet global `interactionCreate` |
 | v0.10.2 | 2026-07-06 | Validation `#général` requis step 3 + pagination jeux step 6 (3/page, illimité) |
-| v0.10.1 | 2026-07-06 | Migrations DB versionnées (`MIGRATIONS` array), migrations Discord versionnées (`channelMigrations`), version bot dans wizard |
+| v0.10.1 | 2026-07-06 | Migrations Discord versionnées (`channelMigrations`), version bot dans wizard |
+| v0.10.0.1 | 2026-07-06 | Refactor: migration DB versionnée (MIGRATIONS array) + logger dans db.js |
 | v0.10.0 | 2026-07-06 | Notifications DM configurables — 8 catégories, panel `#guardian`, détection MAJ bot au démarrage |
 
 ### v0.9.x — UX & Polish
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.9.3** | 2026-07-06 | Écran communautaire enrichi (prérequis vérifiés dynamiquement, avantages, procédure), polish UX steps 2/5/7, i18n FR+EN aligné |
+| v0.9.3 | 2026-07-06 | Écran communautaire enrichi (prérequis vérifiés dynamiquement, avantages, procédure), polish UX steps 2/5/7, i18n FR+EN aligné |
+| v0.9.2.1 | 2026-07-06 | Security: gate server buttons + tests 13 modules + patch undici |
 | v0.9.2 | 2026-07-06 | README réécriture complète, badges, tableau versioning |
+| v0.9.1.1 | 2026-07-06 | Feat: modLog.js + /config-games + text_channel_enabled + step8 résumé + i18n DE |
 | v0.9.1 | 2026-07-06 | Détection jeux existants au setup, liaison channels par jeu, `text_channel_enabled` désactivé par défaut, emojis sur tous les boutons |
+| v0.9.0.1 | 2026-07-06 | Feat: détection jeux existants + liaison channels + emojis boutons setup |
 | v0.9.0 | 2026-07-05 | Topics i18n sur tous les channels Guardian, suppression messages `configReady`, slots `communityOnly` filtrés |
 
 ### v0.8.x — Wizard setup complet
 | Version | Date | Contenu |
 |---------|------|---------|
-| v0.8.3 | 2026-07-04 | Channels Informations hors catégorie, catégorie setup en position 0, curseur step 3 fresh install |
-| v0.8.2 | 2026-07-04 | Recréation automatique du channel setup, fix anti-doublon `adoptLinkedChannels`, suppression channels orphelins |
+| v0.8.3.1 | 2026-07-05 | Feat: channels Informations hors catégorie + GuildAnnouncement + avertissement non-communautaire |
+| v0.8.3 | 2026-07-04 | Fix: catégorie setup position 0 + curseur step 3 repart de 0 sur fresh install |
+| v0.8.2.1 | 2026-07-04 | Cleanup: suppression fichiers obsolètes, fusion fr.json |
+| v0.8.2 | 2026-07-04 | Fix: recréation automatique du channel setup si absent lors du re-ajout du bot |
+| v0.8.1.1 | 2026-07-04 | Feat: adoptLinkedChannels + suppression orphelins + maj-securite channel + réordonnancement slots |
 | v0.8.1 | 2026-07-04 | Panels `#bot` et `#guardian`, restructuration config (fusion jeux/changelogs/serveurs), adoption channels liés |
+| v0.8.0.9 | 2026-07-04 | Fix: vocal temp, seeds, createRolesAutoHelper, deploy-commands, step3 slots, tempVoice rétrocompat |
+| v0.8.0.8 | 2026-07-04 | Feat: catégories emoji+majuscule ordre canonique + guildCreate auto-setup + re-join conserve paramètres |
+| v0.8.0.7 | 2026-07-04 | Feat: step6 toggle galerie/changelog/texte, Steam Store API, modal édition, max 3 jeux boutons |
+| v0.8.0.6 | 2026-07-04 | UX: step1 toggle Invité + step6 modal ajout/modifier/supprimer jeu + boutons Reprendre/Finaliser + pastilles |
+| v0.8.0.5 | 2026-07-04 | Feat: wizard 7 étapes — step4 Vocaux, welcome_text, blacklist_words, récap + purge setup au démarrage |
+| v0.8.0.4 | 2026-07-04 | Feat: setup context detection fresh/existing/reinstall + auto-map roles + flux 3 cas |
+| v0.8.0.3 | 2026-07-04 | Feat: slow mode panel + behavior thresholds panel + spec compliance config panels |
+| v0.8.0.2 | 2026-07-04 | Feat: setup wizard spec-aligned + members promotion flow + reports module + i18n |
+| v0.8.0.1 | 2026-07-04 | Refactor: shared utilities — moderation-role helper, replyEphemeral, memberHasAnyRole |
 | v0.8.0 | 2026-07-03 | Wizard setup interactif 8 étapes complet, `guildCreate` auto-setup, seeds, onboarding, i18n |
 
 ### v0.7.x — Configuration persistante
 | Version | Date | Contenu |
 |---------|------|---------|
+| v0.7.2 | 2026-07-03 | Fix(servers): NULL default last_status + test intégration servers persistence |
+| v0.7.1 | 2026-07-03 | Feat(init): interactive setup, seeds, onboarding channels, servers & i18n — squash |
 | v0.7.0 | 2026-06-xx | Surfaces de configuration persistantes (panels config, i18n, permissions, panneaux admin) |
 
 ### v0.6.x — Modération
@@ -177,6 +196,7 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 ### v0.5.x — Vocaux
 | Version | Date | Contenu |
 |---------|------|---------|
+| v0.5.1 | 2026-06-xx | Feat(phase-6): modération complète et score comportemental |
 | v0.5.0 | 2026-06-xx | Salons vocaux temporaires : création à la demande, suppression auto, préfixe/suffixe/limite |
 
 ### v0.4.x — Jeux
@@ -197,6 +217,7 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 ### v0.1.x — Fondations
 | Version | Date | Contenu |
 |---------|------|---------|
+| v0.1.1 | 2026-06-xx | Feat: strengthen guardian core setup and changelog workflow |
 | v0.1.0 | 2026-06-xx | Scaffold architecture (modules, BDD SQLite, structure de base) |
 
 ---
