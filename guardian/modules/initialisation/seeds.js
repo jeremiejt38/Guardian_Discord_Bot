@@ -14,6 +14,8 @@ const { seedChangelogsPanel } = require('../config/changelogsPanel');
 const { seedServeursJeuPanel } = require('../config/serveursJeuPanel');
 const { seedRolesPanel } = require('../config/rolesPanel');
 const { seedStatusBotPanel } = require('../config/statusBotPanel');
+const { seedBotPanel } = require('../config/botPanel');
+const { seedGuardianPanel } = require('../config/guardianPanel');
 
 async function seedGuildMessages(guild) {
   try {
@@ -75,6 +77,8 @@ async function seedGuildMessages(guild) {
     await seedServeursJeuPanel(guild);
     await seedRolesPanel(guild);
     await seedStatusBotPanel(guild);
+    await seedBotPanel(guild);
+    await seedGuardianPanel(guild);
   } catch (error) {
     logger.error('Failed to seed guild messages', error);
   }

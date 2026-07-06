@@ -309,6 +309,35 @@
       "uptime": "Uptime",
       "modules": "Modules actifs",
       "lastUpdate": "Derniere mise a jour"
+    },
+    "bot": {
+      "title": "Configuration Bot",
+      "language": "Langue",
+      "steamKey": "Cle Steam API",
+      "editLanguage": "Changer la langue",
+      "editSteamKey": "Configurer Steam API",
+      "languageModalTitle": "Changer la langue du bot",
+      "languageLabel": "Code langue (disponibles: {{available}})",
+      "languageUpdated": "Langue mise a jour : {{lang}}.",
+      "invalidLanguage": "Langue invalide. Disponibles : {{available}}.",
+      "steamKeyModalTitle": "Cle Steam API",
+      "steamKeyLabel": "Entrez votre cle Steam API (laisser vide pour supprimer)",
+      "steamKeySet": "Cle Steam API enregistree.",
+      "steamKeyCleared": "Cle Steam API supprimee."
+    },
+    "guardian": {
+      "title": "Tableau de bord Guardian",
+      "members": "Membres en base",
+      "games": "Jeux configures",
+      "setupStep": "Etape setup",
+      "language": "Langue active",
+      "steamKey": "Steam API",
+      "hint": "Utilisez les boutons pour rafraichir tous les panels ou synchroniser les membres.",
+      "refreshPanels": "Rafraichir tous les panels",
+      "syncMembers": "Synchroniser les membres",
+      "panelsRefreshed": "Tous les panels ont ete rafraichis.",
+      "syncDone": "{{count}} nouveau(x) membre(s) synchronise(s).",
+      "syncFailed": "Erreur lors de la synchronisation des membres."
     }
   },
   "servers": {
