@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.9.1-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.9.3-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -131,21 +131,93 @@ lando test
 
 ---
 
-## 📦 Versioning
+## 📦 Changelog
 
-| Version | Contenu |
-|---------|---------|
-| v0.1.0 | Scaffold architecture (modules, BDD, structure) |
-| v0.2.0 | Flow d'initialisation (wizard, rôles, channels) |
-| v0.3.0 | Workflow membres & promotions |
-| v0.4.0 | Opt-in jeux & gestion serveurs de jeu |
-| v0.5.0 | Salons vocaux temporaires |
-| v0.6.0 | Modération complète (score, blacklist, spam, Steam) |
-| v0.7.0 | Surfaces de configuration persistantes |
-| v0.8.0 | Wizard setup interactif 8 étapes complet |
-| v0.9.0 | UX setup : serveurs communautaires, topics i18n, avertissements |
-| **v0.9.1** | **Détection jeux existants, liaison channels, emojis boutons** ← *actuel* |
-| v1.0.0 | *(à venir)* Release publique |
+### v0.9.x — UX & Polish
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.9.3** | 2026-07-06 | Écran communautaire enrichi (prérequis vérifiés dynamiquement, avantages, procédure), polish UX steps 2/5/7, i18n FR+EN aligné ← *actuel* |
+| v0.9.2 | 2026-07-06 | README réécriture complète, badges, tableau versioning |
+| v0.9.1 | 2026-07-06 | Détection jeux existants au setup, liaison channels par jeu, `text_channel_enabled` désactivé par défaut, emojis sur tous les boutons |
+| v0.9.0 | 2026-07-05 | Topics i18n sur tous les channels Guardian, suppression messages `configReady`, slots `communityOnly` filtrés |
+
+### v0.8.x — Wizard setup complet
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.8.3 | 2026-07-04 | Channels Informations hors catégorie, catégorie setup en position 0, curseur step 3 fresh install |
+| v0.8.2 | 2026-07-04 | Recréation automatique du channel setup, fix anti-doublon `adoptLinkedChannels`, suppression channels orphelins |
+| v0.8.1 | 2026-07-04 | Panels `#bot` et `#guardian`, restructuration config (fusion jeux/changelogs/serveurs), adoption channels liés |
+| v0.8.0 | 2026-07-03 | Wizard setup interactif 8 étapes complet, `guildCreate` auto-setup, seeds, onboarding, i18n |
+
+### v0.7.x — Configuration persistante
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.7.0 | 2026-06-xx | Surfaces de configuration persistantes (panels config, i18n, permissions, panneaux admin) |
+
+### v0.6.x — Modération
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.6.0 | 2026-06-xx | Modération complète : score comportemental, blacklist, anti-spam, logs, Steam changelogs |
+
+### v0.5.x — Vocaux
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.5.0 | 2026-06-xx | Salons vocaux temporaires : création à la demande, suppression auto, préfixe/suffixe/limite |
+
+### v0.4.x — Jeux
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.4.0 | 2026-06-xx | Opt-in jeux, gestion serveurs de jeu, intégration Steam Store API |
+
+### v0.3.x — Membres
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.3.0 | 2026-06-xx | Workflow membres & promotions (Invite → Membre, parrainage, expulsion auto) |
+
+### v0.2.x — Initialisation
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.2.0 | 2026-06-xx | Flow d'initialisation Guardian (wizard, rôles, channels, onboarding) |
+
+### v0.1.x — Fondations
+| Version | Date | Contenu |
+|---------|------|---------|
+| v0.1.0 | 2026-06-xx | Scaffold architecture (modules, BDD SQLite, structure de base) |
+
+---
+
+## 🎯 Roadmap v1.0.0
+
+Ce qui reste à faire avant la **release publique** :
+
+### 🔴 Bloquant
+- [ ] **Tests d'intégration end-to-end** — couvrir les flows complets (setup → finalisation → jeu → modération)
+- [ ] **Gestion des erreurs Discord 50013** — permissions manquantes : afficher un message explicite au lieu de crash silencieux
+- [ ] **Migration DB automatique** — gérer les montées de version de schéma sans perte de données
+- [ ] **Commande `/help`** — aide contextuelle par module avec exemples
+
+### 🟠 Important
+- [ ] **Multi-langues** — ajouter ES, DE, PT, IT, NL, PL, RU, ZH, JA, KO (structure prête, fichiers JSON à créer)
+- [ ] **Résumé post-installation** — message `#bienvenue` avec checklist des prochaines actions admins
+- [ ] **Pagination liste de jeux** — dépasser la limite de 3 jeux modifiables dans le wizard
+- [ ] **Validation step 3** — vérifier que le channel `#général` est bien configuré avant de passer à l'étape suivante
+- [ ] **Rate limiting** — protection contre les interactions trop rapides (debounce sur les boutons)
+
+### 🟡 Nice-to-have
+- [ ] **Tableau de bord web** — interface légère pour visualiser les stats sans ouvrir Discord
+- [ ] **Notifications Steam** — webhook direct depuis l'API Steam au lieu du polling
+- [ ] **Export config** — sauvegarder/restaurer la configuration d'un serveur en JSON
+- [ ] **Commande `/setup resume`** — reprendre le wizard depuis n'importe où via slash command
+- [ ] **Support forums Discord** — utiliser les Forum Channels pour suggestions et reports
+
+### ✅ Déjà fait (depuis v0.8.0)
+- [x] Wizard setup 8 étapes avec navigation complète
+- [x] Détection serveur communautaire avec prérequis vérifiés dynamiquement
+- [x] Détection et liaison automatique des channels de jeux existants
+- [x] `text_channel_enabled` désactivé par défaut, activable par jeu
+- [x] Polish UX complet (emojis, mise en page, descriptions claires)
+- [x] i18n FR + EN aligné sur toutes les clés
+- [x] Versioning sémantique complet (v0.1.0 → v0.9.3)
 
 ---
 
