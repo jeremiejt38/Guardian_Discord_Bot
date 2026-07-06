@@ -56,9 +56,7 @@ module.exports = {
         }
         setGuildSetting(guild.id, 'bot', 'last_version', version);
 
-        if (alreadyInstalled) {
-          await saveConfigBackup(guild).catch(() => {});
-        }
+        await saveConfigBackup(guild).catch(() => {});
       } catch (error) {
         logger.error(`Failed ready setup check for guild ${guild.id}`, error);
       }
