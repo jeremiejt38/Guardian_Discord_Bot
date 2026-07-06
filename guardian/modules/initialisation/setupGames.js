@@ -81,7 +81,7 @@ function updateSetupGame(guildId, gameId, patch = {}) {
   const db = getDb();
   const current = db
     .prepare(
-      `SELECT game_id, name, steam_app_id, galerie_enabled, changelog_enabled
+      `SELECT game_id, name, steam_app_id, galerie_enabled, changelog_enabled, text_channel_enabled
        FROM games
        WHERE guild_id = ? AND game_id = ?`
     )
