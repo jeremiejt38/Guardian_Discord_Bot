@@ -966,7 +966,13 @@ async function startWizardInChannel(interaction) {
     setGuildSetting(guildId, 'setup', 'step', 1);
     setGradeCursor(guildId, 0);
   } else if (step === 3) {
-    autoPositionChannelCursor(guildId);
+    const slots = getActiveSlotsForInstall(guildId);
+    const anyConfigured = slots.some((s) => getGuildSetting(guildId, s.settingSection, s.settingKey, null));
+    if (anyConfigured) {
+      autoPositionChannelCursor(guildId);
+    } else {
+      setChannelCursor(guildId, 0);
+    }
   }
   const payload = buildStepPayload(guildId, guild, step);
   try {
