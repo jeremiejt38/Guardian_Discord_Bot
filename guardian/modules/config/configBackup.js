@@ -147,7 +147,7 @@ async function saveConfigBackup(guild) {
     const encoded = encodeSnapshot(snapshot);
     const content = `${BACKUP_MARKER}\n\`\`\`\n${encoded}\n\`\`\`\n-# Sauvegarde automatique Guardian — ${snapshot._ts}`;
 
-    const pinned = await channel.messages.fetchPinned().catch(() => null);
+    const pinned = await channel.messages.fetchPins().catch(() => null);
     const existing = pinned?.find((m) => m.content.includes(BACKUP_MARKER) && m.author.id === guild.client?.user?.id);
 
     if (existing) {
@@ -178,7 +178,7 @@ async function restoreConfigFromBackup(guild) {
     );
     if (!channel) return false;
 
-    const messages = await channel.messages.fetch({ limit: 10 });
+    const messages = await channel.messages.fetch({ limit: 20 });
     const backupMsg = messages.find((m) => m.content.includes(BACKUP_MARKER));
     if (!backupMsg) return false;
 
@@ -193,6 +193,13 @@ async function restoreConfigFromBackup(guild) {
 
     applySnapshot(guild.id, snapshot);
     logger.info(`Guild ${guild.id}: config restored from #${BACKUP_CHANNEL_NAME} (snapshot from ${snapshot._ts})`);
+
+    if (snapshot.setup_step >= 8) {
+      const { markGuildInstalled } = require('../initialisation/checkInstall');
+      markGuildInstalled(guild.id, guild.ownerId);
+      logger.info(`Guild ${guild.id}: marked as installed after backup restore`);
+    }
+
     return true;
   } catch (err) {
     logger.warn(`Guild ${guild.id}: failed to restore config backup — ${err?.message}`);
