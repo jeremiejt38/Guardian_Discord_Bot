@@ -121,14 +121,15 @@ async function findOrCreateBackupChannel(guild) {
     (c) => c.name === BACKUP_CHANNEL_NAME && c.type === ChannelType.GuildText
   );
 
-  if (existing) {
-    await existing.permissionOverwrites.set(buildBackupPerms(guild)).catch(() => {});
-    return existing;
-  }
-
   const guardianCategory = guild.channels.cache.find(
     (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('guardian')
   );
+
+  if (existing) {
+    await existing.permissionOverwrites.set(buildBackupPerms(guild)).catch(() => {});
+    await positionBackupChannelLast(existing, guardianCategory).catch(() => {});
+    return existing;
+  }
 
   const channel = await guild.channels.create({
     name: BACKUP_CHANNEL_NAME,
@@ -138,7 +139,17 @@ async function findOrCreateBackupChannel(guild) {
     permissionOverwrites: buildBackupPerms(guild)
   });
 
+  await positionBackupChannelLast(channel, guardianCategory).catch(() => {});
   return channel;
+}
+
+async function positionBackupChannelLast(channel, category) {
+  if (!category) return;
+  const siblings = category.guild.channels.cache
+    .filter((c) => c.parentId === category.id && c.id !== channel.id)
+    .sort((a, b) => a.position - b.position);
+  const lastPos = siblings.size > 0 ? Math.max(...siblings.map((c) => c.position)) + 1 : 0;
+  await channel.setPosition(lastPos).catch(() => {});
 }
 
 // ─── Save backup ─────────────────────────────────────────────────────────────
