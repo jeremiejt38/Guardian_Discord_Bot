@@ -3,7 +3,8 @@ const { isGuildInstalled } = require('../modules/initialisation/checkInstall');
 const { createSetupArea, ensureSetupInstallPrompt } = require('../modules/initialisation/setup');
 const { applyPersistedSlowModeForGuild } = require('../modules/moderation/autoMod');
 const { ensureMemberGameInterfaces } = require('../modules/config/settings');
-const { setGuildSetting } = require('../modules/config/settings');
+const { setGuildSetting, getGuildSetting } = require('../modules/config/settings');
+const { detectLanguageFromLocale, tForLanguage } = require('../modules/i18n');
 const logger = require('../modules/logs/logger');
 
 async function detectInviter(guild) {
@@ -38,6 +39,8 @@ module.exports = {
 
       if (!installed) {
         const dmTargetId = inviterId ?? guild.ownerId;
+        const lang = detectLanguageFromLocale(guild.preferredLocale);
+        const _ = (key, vars) => tForLanguage(lang, `guildCreate.${key}`, vars);
         try {
           const dmTarget = await client.users.fetch(dmTargetId).catch(() => null);
           if (dmTarget) {
@@ -46,18 +49,18 @@ module.exports = {
               : null;
             await dmTarget.send({
               content: [
-                `## 👋 Guardian has been added to **${guild.name}**!`,
+                `## ${_('dmTitle', { guildName: guild.name })}`,
                 '',
-                `Thanks for inviting Guardian. A private setup channel has been created just for you.`,
+                _('dmBody'),
                 channelLink
-                  ? `\n➡️ **Start the setup here:** ${channelLink}`
-                  : `\n➡️ Look for the **#setup** channel in your server to get started.`,
+                  ? `\n${_('dmLink', { link: channelLink })}`
+                  : `\n${_('dmLinkFallback')}`,
                 '',
-                `> The setup channel is only visible to you and the server owner.`,
-                `> It takes about 5 minutes to configure Guardian for your server.`
+                _('dmFooter1'),
+                _('dmFooter2')
               ].join('\n')
             });
-            logger.info(`Guild ${guild.id}: DM sent to inviter/owner ${dmTargetId}`);
+            logger.info(`Guild ${guild.id}: DM sent to inviter/owner ${dmTargetId} (lang: ${lang})`);
           }
         } catch (err) {
           logger.warn(`Guild ${guild.id}: could not send DM to inviter/owner ${dmTargetId} — ${err?.message}`);

@@ -3,7 +3,7 @@ const path = require('path');
 const { getConfig, setConfig } = require('../../database/db');
 
 const LOCALES_DIR = path.resolve(__dirname, '../../locales');
-const DEFAULT_LANGUAGE = 'fr';
+const DEFAULT_LANGUAGE = 'en';
 
 let cache = null;
 
@@ -149,10 +149,10 @@ const DISCORD_LOCALE_MAP = {
  * @returns {string}
  */
 function detectLanguageFromLocale(discordLocale) {
-  if (!discordLocale) return normalizeLanguage(DEFAULT_LANGUAGE);
+  if (!discordLocale) return 'en';
   const available = getAvailableLanguages();
   const mapped = DISCORD_LOCALE_MAP[discordLocale] ?? discordLocale.split('-')[0];
-  return available.includes(mapped) ? mapped : normalizeLanguage(DEFAULT_LANGUAGE);
+  return available.includes(mapped) ? mapped : 'en';
 }
 
 function tForLanguage(language, key, variables = {}) {

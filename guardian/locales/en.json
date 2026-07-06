@@ -433,5 +433,13 @@
       "steamUpdate": "Steam update",
       "steamUpdateDesc": "DM to Owner/Manager when a new Steam changelog is published for a configured game."
     }
+  },
+  "guildCreate": {
+    "dmTitle": "👋 Guardian has been added to **{{guildName}}**!",
+    "dmBody": "Thanks for inviting Guardian. A private setup channel has been created just for you.",
+    "dmLink": "➡️ **Start the setup here:** {{link}}",
+    "dmLinkFallback": "➡️ Look for the **#setup** channel in your server to get started.",
+    "dmFooter1": "> The setup channel is only visible to you and the server owner.",
+    "dmFooter2": "> It takes about 5 minutes to configure Guardian for your server."
   }
 }

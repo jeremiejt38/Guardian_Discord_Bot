@@ -129,5 +129,13 @@
     "warn": { "description": "Mitglied verwarnen", "memberOption": "Mitglied", "reasonOption": "Grund", "success": "Verwarnung für {{member}} gespeichert." },
     "langue": { "description": "Bot-Sprache ändern", "optionCode": "Sprachcode", "updated": "Sprache aktualisiert: {{language}}." },
     "langues": { "description": "Verfügbare Sprachen auflisten", "title": "Verfügbare Sprachen", "current": "Aktuelle Sprache: {{language}} ({{code}}).", "item": "- {{language}} ({{code}})" }
+  },
+  "guildCreate": {
+    "dmTitle": "👋 Guardian wurde zu **{{guildName}}** hinzugefügt!",
+    "dmBody": "Danke für die Einladung. Ein privater Setup-Kanal wurde speziell für dich erstellt.",
+    "dmLink": "➡️ **Starte die Einrichtung hier:** {{link}}",
+    "dmLinkFallback": "➡️ Suche den **#setup**-Kanal auf deinem Server, um loszulegen.",
+    "dmFooter1": "> Der Setup-Kanal ist nur für dich und den Serverbesitzer sichtbar.",
+    "dmFooter2": "> Die Konfiguration dauert etwa 5 Minuten."
   }
 }
