@@ -3,6 +3,7 @@ const { isGuildInstalled } = require('./checkInstall');
 const { findCategoryByName } = require('../utils/channels');
 const { setGradeRole, ORDERED_GRADES } = require('./gradeMapping');
 const { getGuildSetting } = require('../config/settings');
+const logger = require('../logs/logger');
 
 const DISCORD_DEFAULT_CHANNELS = new Set([
   'général',
@@ -34,14 +35,14 @@ function detectGuardianInstall(guild) {
 
 function getInstallContext(guild) {
   const installed = isGuildInstalled(guild.id);
-  console.log(`[detectInstallContext] guild=${guild.id} isInstalled=${installed}`);
+  logger.debug(`[detectInstallContext] guild=${guild.id} isInstalled=${installed}`);
 
   if (installed) {
     return 'reinstall';
   }
 
   const hasGuardianSetup = detectGuardianInstall(guild);
-  console.log(`[detectInstallContext] detectGuardianInstall=${hasGuardianSetup} (looking for category: ${CATEGORIES.setup})`);
+  logger.debug(`[detectInstallContext] detectGuardianInstall=${hasGuardianSetup} (looking for category: ${CATEGORIES.setup})`);
 
   if (hasGuardianSetup) {
     return 'guardian_partial';
@@ -68,8 +69,8 @@ function getInstallContext(guild) {
       && !defaultCategoryIds.has(ch.parentId)
   );
 
-  console.log(`[detectInstallContext] nonDefaultRoles=${nonDefaultRoles.size} names=[${[...nonDefaultRoles.values()].map(r => r.name).join(', ')}]`);
-  console.log(`[detectInstallContext] nonDefaultChannels=${nonDefaultChannels.size} names=[${[...nonDefaultChannels.values()].map(c => c.name).join(', ')}]`);
+  logger.debug(`[detectInstallContext] nonDefaultRoles=${nonDefaultRoles.size} names=[${[...nonDefaultRoles.values()].map(r => r.name).join(', ')}]`);
+  logger.debug(`[detectInstallContext] nonDefaultChannels=${nonDefaultChannels.size} names=[${[...nonDefaultChannels.values()].map(c => c.name).join(', ')}]`);
 
   if (nonDefaultRoles.size > 0 || nonDefaultChannels.size > 0) {
     return 'existing_server';
