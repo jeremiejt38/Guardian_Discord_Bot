@@ -123,7 +123,11 @@ const CUSTOM_IDS = Object.freeze({
   channelAutoDetectAccept: 'setup:channel:autodetect:accept',
   channelAutoDetectSkip: 'setup:channel:autodetect:skip',
   notifyMembersYes: 'setup:notify-members:yes',
-  notifyMembersNo: 'setup:notify-members:no'
+  notifyMembersNo: 'setup:notify-members:no',
+  gameReviewRemovePrefix: 'setup:gamereview:remove:',
+  gameReviewAdd: 'setup:gamereview:add',
+  gameReviewAddModal: 'setup:gamereview:add:modal',
+  gameReviewContinue: 'setup:gamereview:continue'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -1248,6 +1252,59 @@ function buildGameDetectComponents(guild) {
       new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectSkip).setStyle(ButtonStyle.Secondary).setLabel('⏭️ Ignorer')
     )
   ];
+}
+
+function buildGameReviewContent(guildId) {
+  const games = getDetectedGames(guildId);
+  const lines = [
+    `## 🎮 Révision des jeux détectés`,
+    ''
+  ];
+  if (games.length === 0) {
+    lines.push('Aucun jeu dans la liste. Tu peux en ajouter manuellement ou continuer sans jeux.');
+  } else {
+    lines.push(`**${games.length} jeu(x) dans ta liste :**`, '');
+    for (const g of games) {
+      const displayName = g.steamName || g.baseName;
+      const steamLabel = g.steamAppId ? ` \`#${g.steamAppId}\`` : '';
+      const chCount = g.channels?.length ?? 0;
+      lines.push(`> 🎮 **${displayName}**${steamLabel}${chCount > 0 ? ` — ${chCount} salon(s) détecté(s)` : ''}`);
+    }
+  }
+  lines.push('', '> Supprime les jeux indésirables, ajoute-en de nouveaux, puis clique sur **Continuer**.');
+  return lines.join('\n');
+}
+
+function buildGameReviewComponents(guildId) {
+  const games = getDetectedGames(guildId);
+  const rows = [];
+
+  const removeButtons = games.slice(0, 4).map((g, idx) => {
+    const label = (g.steamName || g.baseName).slice(0, 20);
+    return new ButtonBuilder()
+      .setCustomId(`${CUSTOM_IDS.gameReviewRemovePrefix}${idx}`)
+      .setLabel(`🗑️ ${label}`)
+      .setStyle(ButtonStyle.Danger);
+  });
+
+  if (removeButtons.length > 0) {
+    for (let i = 0; i < removeButtons.length; i += 5) {
+      rows.push(new ActionRowBuilder().addComponents(removeButtons.slice(i, i + 5)));
+    }
+  }
+
+  rows.push(new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(CUSTOM_IDS.gameReviewAdd)
+      .setLabel('➕ Ajouter un jeu')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(CUSTOM_IDS.gameReviewContinue)
+      .setLabel('Continuer ➡️')
+      .setStyle(ButtonStyle.Primary)
+  ));
+
+  return rows;
 }
 
 const GAMELINK_TYPE_LABELS = Object.freeze({
@@ -2495,15 +2552,89 @@ async function handleSetupInteraction(interaction) {
     await interaction.deferUpdate().catch(() => {});
     const games = detectExistingGameChannels(interaction.guild);
     setDetectedGames(guildId, games);
+    await interaction.message.edit({
+      content: buildGameReviewContent(guildId) + '\n\u200b',
+      components: buildGameReviewComponents(guildId)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameReviewContinue) {
+    await interaction.deferUpdate().catch(() => {});
+    const games = getDetectedGames(guildId);
     setGameLinkCursor(guildId, 0);
     setGameLinkActiveType(guildId, null);
     for (const g of games) {
       const existing = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === (g.steamName || g.baseName).toLowerCase());
       if (!existing) addSetupGame(guildId, { name: g.steamName || g.baseName, steam_app_id: g.steamAppId || null });
     }
+    if (games.length === 0) {
+      setGuildSetting(guildId, 'setup', 'step', 3);
+      setChannelCursor(guildId, 0);
+      const detectedC = autoDetectGuardianChannels(interaction.guild);
+      const slotsC = getActiveSlotsForInstall(guildId, interaction.guild);
+      const anyFoundC = slotsC.some((s) => detectedC[s.key]);
+      if (anyFoundC && !getGuildSetting(guildId, 'setup', 'channel_autodetect_done', false)) {
+        await interaction.message.edit({
+          content: buildChannelAutoDetectContent(guildId, interaction.guild) + '\n\u200b',
+          components: buildChannelAutoDetectComponents()
+        }).catch(() => {});
+      } else {
+        await renderStep(interaction, 3);
+      }
+    } else {
+      await interaction.message.edit({
+        content: buildGameLinkContent(guildId) + '\n\u200b',
+        components: buildGameLinkComponents(guildId, interaction.guild)
+      }).catch(() => {});
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameReviewAdd) {
+    const modal = new ModalBuilder()
+      .setCustomId(CUSTOM_IDS.gameReviewAddModal)
+      .setTitle('Ajouter un jeu')
+      .addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('name')
+            .setLabel('Nom du jeu')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMaxLength(80)
+            .setPlaceholder('Ex: Minecraft, Valorant…')
+        )
+      );
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.gameReviewAddModal) {
+    await interaction.deferUpdate().catch(() => {});
+    const name = interaction.fields.getTextInputValue('name').trim();
+    if (name) {
+      const steamMatch = matchGameFromChannelName(name);
+      const games = getDetectedGames(guildId);
+      games.push({ baseName: name, channels: [], steamName: steamMatch?.name ?? null, steamAppId: steamMatch?.appid ?? null });
+      setDetectedGames(guildId, games);
+    }
     await interaction.message.edit({
-      content: buildGameLinkContent(guildId) + '\n\u200b',
-      components: buildGameLinkComponents(guildId, interaction.guild)
+      content: buildGameReviewContent(guildId) + '\n\u200b',
+      components: buildGameReviewComponents(guildId)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.isButton() && interaction.customId.startsWith(CUSTOM_IDS.gameReviewRemovePrefix)) {
+    await interaction.deferUpdate().catch(() => {});
+    const idx = Number(interaction.customId.slice(CUSTOM_IDS.gameReviewRemovePrefix.length));
+    const games = getDetectedGames(guildId);
+    games.splice(idx, 1);
+    setDetectedGames(guildId, games);
+    await interaction.message.edit({
+      content: buildGameReviewContent(guildId) + '\n\u200b',
+      components: buildGameReviewComponents(guildId)
     }).catch(() => {});
     return true;
   }
