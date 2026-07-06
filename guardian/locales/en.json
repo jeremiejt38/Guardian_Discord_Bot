@@ -394,5 +394,27 @@
       "current": "Current language: {{language}} ({{code}}).",
       "item": "- {{language}} ({{code}})"
     }
+  },
+  "notifications": {
+    "panelTitle": "DM Notifications",
+    "panelDesc": "Configure private message alerts sent to the relevant roles. Critical notifications are enabled by default.",
+    "cat": {
+      "botUpdate": "Bot update",
+      "botUpdateDesc": "DM sent to Owner/Manager when Guardian restarts with a new version.",
+      "botError": "Critical error",
+      "botErrorDesc": "DM sent on fatal error or unhandled exception.",
+      "setupIncomplete": "Incomplete setup",
+      "setupIncompleteDesc": "Reminder to the Owner if the configuration wizard is not finalized.",
+      "moderationAlert": "Moderation alert",
+      "moderationAlertDesc": "DM to Moderators/Managers for major automatic sanctions (auto-ban, flood…).",
+      "memberJoin": "New member",
+      "memberJoinDesc": "DM to Owner/Manager each time a new member joins.",
+      "promotionRequest": "Promotion request",
+      "promotionRequestDesc": "DM to the team when a Guest submits a Member promotion request.",
+      "serverStatus": "Game server status",
+      "serverStatusDesc": "DM to Owner/Manager when a monitored game server goes offline or comes back online.",
+      "steamUpdate": "Steam update",
+      "steamUpdateDesc": "DM to Owner/Manager when a new Steam changelog is published for a configured game."
+    }
   }
 }
