@@ -7,7 +7,7 @@ const {
   TextInputBuilder,
   TextInputStyle
 } = require('discord.js');
-const { GRADE_NAMES } = require('../../config');
+const { GRADE_NAMES, CHANNELS, CATEGORIES } = require('../../config');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
 const {
@@ -1047,10 +1047,23 @@ function normalizeGameSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
 
+const GUARDIAN_RESERVED_CHANNEL_NAMES = new Set(Object.values(CHANNELS));
+const GUARDIAN_RESERVED_CATEGORY_NAMES = new Set(Object.values(CATEGORIES));
+
 function detectExistingGameChannels(guild) {
-  const allText = [...guild.channels.cache.values()].filter(
-    (c) => c.type === 0 || c.type === 5 || c.type === 15
+  const guardianCategoryIds = new Set(
+    [...guild.channels.cache.values()]
+      .filter((c) => c.type === 4 && GUARDIAN_RESERVED_CATEGORY_NAMES.has(c.name))
+      .map((c) => c.id)
   );
+
+  const allText = [...guild.channels.cache.values()].filter((c) => {
+    if (c.type !== 0 && c.type !== 5 && c.type !== 15) return false;
+    if (GUARDIAN_RESERVED_CHANNEL_NAMES.has(c.name)) return false;
+    if (c.parentId && guardianCategoryIds.has(c.parentId)) return false;
+    return true;
+  });
+
   const gameMap = new Map();
   for (const ch of allText) {
     const n = ch.name;
