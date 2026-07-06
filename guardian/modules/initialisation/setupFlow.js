@@ -9,7 +9,7 @@ const {
 } = require('discord.js');
 const { GRADE_NAMES, CHANNELS, CATEGORIES } = require('../../config');
 const { matchGameFromChannelName } = require('../games/steamGamesList');
-const { analyzeNonGuardianRoles, buildSecurityCheckContent } = require('./roleSecurityCheck');
+const { analyzeNonGuardianRoles, buildSecurityCheckContent, hasUnresolvedIssues } = require('./roleSecurityCheck');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
 const {
@@ -116,7 +116,8 @@ const CUSTOM_IDS = Object.freeze({
   securityDeleteUnused: 'setup:security:unused:delete',
   securityKeepUnused: 'setup:security:unused:keep',
   securityDeleteAllUnused: 'setup:security:unused:delete-all',
-  securityKeepAllUnused: 'setup:security:unused:keep-all'
+  securityKeepAllUnused: 'setup:security:unused:keep-all',
+  securityConfirmModal: 'setup:security:confirm-modal'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -1355,47 +1356,56 @@ async function advanceToStep2AfterSecurity(interaction, guildId) {
   }
 }
 
-function buildSecurityComponents(dangerous, unused, _) {
+function buildSecurityComponents(dangerous, unused, _, resolvedIds = new Set()) {
   const rows = [];
+  const allResolved = !hasUnresolvedIssues(dangerous, unused, resolvedIds);
 
   const unusedSlot = unused.length > 0 ? 1 : 0;
   const dangerousSlots = Math.min(dangerous.length, 4 - unusedSlot);
 
   for (const r of dangerous.slice(0, dangerousSlots)) {
+    const resolved = resolvedIds.has(r.id);
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.securityRoleAction}:${r.id}`)
-        .setLabel(_('roleSecurity.btnModify', { name: r.name }).slice(0, 80))
-        .setStyle(ButtonStyle.Danger)
+        .setLabel((resolved ? '🟢 ' : '🔐 ') + `@${r.name}`.slice(0, 77))
+        .setStyle(resolved ? ButtonStyle.Secondary : ButtonStyle.Danger)
+        .setDisabled(resolved)
     ));
   }
 
   if (unused.length === 1) {
     const r = unused[0];
-    rows.push(new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`${CUSTOM_IDS.securityDeleteUnused}:${r.id}`)
-        .setLabel(_('roleSecurity.btnDelete', { name: r.name }).slice(0, 40))
-        .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder()
-        .setCustomId(`${CUSTOM_IDS.securityKeepUnused}:${r.id}`)
-        .setLabel(_('roleSecurity.btnKeep', { name: r.name }).slice(0, 40))
-        .setStyle(ButtonStyle.Secondary)
-    ));
+    const resolved = resolvedIds.has(r.id);
+    if (!resolved) {
+      rows.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`${CUSTOM_IDS.securityDeleteUnused}:${r.id}`)
+          .setLabel(_('roleSecurity.btnDelete', { name: r.name }).slice(0, 40))
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId(`${CUSTOM_IDS.securityKeepUnused}:${r.id}`)
+          .setLabel(_('roleSecurity.btnKeep', { name: r.name }).slice(0, 40))
+          .setStyle(ButtonStyle.Secondary)
+      ));
+    }
   } else if (unused.length > 1) {
-    rows.push(new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.securityDeleteAllUnused)
-        .setLabel(_('roleSecurity.btnDeleteAll', { count: unused.length }).slice(0, 80))
-        .setStyle(ButtonStyle.Danger)
-    ));
+    const allUnusedResolved = unused.every(r => resolvedIds.has(r.id));
+    if (!allUnusedResolved) {
+      rows.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(CUSTOM_IDS.securityDeleteAllUnused)
+          .setLabel(_('roleSecurity.btnDeleteAll', { count: unused.length }).slice(0, 80))
+          .setStyle(ButtonStyle.Danger)
+      ));
+    }
   }
 
   rows.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.securityContinue)
       .setLabel(_('roleSecurity.btnContinue'))
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(allResolved ? ButtonStyle.Success : ButtonStyle.Primary)
   ));
 
   return rows;
@@ -2106,6 +2116,38 @@ async function handleSetupInteraction(interaction) {
   }
 
   if (interaction.customId === CUSTOM_IDS.securityContinue) {
+    const mappingsForSecCont = getGradeMappings(guildId);
+    const guardianIdsForCont = Object.values(mappingsForSecCont).filter(Boolean);
+    const { dangerous: dCont, unused: uCont } = analyzeNonGuardianRoles(interaction.guild, guardianIdsForCont);
+    if (hasUnresolvedIssues(dCont, uCont)) {
+      const modal = new ModalBuilder()
+        .setCustomId(CUSTOM_IDS.securityConfirmModal)
+        .setTitle(t('roleSecurity.modalTitle', {}, { guildId }).slice(0, 45));
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('confirmWord')
+            .setLabel(t('roleSecurity.modalLabel', {}, { guildId }).slice(0, 45))
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder(t('roleSecurity.modalConfirmWord', {}, { guildId }))
+            .setRequired(true)
+        )
+      );
+      await interaction.showModal(modal).catch(() => {});
+    } else {
+      await interaction.deferUpdate().catch(() => {});
+      await advanceToStep2AfterSecurity(interaction, guildId);
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.securityConfirmModal) {
+    const confirmWord = interaction.fields?.getTextInputValue('confirmWord')?.trim().toUpperCase();
+    const expected = t('roleSecurity.modalConfirmWord', {}, { guildId }).toUpperCase();
+    if (confirmWord !== expected) {
+      await replyEphemeral(interaction, t('roleSecurity.modalInvalid', {}, { guildId }));
+      return true;
+    }
     await interaction.deferUpdate().catch(() => {});
     await advanceToStep2AfterSecurity(interaction, guildId);
     return true;
@@ -2200,12 +2242,23 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId.startsWith(`${CUSTOM_IDS.securityRoleAction}:`)) {
     const roleId = interaction.customId.split(':').pop();
-    await interaction.deferUpdate().catch(() => {});
     const role = interaction.guild?.roles.cache.get(roleId);
-    if (role) {
-      const msg = t('roleSecurity.modifyEphemeral', { name: role.name }, { guildId });
-      await replyEphemeral(interaction, msg);
+    const msg = role ? t('roleSecurity.modifyEphemeral', { name: role.name }, { guildId }) : null;
+    const guild = interaction.guild;
+    const mappingsRA = getGradeMappings(guildId);
+    const guardianIdsRA = Object.values(mappingsRA).filter(Boolean);
+    const { dangerous: dRA, unused: uRA } = analyzeNonGuardianRoles(guild, guardianIdsRA);
+    const acknowledgedIds = new Set([roleId]);
+    const _ra = (key, vars) => t(key, vars || {}, { guildId });
+    const secContent = buildSecurityCheckContent(dRA, uRA, _ra, acknowledgedIds);
+    if (secContent) {
+      await interaction.update({ content: secContent, components: buildSecurityComponents(dRA, uRA, _ra, acknowledgedIds) }).catch(() => {
+        interaction.deferUpdate().catch(() => {});
+      });
+    } else {
+      await interaction.deferUpdate().catch(() => {});
     }
+    if (msg) await replyEphemeral(interaction, msg).catch(() => {});
     return true;
   }
 

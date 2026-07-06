@@ -59,28 +59,30 @@ function analyzeNonGuardianRoles(guild, guardianRoleIds = []) {
 }
 
 /**
- * Builds the content string for the security check step.
  * @param {object[]} dangerous
  * @param {object[]} unused
- * @param {function} _ - tForLanguage bound to current guild lang: (key, vars?) => string
+ * @param {function} _
+ * @param {Set<string>} resolvedIds - IDs des rôles dont le problème a été traité
  */
-function buildSecurityCheckContent(dangerous, unused, _) {
+function buildSecurityCheckContent(dangerous, unused, _, resolvedIds = new Set()) {
   if (dangerous.length === 0 && unused.length === 0) return null;
 
-  const lines = [_('roleSecurity.title'), '', _('roleSecurity.intro'), ''];
+  const allResolved = [...dangerous, ...unused].every(r => resolvedIds.has(r.id));
+  const lines = [_('roleSecurity.title'), '', allResolved ? _('roleSecurity.introResolved') : _('roleSecurity.intro'), ''];
 
   if (dangerous.length > 0) {
     lines.push(_('roleSecurity.dangerousTitle'));
     lines.push(_('roleSecurity.dangerousIntro'));
     lines.push('');
     for (const r of dangerous.slice(0, 10)) {
-      const icon = SEVERITY_ICONS[r.highestSeverity];
+      const resolved = resolvedIds.has(r.id);
+      const icon = resolved ? '🟢' : SEVERITY_ICONS[r.highestSeverity];
       const perms = r.permissions.map(p => `\`${_(p.key ? `roleSecurity.${p.key}` : 'roleSecurity.permAdministrator')}\``).join(', ');
       const membersLabel = r.memberCount > 0
         ? ` — ${_('roleSecurity.members', { count: r.memberCount })}`
         : ` — ${_('roleSecurity.noMembers')}`;
       lines.push(`> ${icon} **@${r.name}**${membersLabel}`);
-      lines.push(`> ↳ ${perms}`);
+      if (!resolved) lines.push(`> ↳ ${perms}`);
     }
     lines.push('');
   }
@@ -90,13 +92,18 @@ function buildSecurityCheckContent(dangerous, unused, _) {
     lines.push(_('roleSecurity.unusedIntro'));
     lines.push('');
     for (const r of unused.slice(0, 10)) {
-      lines.push(`> ⚪ **@${r.name}**`);
+      const icon = resolvedIds.has(r.id) ? '🟢' : '🔴';
+      lines.push(`> ${icon} **@${r.name}**`);
     }
     lines.push('');
   }
 
-  lines.push(_('roleSecurity.footer'));
+  lines.push(allResolved ? _('roleSecurity.footerResolved') : _('roleSecurity.footer'));
   return lines.join('\n');
 }
 
-module.exports = { analyzeNonGuardianRoles, buildSecurityCheckContent, SEVERITY_ICONS };
+function hasUnresolvedIssues(dangerous, unused, resolvedIds = new Set()) {
+  return [...dangerous, ...unused].some(r => !resolvedIds.has(r.id));
+}
+
+module.exports = { analyzeNonGuardianRoles, buildSecurityCheckContent, hasUnresolvedIssues, SEVERITY_ICONS };
