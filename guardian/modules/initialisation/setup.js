@@ -615,18 +615,25 @@ async function purgeSetupChannel(setupChannel) {
   }
 }
 
-async function ensureSetupInstallPrompt(guild) {
-  const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+async function ensureSetupInstallPrompt(guild, { forceCreateIfMissing = false } = {}) {
+  let setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+  let setupChannel = setupCategory
+    ? findGuildTextChannelByName(guild, CHANNELS.setup, setupCategory.id)
+    : null;
 
-  if (!setupCategory) {
-    return;
+  if ((!setupCategory || !setupChannel) && forceCreateIfMissing) {
+    const owner = await guild.fetchOwner();
+    setupCategory = await ensureCategory(guild, CATEGORIES.setup, [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      { id: owner.id, allow: [PermissionFlagsBits.ViewChannel] }
+    ]);
+    setupChannel = await ensureTextChannel(guild, setupCategory.id, CHANNELS.setup, [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+    ]);
   }
 
-  const setupChannel = findGuildTextChannelByName(guild, CHANNELS.setup, setupCategory.id);
-
-  if (!setupChannel) {
-    return;
-  }
+  if (!setupChannel) return;
 
   await purgeSetupChannel(setupChannel);
 

@@ -2,8 +2,6 @@ const { isGuildInstalled } = require('../modules/initialisation/checkInstall');
 const { createSetupArea, ensureSetupInstallPrompt } = require('../modules/initialisation/setup');
 const { applyPersistedSlowModeForGuild } = require('../modules/moderation/autoMod');
 const { ensureMemberGameInterfaces } = require('../modules/config/settings');
-const { findGuildTextChannelByName } = require('../modules/utils/channels');
-const { CHANNELS } = require('../config');
 const logger = require('../modules/logs/logger');
 
 module.exports = {
@@ -12,12 +10,11 @@ module.exports = {
   async execute(client, guild) {
     logger.info(`Bot added to guild: ${guild.name} (${guild.id})`);
     try {
-      await guild.channels.fetch().catch(() => {});
-      const setupChannelExists = !!findGuildTextChannelByName(guild, CHANNELS.setup);
-      if (!isGuildInstalled(guild.id) || !setupChannelExists) {
+      const installed = isGuildInstalled(guild.id);
+      if (!installed) {
         await createSetupArea(guild);
       }
-      await ensureSetupInstallPrompt(guild);
+      await ensureSetupInstallPrompt(guild, { forceCreateIfMissing: !installed || true });
       await applyPersistedSlowModeForGuild(guild);
       await ensureMemberGameInterfaces(guild);
     } catch (error) {
