@@ -102,6 +102,8 @@ const CUSTOM_IDS = Object.freeze({
   gameLinkNext: 'setup:gamelink:next',
   gameLinkSkip: 'setup:gamelink:skip',
   gameLinkChannelPrefix: 'setup:gamelink:channel',
+  gamePagePrev: 'setup:games:page:prev',
+  gamePageNext: 'setup:games:page:next',
   finalize: 'setup:finalize'
 });
 
@@ -683,6 +685,21 @@ function setStep5Cursor(guildId, cursor) {
   return safeCursor;
 }
 
+const GAMES_PAGE_SIZE = 3;
+
+function getGamesPage(guildId) {
+  const p = getGuildSetting(guildId, 'setup', 'games_page', 0);
+  return Number.isInteger(p) ? Math.max(0, p) : 0;
+}
+
+function setGamesPage(guildId, page) {
+  const games = listSetupGames(guildId);
+  const maxPage = Math.max(0, Math.ceil(games.length / GAMES_PAGE_SIZE) - 1);
+  const safe = Math.min(Math.max(0, page), maxPage);
+  setGuildSetting(guildId, 'setup', 'games_page', safe);
+  return safe;
+}
+
 function ensureAtLeastOneSetupGame(guildId) {
   const games = listSetupGames(guildId);
   if (games.length > 0) return games;
@@ -718,8 +735,11 @@ function buildStep6Content_Games(guildId) {
     lines.push('ℹ️ **Aucun jeu configuré.** La liste vide ne bloque pas le fonctionnement du bot.');
     lines.push('> Tu peux ajouter des jeux maintenant ou plus tard via `/config games`.');
   } else {
-    lines.push(`**${games.length} jeu(x) configuré(s) :**${games.length > 3 ? ' *(3 premiers modifiables ici, le reste via `/config games`)*' : ''}`);
-    for (const game of games) {
+    const page = getGamesPage(guildId);
+    const totalPages = Math.ceil(games.length / GAMES_PAGE_SIZE);
+    const pageGames = games.slice(page * GAMES_PAGE_SIZE, (page + 1) * GAMES_PAGE_SIZE);
+    lines.push(`**${games.length} jeu(x) configuré(s)** — page ${page + 1}/${totalPages}`);
+    for (const game of pageGames) {
       lines.push(
         `\n🎮 **${game.name}**`,
         `> Steam ID : \`${game.steam_app_id || 'non défini'}\``
@@ -731,12 +751,21 @@ function buildStep6Content_Games(guildId) {
 
 function buildStep6Components_Games(guildId) {
   const games = listSetupGames(guildId);
+  const page = getGamesPage(guildId);
+  const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
+  const pageGames = games.slice(page * GAMES_PAGE_SIZE, (page + 1) * GAMES_PAGE_SIZE);
   const rows = [];
-  rows.push(new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu')
-  ));
-  for (let i = 0; i < Math.min(games.length, 3); i++) {
-    const game = games[i];
+
+  const addRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.gamePagePrev).setStyle(ButtonStyle.Secondary)
+      .setLabel('◀').setDisabled(page === 0),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.gamePageNext).setStyle(ButtonStyle.Secondary)
+      .setLabel(`▶ (${page + 1}/${totalPages})`).setDisabled(page >= totalPages - 1)
+  );
+  rows.push(addRow);
+
+  for (const game of pageGames) {
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.editGamePrefix}:${game.game_id}`)
@@ -759,6 +788,7 @@ function buildStep6Components_Games(guildId) {
         .setStyle(ButtonStyle.Danger)
         .setLabel('🗑️')
     ));
+    if (rows.length >= 4) break;
   }
   rows.push(buildNavRow(guildId, 6));
   return rows;
@@ -1455,7 +1485,18 @@ async function handleSetupInteraction(interaction) {
       return true;
     }
     if (action === 'next') {
-      if (cursor >= activeSlots.length - 1) { const nextStep = 4; setGuildSetting(guildId, 'setup', 'step', nextStep); await renderStep(interaction, nextStep); }
+      if (cursor >= activeSlots.length - 1) {
+        const generalSlot = activeSlots.find((s) => s.key === 'general');
+        const generalId = generalSlot ? getGuildSetting(guildId, generalSlot.settingSection, generalSlot.settingKey, null) : null;
+        if (!generalId) {
+          const generalIdx = activeSlots.findIndex((s) => s.key === 'general');
+          if (generalIdx >= 0) setChannelCursor(guildId, generalIdx);
+          await sendSetupMessage(interaction, '⚠️ Le channel **#général** est requis. Associe-le à un channel existant ou laisse Guardian en créer un.');
+          await renderStep(interaction, 3);
+          return true;
+        }
+        const nextStep = 4; setGuildSetting(guildId, 'setup', 'step', nextStep); await renderStep(interaction, nextStep);
+      }
       else { setChannelCursor(guildId, cursor + 1); await renderStep(interaction, 3); }
       return true;
     }
@@ -1528,6 +1569,15 @@ async function handleSetupInteraction(interaction) {
     c.deleteDelayMinutes = Math.min(60, Math.round((c.deleteDelayMinutes + 0.5) * 2) / 2);
     setGuildSetting(guildId, 'vocal', 'delete_delay_minutes', c.deleteDelayMinutes);
     await renderStep(interaction, 5); return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gamePagePrev) {
+    setGamesPage(guildId, getGamesPage(guildId) - 1);
+    await renderStep(interaction, 6); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.gamePageNext) {
+    setGamesPage(guildId, getGamesPage(guildId) + 1);
+    await renderStep(interaction, 6); return true;
   }
 
   if (interaction.customId === CUSTOM_IDS.addGame) {
