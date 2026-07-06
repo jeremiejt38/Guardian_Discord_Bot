@@ -379,11 +379,13 @@ function buildStepOneComponents(guildId, guild) {
       .setLabel(`Grade Invité : ${onOffDot(inviteEnabled)}`)
   );
 
+  const cursor2 = getGradeCursor(guildId);
+  const currentGradeForCreate = ORDERED_GRADES[cursor2];
   const autoCreateRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.createRolesAuto)
       .setStyle(ButtonStyle.Primary)
-      .setLabel(t('setup.step1CreateRolesAuto', {}, { guildId }))
+      .setLabel(`✨ Créer le rôle « ${gradeLabel(currentGradeForCreate)} »`)
   );
 
   return [roleSelector, gradeNavigation, toggleInviteRow, autoCreateRow, buildNavRow(guildId, 1)];
@@ -1609,70 +1611,115 @@ async function handleSetupInteraction(interaction) {
   if (interaction.customId === CUSTOM_IDS.createRolesAuto) {
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
-    const conflicting = [];
-    for (const grade of ORDERED_GRADES) {
-      const label = gradeLabel(grade).toLowerCase();
-      const existing = guild?.roles?.cache
-        ? [...guild.roles.cache.values()].find(
-            (r) => r.name.toLowerCase() === label && !r.managed && r.id !== guild.roles.everyone?.id
-          )
-        : null;
-      if (existing) conflicting.push({ grade, role: existing });
+    const cursor = getGradeCursor(guildId);
+    const grade = ORDERED_GRADES[cursor];
+    if (!grade) {
+      await renderStep(interaction, 1);
+      return true;
     }
-    if (conflicting.length > 0) {
-      const names = conflicting.map((c) => `\`${gradeLabel(c.grade)}\``).join(', ');
+    const label = gradeLabel(grade).toLowerCase();
+    const existing = guild?.roles?.cache
+      ? [...guild.roles.cache.values()].find(
+          (r) => r.name.toLowerCase() === label && !r.managed && r.id !== guild.roles.everyone?.id
+        )
+      : null;
+    if (existing) {
       const warnContent = [
-        '⚠️ **Des rôles avec les mêmes noms existent déjà sur ce serveur.**',
-        `> Rôles concernés : ${names}`,
+        `⚠️ **Un rôle « ${gradeLabel(grade)} » existe déjà sur ce serveur.**`,
+        `> Rôle concerné : <@&${existing.id}>`,
         '',
         '**Que voulez-vous faire ?**',
-        '> 🔗 **Transférer** — Guardian utilise ces rôles existants et conserve les membres déjà assignés.',
-        '> 🗑️ **Recréer** — Guardian supprime ces rôles et en crée de nouveaux (les membres perdent ces rôles).'
+        '> 🔗 **Transférer** — Guardian utilise ce rôle existant et conserve les membres déjà assignés.',
+        '> 🗑️ **Recréer** — Guardian supprime ce rôle et en crée un nouveau (les membres perdent ce rôle).'
       ].join('\n');
       const warnRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId(CUSTOM_IDS.transferExistingRoles)
+          .setCustomId(`${CUSTOM_IDS.transferExistingRoles}:${grade}`)
           .setStyle(ButtonStyle.Primary)
-          .setLabel('🔗 Transférer les rôles existants'),
+          .setLabel('🔗 Transférer'),
         new ButtonBuilder()
-          .setCustomId(CUSTOM_IDS.recreateRoles)
+          .setCustomId(`${CUSTOM_IDS.recreateRoles}:${grade}`)
           .setStyle(ButtonStyle.Danger)
-          .setLabel('🗑️ Supprimer et recréer')
+          .setLabel('🗑️ Recréer')
       );
       await interaction.message.edit({ content: warnContent, components: [warnRow] }).catch(async () => {
         await interaction.channel?.send({ content: warnContent, components: [warnRow] });
       });
       return true;
     }
-    await createRolesAutoHelper(interaction, guild, guildId);
+    const roleColors = {
+      [GRADE_NAMES.invite]: 0x95a5a6,
+      [GRADE_NAMES.membre]: 0x3498db,
+      [GRADE_NAMES.moderateur]: 0x2ecc71,
+      [GRADE_NAMES.manager]: 0xe67e22,
+      [GRADE_NAMES.owner]: 0xe74c3c
+    };
+    try {
+      const role = await guild.roles.create({
+        name: gradeLabel(grade),
+        color: roleColors[grade] ?? 0x99aab5,
+        reason: 'Guardian setup — création automatique des rôles'
+      });
+      setGradeRole(guildId, grade, role.id);
+    } catch (err) {
+      logger.error(`Failed to create role for grade ${grade}`, err);
+    }
+    const nextCursor = cursor + 1;
+    if (nextCursor >= ORDERED_GRADES.length) {
+      setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
+      setGuildSetting(guildId, 'setup', 'fresh_install', false);
+      setGradeCursor(guildId, 0);
+      try {
+        const ownerRoleId = getGradeMappings(guildId)[GRADE_NAMES.owner];
+        const ownerRole = ownerRoleId && guild.roles.cache.get(ownerRoleId);
+        const botMember = guild.members.me;
+        const botRole = botMember?.roles?.botRole;
+        if (ownerRole && botRole && botRole.position <= ownerRole.position) {
+          await guild.roles.setPositions([
+            { role: botRole.id, position: ownerRole.position + 1 }
+          ]).catch((err) => logger.warn(`[setup] Failed to reposition bot role: ${err?.message}`));
+        }
+      } catch (err) {
+        logger.warn(`[setup] Failed to reposition bot role: ${err?.message}`);
+      }
+    } else {
+      setGradeCursor(guildId, nextCursor);
+    }
+    await renderStep(interaction, 1);
     return true;
   }
 
-  if (interaction.customId === CUSTOM_IDS.transferExistingRoles) {
+  if (interaction.customId.startsWith(CUSTOM_IDS.transferExistingRoles)) {
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
-    for (const grade of ORDERED_GRADES) {
+    const grade = interaction.customId.includes(':') ? interaction.customId.split(':').pop() : null;
+    if (grade && ORDERED_GRADES.includes(grade)) {
       const label = gradeLabel(grade).toLowerCase();
       const existing = guild?.roles?.cache
         ? [...guild.roles.cache.values()].find(
             (r) => r.name.toLowerCase() === label && !r.managed && r.id !== guild.roles.everyone?.id
           )
         : null;
-      if (existing) {
-        setGradeRole(guildId, grade, existing.id);
+      if (existing) setGradeRole(guildId, grade, existing.id);
+      const cursor = getGradeCursor(guildId);
+      const nextCursor = cursor + 1;
+      if (nextCursor >= ORDERED_GRADES.length) {
+        setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
+        setGuildSetting(guildId, 'setup', 'fresh_install', false);
+        setGradeCursor(guildId, 0);
+      } else {
+        setGradeCursor(guildId, nextCursor);
       }
     }
-    setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
-    setGuildSetting(guildId, 'setup', 'fresh_install', false);
-    setGradeCursor(guildId, 0);
     await renderStep(interaction, 1);
     return true;
   }
 
-  if (interaction.customId === CUSTOM_IDS.recreateRoles) {
+  if (interaction.customId.startsWith(CUSTOM_IDS.recreateRoles)) {
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
-    for (const grade of ORDERED_GRADES) {
+    const grade = interaction.customId.includes(':') ? interaction.customId.split(':').pop() : null;
+    if (grade && ORDERED_GRADES.includes(grade)) {
       const label = gradeLabel(grade).toLowerCase();
       const existing = guild?.roles?.cache
         ? [...guild.roles.cache.values()].filter(
@@ -1682,8 +1729,34 @@ async function handleSetupInteraction(interaction) {
       for (const r of existing) {
         await r.delete('Guardian setup — recréation des rôles').catch(() => {});
       }
+      const roleColors = {
+        [GRADE_NAMES.invite]: 0x95a5a6,
+        [GRADE_NAMES.membre]: 0x3498db,
+        [GRADE_NAMES.moderateur]: 0x2ecc71,
+        [GRADE_NAMES.manager]: 0xe67e22,
+        [GRADE_NAMES.owner]: 0xe74c3c
+      };
+      try {
+        const role = await guild.roles.create({
+          name: gradeLabel(grade),
+          color: roleColors[grade] ?? 0x99aab5,
+          reason: 'Guardian setup — recréation des rôles'
+        });
+        setGradeRole(guildId, grade, role.id);
+      } catch (err) {
+        logger.error(`Failed to recreate role for grade ${grade}`, err);
+      }
+      const cursor = getGradeCursor(guildId);
+      const nextCursor = cursor + 1;
+      if (nextCursor >= ORDERED_GRADES.length) {
+        setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
+        setGuildSetting(guildId, 'setup', 'fresh_install', false);
+        setGradeCursor(guildId, 0);
+      } else {
+        setGradeCursor(guildId, nextCursor);
+      }
     }
-    await createRolesAutoHelper(interaction, guild, guildId);
+    await renderStep(interaction, 1);
     return true;
   }
 
