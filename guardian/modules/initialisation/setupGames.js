@@ -31,7 +31,7 @@ function addSetupGame(guildId, partial = {}) {
   const steamAppId = partial.steam_app_id ? String(partial.steam_app_id).trim() : null;
   const galerieEnabled = partial.galerie_enabled ? 1 : 0;
   const changelogEnabled = partial.changelog_enabled === undefined ? 1 : partial.changelog_enabled ? 1 : 0;
-  const textChannelEnabled = partial.text_channel_enabled === undefined ? 1 : partial.text_channel_enabled ? 1 : 0;
+  const textChannelEnabled = partial.text_channel_enabled === undefined ? 0 : partial.text_channel_enabled ? 1 : 0;
 
   db.prepare(
     `INSERT INTO games (guild_id, name, steam_app_id, galerie_enabled, changelog_enabled, text_channel_enabled)

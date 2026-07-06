@@ -97,6 +97,11 @@ const CUSTOM_IDS = Object.freeze({
   next: 'setup:step:next',
   communityCheckContinue: 'setup:community:continue',
   communityCheckRetry: 'setup:community:retry',
+  gameDetectAdopt: 'setup:gamedetect:adopt',
+  gameDetectSkip: 'setup:gamedetect:skip',
+  gameLinkNext: 'setup:gamelink:next',
+  gameLinkSkip: 'setup:gamelink:skip',
+  gameLinkChannelPrefix: 'setup:gamelink:channel',
   finalize: 'setup:finalize'
 });
 
@@ -149,7 +154,7 @@ function buildNavRow(guildId, step) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.back)
         .setStyle(ButtonStyle.Secondary)
-        .setLabel(t('setup.backStep', {}, { guildId }))
+        .setLabel('◀ ' + t('setup.backStep', {}, { guildId }))
     );
   }
   if (!isLastStep) {
@@ -157,14 +162,14 @@ function buildNavRow(guildId, step) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.next)
         .setStyle(ButtonStyle.Primary)
-        .setLabel(t('setup.nextStep', {}, { guildId }))
+        .setLabel(t('setup.nextStep', {}, { guildId }) + ' ▶')
     );
   } else {
     buttons.push(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.finalize)
         .setStyle(ButtonStyle.Success)
-        .setLabel(t('setup.finalizeButton', {}, { guildId }))
+        .setLabel('🚀 ' + t('setup.finalizeButton', {}, { guildId }))
     );
   }
   return new ActionRowBuilder().addComponents(buttons);
@@ -330,12 +335,12 @@ function buildStepOneComponents(guildId, guild) {
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.previousGrade)
       .setStyle(ButtonStyle.Secondary)
-      .setLabel('◀ Grade précédent')
+      .setLabel('◀ Grade préc.')
       .setDisabled(cursor === 0),
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.nextGrade)
       .setStyle(ButtonStyle.Secondary)
-      .setLabel('Grade suivant ▶')
+      .setLabel('Grade suiv. ▶')
       .setDisabled(cursor >= ORDERED_GRADES.length - 1)
   );
 
@@ -502,9 +507,9 @@ function buildStep3ChannelsComponents(guildId, guild) {
   const selectRow = new ActionRowBuilder().addComponents(selectMenu);
   const navRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
-      .setLabel('◀ Précédent').setDisabled(cursor === 0),
+      .setLabel('◀ Préc.').setDisabled(cursor === 0),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
-      .setLabel('Laisser Guardian créer →').setDisabled(false),
+      .setLabel('🤖 Laisser Guardian créer').setDisabled(false),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:ignore`).setStyle(ButtonStyle.Secondary)
       .setLabel('⏭️ Ignorer ce channel').setDisabled(isRequired)
   );
@@ -566,21 +571,21 @@ function buildStep4Components(guildId) {
   const c = getStep4Config(guildId);
   const toggles = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBioRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Bio: ${onOffDot(c.bioRequired)}`),
+      .setLabel(`📝 Bio: ${onOffDot(c.bioRequired)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSponsorshipRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Parrainage: ${onOffDot(c.sponsorshipRequired)}`),
+      .setLabel(`👥 Parrainage: ${onOffDot(c.sponsorshipRequired)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cyclePromotionReviewerGrade).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Réviseur: ${gradeLabel(c.reviewerGrade)}`)
+      .setLabel(`🔍 Réviseur: ${gradeLabel(c.reviewerGrade)}`)
   );
   const delay = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('-12h'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('+12h')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ -12h'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ +12h')
   );
   const expulsion = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteExpulsion).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Expulsion: ${onOffDot(c.inviteExpulsionEnabled)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('-1j'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('+1j')
+      .setLabel(`🚪 Expulsion: ${onOffDot(c.inviteExpulsionEnabled)}`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 -1j'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 +1j')
   );
   const welcomeBtn = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editWelcomeText).setStyle(ButtonStyle.Secondary)
@@ -641,18 +646,18 @@ function buildStep5VocalComponents(guildId) {
   const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
   const prefixRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleVocalPrefix).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Préfixe: ${prefixDisplay} →`),
+      .setLabel(`🏷️ Préfixe: ${prefixDisplay} →`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleVocalSuffix)
       .setStyle(suffixEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel(`Suffixe: ${onOffDot(suffixEnabled)}`)
+      .setLabel(`🏷️ Suffixe: ${onOffDot(suffixEnabled)}`)
   );
   const limitRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('Limite -1')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('👤 -1')
       .setDisabled(c.memberLimit === 0),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel(`Limite +1 (${limitDisplay})`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('-30s')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel(`👤 +1 (${limitDisplay})`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ -30s')
       .setDisabled(c.deleteDelayMinutes <= 0.5),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`+30s (${formatDelay(c.deleteDelayMinutes)})`)
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`⏱️ +30s (${formatDelay(c.deleteDelayMinutes)})`)
   );
   return [prefixRow, limitRow, buildNavRow(guildId, 5)];
 }
@@ -812,11 +817,11 @@ function buildStep7Components(guildId) {
       .setLabel(`📋 Logs: ${c.logsEnabled ? c.logsLevel : 'OFF'}`)
   );
   const spamRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('Spam -1'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('Spam +1'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('Slow -1s')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('🛡️ Spam -1'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('🛡️ Spam +1'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('🐌 Slow -1s')
       .setDisabled(c.slowModeSeconds === 0),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('Slow +1s')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('🐌 Slow +1s')
       .setDisabled(c.slowModeSeconds >= 120)
   );
   const blacklistRow = new ActionRowBuilder().addComponents(
@@ -964,6 +969,161 @@ function buildCommunityCheckComponents() {
         .setLabel('Continuer sans activer')
     )
   ];
+}
+
+// ── Détection jeux existants ──────────────────────────────────────────────────
+
+function normalizeGameSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function detectExistingGameChannels(guild) {
+  const allText = [...guild.channels.cache.values()].filter(
+    (c) => c.type === 0 || c.type === 5 || c.type === 15
+  );
+  const gameMap = new Map();
+  for (const ch of allText) {
+    const n = ch.name;
+    const isGalerie = n.endsWith('-galerie');
+    const isChangelog = n.endsWith('-changelogs') || n.endsWith('-updates');
+    const isForum = ch.type === 15;
+    let baseName = n;
+    let type = 'text';
+    if (isGalerie) { baseName = n.slice(0, -8); type = 'galerie'; }
+    else if (isChangelog) { baseName = n.endsWith('-changelogs') ? n.slice(0, -11) : n.slice(0, -8); type = 'changelog'; }
+    if (isForum) type = 'forum';
+    if (!gameMap.has(baseName)) gameMap.set(baseName, { baseName, channels: [] });
+    gameMap.get(baseName).channels.push({ id: ch.id, name: ch.name, type });
+  }
+  return [...gameMap.values()].filter((g) => g.channels.length >= 1 && g.baseName.length >= 2);
+}
+
+function getDetectedGames(guildId) {
+  const raw = getGuildSetting(guildId, 'setup', 'detected_games', null);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function setDetectedGames(guildId, games) {
+  setGuildSetting(guildId, 'setup', 'detected_games', JSON.stringify(games));
+}
+
+function getGameLinkCursor(guildId) {
+  return Math.max(0, Number(getGuildSetting(guildId, 'setup', 'game_link_cursor', 0)) || 0);
+}
+
+function setGameLinkCursor(guildId, v) {
+  setGuildSetting(guildId, 'setup', 'game_link_cursor', Math.max(0, v));
+}
+
+function buildGameDetectContent(guildId, guild) {
+  const games = detectExistingGameChannels(guild);
+  const lines = [
+    `## 🎮 Jeux détectés (3/${TOTAL_STEPS})`,
+    '',
+  ];
+  if (games.length === 0) {
+    lines.push(
+      'Aucun channel ressemblant à un jeu n\'a été détecté sur ce serveur.',
+      '> Guardian va créer automatiquement la structure pour les jeux que tu ajouteras à l\'étape suivante.'
+    );
+  } else {
+    lines.push(
+      `**${games.length} jeu(x) potentiel(s) détecté(s)** dans les channels existants :`,
+      ''
+    );
+    for (const g of games.slice(0, 10)) {
+      const types = g.channels.map((c) => {
+        if (c.type === 'galerie') return '🖼️';
+        if (c.type === 'changelog') return '📢';
+        if (c.type === 'forum') return '💬';
+        return '💬';
+      }).join(' ');
+      lines.push(`> 🎮 **${g.baseName}** — ${types} (${g.channels.length} salon(s))`);
+    }
+    lines.push(
+      '',
+      '**Veux-tu que Guardian récupère ces channels ?**',
+      '> ✅ **Oui** — Guardian va te demander de lier chaque channel à un jeu.',
+      '> ⏭️ **Non / Ignorer** — Guardian ignore ces channels et en crée de nouveaux.'
+    );
+  }
+  return lines.join('\n');
+}
+
+function buildGameDetectComponents(guild) {
+  const games = detectExistingGameChannels(guild);
+  if (games.length === 0) {
+    return [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectSkip).setStyle(ButtonStyle.Primary).setLabel('➡️ Continuer')
+      )
+    ];
+  }
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectAdopt).setStyle(ButtonStyle.Success).setLabel('✅ Récupérer ces channels'),
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectSkip).setStyle(ButtonStyle.Secondary).setLabel('⏭️ Ignorer')
+    )
+  ];
+}
+
+function buildGameLinkContent(guildId) {
+  const games = getDetectedGames(guildId);
+  const cursor = getGameLinkCursor(guildId);
+  const game = games[cursor];
+  if (!game) return '## Configuration des jeux\n\nAucun jeu à configurer.';
+
+  const total = games.length;
+  const lines = [
+    `## 🎮 Lier les channels — ${game.baseName} (${cursor + 1}/${total})`,
+    '',
+    `Configuration des channels pour le jeu **${game.baseName}** :`,
+    '> Sélectionne quel channel correspond à chaque type, ou ignore si tu n\'en as pas.',
+    '',
+  ];
+  for (const ch of game.channels) {
+    const icon = ch.type === 'galerie' ? '🖼️' : ch.type === 'changelog' ? '📢' : '💬';
+    const linked = ch.linkedId ? `✅ \`#${ch.linkedName}\`` : '— *non lié*';
+    lines.push(`> ${icon} **${ch.type}** : ${linked}`);
+  }
+  return lines.join('\n');
+}
+
+function buildGameLinkComponents(guildId, guild) {
+  const games = getDetectedGames(guildId);
+  const cursor = getGameLinkCursor(guildId);
+  const game = games[cursor];
+  if (!game) return [buildNavRow(guildId, 3)];
+
+  const rows = [];
+  const CHANNEL_TYPE_LABELS = { text: '💬 Chat', galerie: '🖼️ Galerie', changelog: '📢 Updates', forum: '💬 Forum' };
+
+  for (const ch of game.channels) {
+    const candidates = [...guild.channels.cache.values()]
+      .filter((c) => (c.type === 0 || c.type === 5 || c.type === 15) && c.name.includes(normalizeGameSlug(game.baseName)))
+      .slice(0, 25)
+      .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `Type ${c.type}`.slice(0, 50) }));
+    if (candidates.length === 0) continue;
+    rows.push(new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`${CUSTOM_IDS.gameLinkChannelPrefix}:${cursor}:${ch.type}`)
+        .setPlaceholder(`${CHANNEL_TYPE_LABELS[ch.type] || ch.type} — choisir un channel`)
+        .addOptions(candidates)
+    ));
+    if (rows.length >= 4) break;
+  }
+
+  const navButtons = [
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.gameLinkSkip).setStyle(ButtonStyle.Secondary).setLabel('⏭️ Passer ce jeu')
+  ];
+  if (cursor < games.length - 1) {
+    navButtons.push(new ButtonBuilder().setCustomId(CUSTOM_IDS.gameLinkNext).setStyle(ButtonStyle.Primary).setLabel('➡️ Jeu suivant'));
+  } else {
+    navButtons.push(new ButtonBuilder().setCustomId(CUSTOM_IDS.gameLinkNext).setStyle(ButtonStyle.Primary).setLabel('✅ Terminer'));
+  }
+  rows.push(new ActionRowBuilder().addComponents(...navButtons));
+  return rows;
 }
 
 function buildStepPayload(guildId, guild, step) {
@@ -1688,11 +1848,18 @@ async function handleSetupInteraction(interaction) {
     }
 
     const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
-    if (nextStep === 3 && interaction.guild && !isCommunityGuild(interaction.guild)) {
+    if (nextStep === 3 && interaction.guild) {
       await interaction.deferUpdate().catch(() => {});
+      if (!isCommunityGuild(interaction.guild)) {
+        await interaction.message.edit({
+          content: buildCommunityCheckContent(guildId) + '\n\u200b',
+          components: buildCommunityCheckComponents()
+        }).catch(() => {});
+        return true;
+      }
       await interaction.message.edit({
-        content: buildCommunityCheckContent(guildId) + '\n\u200b',
-        components: buildCommunityCheckComponents()
+        content: buildGameDetectContent(guildId, interaction.guild) + '\n\u200b',
+        components: buildGameDetectComponents(interaction.guild)
       }).catch(() => {});
       return true;
     }
@@ -1720,9 +1887,82 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.communityCheckContinue) {
     await interaction.deferUpdate().catch(() => {});
+    await interaction.message.edit({
+      content: buildGameDetectContent(guildId, interaction.guild) + '\n\u200b',
+      components: buildGameDetectComponents(interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameDetectAdopt) {
+    await interaction.deferUpdate().catch(() => {});
+    const games = detectExistingGameChannels(interaction.guild);
+    setDetectedGames(guildId, games);
+    setGameLinkCursor(guildId, 0);
+    for (const g of games) {
+      const existing = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === g.baseName.toLowerCase());
+      if (!existing) addSetupGame(guildId, { name: g.baseName });
+    }
+    await interaction.message.edit({
+      content: buildGameLinkContent(guildId) + '\n\u200b',
+      components: buildGameLinkComponents(guildId, interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameDetectSkip) {
+    await interaction.deferUpdate().catch(() => {});
     setGuildSetting(guildId, 'setup', 'step', 3);
     setChannelCursor(guildId, 0);
     await renderStep(interaction, 3);
+    return true;
+  }
+
+  if (interaction.customId.startsWith(`${CUSTOM_IDS.gameLinkChannelPrefix}:`)) {
+    const parts = interaction.customId.split(':');
+    const gameCursor = Number(parts[parts.length - 2]);
+    const channelType = parts[parts.length - 1];
+    const channelId = interaction.values?.[0];
+    if (channelId) {
+      const games = getDetectedGames(guildId);
+      const game = games[gameCursor];
+      if (game) {
+        const ch = game.channels.find((c) => c.type === channelType);
+        if (ch) { ch.linkedId = channelId; ch.linkedName = interaction.guild?.channels.cache.get(channelId)?.name || channelId; }
+        setDetectedGames(guildId, games);
+        const setupGame = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === game.baseName.toLowerCase());
+        if (setupGame) {
+          const patch = {};
+          if (channelType === 'text') patch.channel_text_id = channelId;
+          if (channelType === 'galerie') { patch.channel_galerie_id = channelId; patch.galerie_enabled = 1; }
+          if (channelType === 'changelog') { patch.channel_changelog_id = channelId; patch.changelog_enabled = 1; }
+          updateSetupGame(guildId, setupGame.game_id, patch);
+        }
+      }
+    }
+    await interaction.deferUpdate().catch(() => {});
+    await interaction.message.edit({
+      content: buildGameLinkContent(guildId) + '\n\u200b',
+      components: buildGameLinkComponents(guildId, interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameLinkNext || interaction.customId === CUSTOM_IDS.gameLinkSkip) {
+    await interaction.deferUpdate().catch(() => {});
+    const games = getDetectedGames(guildId);
+    const cursor = getGameLinkCursor(guildId);
+    if (cursor < games.length - 1) {
+      setGameLinkCursor(guildId, cursor + 1);
+      await interaction.message.edit({
+        content: buildGameLinkContent(guildId) + '\n\u200b',
+        components: buildGameLinkComponents(guildId, interaction.guild)
+      }).catch(() => {});
+    } else {
+      setGuildSetting(guildId, 'setup', 'step', 3);
+      setChannelCursor(guildId, 0);
+      await renderStep(interaction, 3);
+    }
     return true;
   }
 
