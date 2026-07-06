@@ -119,7 +119,9 @@ const CUSTOM_IDS = Object.freeze({
   securityDeleteAllUnused: 'setup:security:unused:delete-all',
   securityKeepAllUnused: 'setup:security:unused:keep-all',
   securityConfirmModal: 'setup:security:confirm-modal',
-  clearAllGames: 'setup:games:clear-all'
+  clearAllGames: 'setup:games:clear-all',
+  channelAutoDetectAccept: 'setup:channel:autodetect:accept',
+  channelAutoDetectSkip: 'setup:channel:autodetect:skip'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -437,7 +439,7 @@ function buildStep2Components(guildId) {
 
 const CHANNEL_SLOTS = Object.freeze([
   // ── Vocals (proposés en premier car souvent déjà là)
-  { key: 'voiceGeneral', label: 'Vocal Général',   desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                    settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '�', addedInVersion: '0.1.0' },
+  { key: 'voiceGeneral', label: 'Général',          desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                    settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '�', addedInVersion: '0.1.0' },
   { key: 'voiceAfk',    label: 'Vocal AFK',         desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                          settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇', addedInVersion: '0.1.0' },
   // ── Channels communautaires existants
   { key: 'general',     label: '#général',           desc: 'Channel de discussion principale de la communauté.',                                               settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '�', addedInVersion: '0.1.0' },
@@ -469,11 +471,22 @@ function scanExistingChannels(guild) {
 
 function buildChannelOptions(guild, slot) {
   const isVoice = slot.key.startsWith('voice');
-  const allChannels = Array.from(guild.channels.cache.values());
-  const channels = allChannels
-    .filter((c) => isVoice ? (c.isVoiceBased && c.isVoiceBased()) : (c.isTextBased && c.isTextBased() && !c.isVoiceBased()))
-    .map((c) => ({ label: `${c.name}`.slice(0, 25), value: c.id, description: `ID: ${c.id}`.slice(0, 50) }))
-    .slice(0, 25);
+  const targetName = (isVoice ? CHANNELS.voiceGeneral : (CHANNELS[slot.key] || slot.label)).toLowerCase();
+  const allChannels = Array.from(guild.channels.cache.values())
+    .filter((c) => isVoice ? (c.isVoiceBased && c.isVoiceBased()) : (c.isTextBased && c.isTextBased() && !c.isVoiceBased()));
+  const scored = allChannels.map((c) => {
+    const n = c.name.toLowerCase();
+    let score = 0;
+    if (n === targetName) score = 100;
+    else if (n.startsWith(targetName)) score = 80;
+    else if (n.includes(targetName)) score = 60;
+    else if (targetName.includes(n) && n.length >= 3) score = 40;
+    return { c, score };
+  });
+  const channels = scored
+    .sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name))
+    .slice(0, 25)
+    .map(({ c }) => ({ label: `${c.name}`.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
   return channels.length > 0 ? channels : [{ label: 'Aucun channel compatible', value: 'none', description: 'Guardian en créera un automatiquement' }];
 }
 
@@ -484,6 +497,50 @@ function isCommunityGuild(guild) {
 function getActiveSlotsForInstall(_guildId, guild) {
   if (!guild || isCommunityGuild(guild)) return CHANNEL_SLOTS;
   return CHANNEL_SLOTS.filter((s) => !s.communityOnly);
+}
+
+function autoDetectGuardianChannels(guild) {
+  const detected = {};
+  for (const slot of CHANNEL_SLOTS) {
+    const isVoice = slot.key.startsWith('voice');
+    const targetName = isVoice
+      ? CHANNELS[slot.key] || slot.label.toLowerCase()
+      : (CHANNELS[slot.key] || slot.label).toLowerCase();
+    const match = [...guild.channels.cache.values()].find((c) => {
+      if (isVoice && !(c.isVoiceBased && c.isVoiceBased())) return false;
+      if (!isVoice && !(c.isTextBased && c.isTextBased() && !c.isVoiceBased())) return false;
+      return c.name.toLowerCase() === targetName;
+    });
+    if (match) detected[slot.key] = match.id;
+  }
+  return detected;
+}
+
+function buildChannelAutoDetectContent(guildId, guild) {
+  const detected = autoDetectGuardianChannels(guild);
+  const slots = getActiveSlotsForInstall(guildId, guild);
+  const found = slots.filter((s) => detected[s.key]);
+  const lines = [
+    `## 🔍 Channels détectés automatiquement (3/${TOTAL_STEPS})`,
+    '',
+    `Guardian a trouvé **${found.length}** channel(s) correspondant à sa configuration sur ce serveur :`,
+    ''
+  ];
+  for (const slot of slots) {
+    const channelId = detected[slot.key];
+    const ch = channelId ? guild.channels.cache.get(channelId) : null;
+    lines.push(ch ? `> ✅ ${slot.emoji} **${slot.label}** → #${ch.name}` : `> ⬜ ${slot.emoji} **${slot.label}** → *non détecté*`);
+  }
+  lines.push('', '> **Conserver ces choix ?** Guardian les utilisera directement sans te les redemander.');
+  lines.push('> Sinon, tu pourras configurer chaque channel manuellement.');
+  return lines.join('\n');
+}
+
+function buildChannelAutoDetectComponents() {
+  return [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.channelAutoDetectAccept).setStyle(ButtonStyle.Success).setLabel('✅ Conserver les choix de Guardian'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.channelAutoDetectSkip).setStyle(ButtonStyle.Secondary).setLabel('⚙️ Configurer manuellement')
+  )];
 }
 
 function buildStep3ChannelsContent(guildId, guild) {
@@ -2453,6 +2510,36 @@ async function handleSetupInteraction(interaction) {
     await interaction.deferUpdate().catch(() => {});
     setGuildSetting(guildId, 'setup', 'step', 3);
     setChannelCursor(guildId, 0);
+    const detected = autoDetectGuardianChannels(interaction.guild);
+    const slots = getActiveSlotsForInstall(guildId, interaction.guild);
+    const anyFound = slots.some((s) => detected[s.key]);
+    if (anyFound && !getGuildSetting(guildId, 'setup', 'channel_autodetect_done', false)) {
+      await interaction.message.edit({
+        content: buildChannelAutoDetectContent(guildId, interaction.guild) + '\n\u200b',
+        components: buildChannelAutoDetectComponents()
+      }).catch(() => {});
+    } else {
+      await renderStep(interaction, 3);
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.channelAutoDetectAccept) {
+    await interaction.deferUpdate().catch(() => {});
+    const detected = autoDetectGuardianChannels(interaction.guild);
+    const slots = getActiveSlotsForInstall(guildId, interaction.guild);
+    for (const slot of slots) {
+      if (detected[slot.key]) setGuildSetting(guildId, slot.settingSection, slot.settingKey, detected[slot.key]);
+    }
+    setGuildSetting(guildId, 'setup', 'channel_autodetect_done', true);
+    autoPositionChannelCursor(guildId, interaction.guild);
+    await renderStep(interaction, 3);
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.channelAutoDetectSkip) {
+    await interaction.deferUpdate().catch(() => {});
+    setGuildSetting(guildId, 'setup', 'channel_autodetect_done', true);
     await renderStep(interaction, 3);
     return true;
   }
@@ -2530,7 +2617,17 @@ async function handleSetupInteraction(interaction) {
     } else {
       setGuildSetting(guildId, 'setup', 'step', 3);
       setChannelCursor(guildId, 0);
-      await renderStep(interaction, 3);
+      const detectedGL = autoDetectGuardianChannels(interaction.guild);
+      const slotsGL = getActiveSlotsForInstall(guildId, interaction.guild);
+      const anyFoundGL = slotsGL.some((s) => detectedGL[s.key]);
+      if (anyFoundGL && !getGuildSetting(guildId, 'setup', 'channel_autodetect_done', false)) {
+        await interaction.message.edit({
+          content: buildChannelAutoDetectContent(guildId, interaction.guild) + '\n\u200b',
+          components: buildChannelAutoDetectComponents()
+        }).catch(() => {});
+      } else {
+        await renderStep(interaction, 3);
+      }
     }
     return true;
   }
