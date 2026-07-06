@@ -455,6 +455,8 @@
     "btnModify": "🔐 Edit @{name}",
     "btnDelete": "🗑️ Delete @{name}",
     "btnKeep": "✅ Keep @{name}",
+    "btnDeleteAll": "🗑️ Delete all {count} unused roles",
+    "btnKeepAll": "✅ Keep all",
     "btnContinue": "➡️ Continue without changes",
     "modifyEphemeral": "🔐 **Edit role @{name}**\n> Go to **Server Settings → Roles → @{name}** to change its permissions.",
     "permAdministrator": "Administrator",

@@ -638,6 +638,8 @@
     "btnModify": "🔐 Modifier @{name}",
     "btnDelete": "🗑️ Supprimer @{name}",
     "btnKeep": "✅ Conserver @{name}",
+    "btnDeleteAll": "🗑️ Supprimer les {count} rôles inutilisés",
+    "btnKeepAll": "✅ Conserver tous",
     "btnContinue": "➡️ Continuer sans modifications",
     "modifyEphemeral": "🔐 **Modifier le rôle @{name}**\n> Va dans **Paramètres du serveur → Rôles → @{name}** pour modifier ses permissions.",
     "permAdministrator": "Administrateur",

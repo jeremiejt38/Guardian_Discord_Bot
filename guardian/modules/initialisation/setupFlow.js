@@ -114,7 +114,9 @@ const CUSTOM_IDS = Object.freeze({
   securityContinue: 'setup:security:continue',
   securityRoleAction: 'setup:security:role',
   securityDeleteUnused: 'setup:security:unused:delete',
-  securityKeepUnused: 'setup:security:unused:keep'
+  securityKeepUnused: 'setup:security:unused:keep',
+  securityDeleteAllUnused: 'setup:security:unused:delete-all',
+  securityKeepAllUnused: 'setup:security:unused:keep-all'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -1347,7 +1349,7 @@ function buildSecurityComponents(dangerous, unused, _) {
     ));
   }
 
-  if (unused.length > 0) {
+  if (unused.length === 1) {
     const r = unused[0];
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -1357,6 +1359,17 @@ function buildSecurityComponents(dangerous, unused, _) {
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.securityKeepUnused}:${r.id}`)
         .setLabel(_('roleSecurity.btnKeep', { name: r.name }).slice(0, 40))
+        .setStyle(ButtonStyle.Secondary)
+    ));
+  } else if (unused.length > 1) {
+    rows.push(new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.securityDeleteAllUnused)
+        .setLabel(_('roleSecurity.btnDeleteAll', { count: unused.length }).slice(0, 80))
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.securityKeepAllUnused)
+        .setLabel(_('roleSecurity.btnKeepAll').slice(0, 80))
         .setStyle(ButtonStyle.Secondary)
     ));
   }
@@ -2125,6 +2138,65 @@ async function handleSetupInteraction(interaction) {
     const securityContent = buildSecurityCheckContent(dangerous, remainingUnused, _sk);
     if (securityContent) {
       const rows = buildSecurityComponents(dangerous, remainingUnused, _sk);
+      await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
+    } else {
+      await interaction.message.delete().catch(() => {});
+      const nextStep = 2;
+      setGuildSetting(guildId, 'setup', 'step', nextStep);
+      const wizardChannel = interaction.channel;
+      if (wizardChannel) {
+        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
+        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
+        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
+      }
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.securityDeleteAllUnused) {
+    await interaction.deferUpdate().catch(() => {});
+    const guild = interaction.guild;
+    const mappingsForSecurity = getGradeMappings(guildId);
+    const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
+    if (guild) await guild.roles.fetch().catch(() => {});
+    const { unused: allUnused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
+    for (const r of allUnused) {
+      const role = guild?.roles.cache.get(r.id);
+      if (role) await role.delete('Guardian setup — suppression rôles inutilisés').catch(() => {});
+    }
+    if (guild) await guild.roles.fetch().catch(() => {});
+    const _da = (key, vars) => t(key, vars || {}, { guildId });
+    const { dangerous: dangerousAfter, unused: unusedAfter } = analyzeNonGuardianRoles(guild, guardianRoleIds);
+    const securityContent = buildSecurityCheckContent(dangerousAfter, unusedAfter, _da);
+    if (securityContent) {
+      const rows = buildSecurityComponents(dangerousAfter, unusedAfter, _da);
+      await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
+    } else {
+      await interaction.message.delete().catch(() => {});
+      const nextStep = 2;
+      setGuildSetting(guildId, 'setup', 'step', nextStep);
+      const wizardChannel = interaction.channel;
+      if (wizardChannel) {
+        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
+        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
+        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
+      }
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.securityKeepAllUnused) {
+    await interaction.deferUpdate().catch(() => {});
+    const guild = interaction.guild;
+    const mappingsForSecurity = getGradeMappings(guildId);
+    const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
+    const { unused: allUnused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
+    const keptIds = allUnused.map(r => r.id);
+    const _ka = (key, vars) => t(key, vars || {}, { guildId });
+    const { dangerous: dangerousAfter } = analyzeNonGuardianRoles(guild, [...guardianRoleIds, ...keptIds]);
+    const securityContent = buildSecurityCheckContent(dangerousAfter, [], _ka);
+    if (securityContent) {
+      const rows = buildSecurityComponents(dangerousAfter, [], _ka);
       await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
     } else {
       await interaction.message.delete().catch(() => {});
