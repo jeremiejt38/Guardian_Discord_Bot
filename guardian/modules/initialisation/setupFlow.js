@@ -1367,7 +1367,8 @@ async function handleSetupInteraction(interaction) {
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].filter(Boolean).join('\n');
     try {
-      await interaction.channel.send({ content: confirmMsg });
+      const sent = await interaction.channel.send({ content: confirmMsg });
+      if (sent?.deletable !== false) setTimeout(() => sent?.delete().catch(() => {}), 5000);
     } catch (err) {
       logger.error('addGameModal: channel.send failed', { error: err?.message });
     }
@@ -1404,7 +1405,7 @@ async function handleSetupInteraction(interaction) {
       '',
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].join('\n');
-    try { await interaction.channel.send({ content: confirmMsg }); } catch {}
+    try { const sent = await interaction.channel.send({ content: confirmMsg }); if (sent?.deletable !== false) setTimeout(() => sent?.delete().catch(() => {}), 5000); } catch {}
     if (deferredReply) await interaction.deleteReply().catch(() => {});
     const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
       .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
