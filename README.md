@@ -102,36 +102,7 @@ Les tests tournent sur une base SQLite en mémoire et couvrent le wizard setup, 
 
 ---
 
-## 🐳 Environnement Lando (optionnel)
-
-[Lando](https://lando.dev) fournit un environnement Node 22 isolé pour le développement et les tests CI.
-
-```bash
-# Démarrer les services
-lando start
-
-# Installer les dépendances dans le conteneur
-lando install
-
-# Lancer les tests
-lando test
-```
-
-**Commandes utiles**
-
-| Commande | Action |
-|----------|--------|
-| `lando ci` | Install propre avec lockfile |
-| `lando test-watch` | Tests en mode watch |
-| `lando start-bot` | Démarrer le bot dans le conteneur |
-| `lando deploy-commands` | Déployer les slash commands |
-| `lando shell` | Shell dans le service app |
-
-> **Note :** Lando force `NODE_ENV=test` avec des tokens factices et utilise `/tmp/guardian-test.db` pour isoler la base de test.
-
----
-
-## 📦 Changelog
+##  Changelog
 
 ### v0.9.x — UX & Polish
 | Version | Date | Contenu |
