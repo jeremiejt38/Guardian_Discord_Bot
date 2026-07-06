@@ -103,6 +103,7 @@ temp/
 *.tmp
 *.swp
 *.swo
+*.bak
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
