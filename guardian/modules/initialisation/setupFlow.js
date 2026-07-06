@@ -1428,7 +1428,14 @@ async function handleSetupInteraction(interaction) {
     }
     const roleId = interaction.values[0];
     setGradeRole(guildId, gradeName, roleId);
-    await renderStep(interaction, 1);
+    const cursor = getGradeCursor(guildId);
+    if (cursor < ORDERED_GRADES.length - 1) {
+      setGradeCursor(guildId, cursor + 1);
+      await renderStep(interaction, 1);
+    } else {
+      setGuildSetting(guildId, 'setup', 'step', 2);
+      await renderStep(interaction, 2);
+    }
     return true;
   }
 
@@ -2028,6 +2035,22 @@ async function handleSetupInteraction(interaction) {
           if (channelType === 'changelog') { patch.channel_changelog_id = channelId; patch.changelog_enabled = 1; }
           updateSetupGame(guildId, setupGame.game_id, patch);
         }
+      }
+    }
+    const allLinked = (() => {
+      const games = getDetectedGames(guildId);
+      const parts2 = interaction.customId.split(':');
+      const gc = Number(parts2[parts2.length - 2]);
+      const game = games[gc];
+      return game ? game.channels.every((c) => c.linkedId) : false;
+    })();
+    if (allLinked) {
+      const games = getDetectedGames(guildId);
+      const parts2 = interaction.customId.split(':');
+      const gc = Number(parts2[parts2.length - 2]);
+      const nextGc = gc + 1;
+      if (nextGc < games.length) {
+        setGuildSetting(guildId, 'setup', 'gamelink_cursor', nextGc);
       }
     }
     await interaction.deferUpdate().catch(() => {});
