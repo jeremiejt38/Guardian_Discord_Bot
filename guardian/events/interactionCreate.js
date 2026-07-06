@@ -37,10 +37,13 @@ const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
 const { findGuildTextChannelByName } = require('../modules/utils/channels');
+const { handleInteractionError } = require('../modules/utils/discordErrors');
+const logger = require('../modules/logs/logger');
 
 module.exports = {
   name: 'interactionCreate',
   async execute(client, interaction) {
+    try {
     const AGE_LIMIT_MS = 3000;
     if (interaction.createdTimestamp && Date.now() - interaction.createdTimestamp > AGE_LIMIT_MS) {
       return;
@@ -316,6 +319,12 @@ module.exports = {
 
     if (interaction.isRepliable()) {
       await interaction.reply({ content: t(interaction.guildId, 'interaction.unsupported'), ephemeral: true });
+    }
+    } catch (err) {
+      const handled = await handleInteractionError(interaction, err, `interactionCreate:${interaction.customId ?? interaction.commandName ?? 'unknown'}`);
+      if (!handled) {
+        logger.error('Unhandled interaction error', { message: err?.message, stack: err?.stack, customId: interaction.customId });
+      }
     }
   }
 };

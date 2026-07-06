@@ -27,6 +27,7 @@ const {
   findGuildForumChannelByName
 } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
+const { safeDiscordAction } = require('../utils/discordErrors');
 const { getGradeMappings } = require('./gradeMapping');
 const logger = require('../logs/logger');
 
@@ -1055,12 +1056,26 @@ async function adoptLinkedChannels(guild) {
 }
 
 async function completeGuildSetup(guild) {
-  const owner = await guild.fetchOwner();
+  const owner = await safeDiscordAction(
+    () => guild.fetchOwner(),
+    `completeGuildSetup:fetchOwner:${guild.id}`
+  );
   await adoptLinkedChannels(guild);
-  await runSetupInstallationPhases(guild, owner.id);
+  await safeDiscordAction(
+    () => runSetupInstallationPhases(guild, owner?.id),
+    `completeGuildSetup:runSetupInstallationPhases:${guild.id}`
+  );
   await seedExistingMembers(guild);
-  await postSetupSummary(guild);
-  await cleanupSetupArea(guild);
+  await safeDiscordAction(
+    () => postSetupSummary(guild),
+    `completeGuildSetup:postSetupSummary:${guild.id}`,
+    { silent: true }
+  );
+  await safeDiscordAction(
+    () => cleanupSetupArea(guild),
+    `completeGuildSetup:cleanupSetupArea:${guild.id}`,
+    { silent: true }
+  );
 }
 
 async function handleSetupForceExistingButton(interaction) {
