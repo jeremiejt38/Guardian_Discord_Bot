@@ -2119,7 +2119,8 @@ async function handleSetupInteraction(interaction) {
     const mappingsForSecCont = getGradeMappings(guildId);
     const guardianIdsForCont = Object.values(mappingsForSecCont).filter(Boolean);
     const { dangerous: dCont, unused: uCont } = analyzeNonGuardianRoles(interaction.guild, guardianIdsForCont);
-    if (hasUnresolvedIssues(dCont, uCont)) {
+    const acknowledgedCont = new Set(getGuildSetting(guildId, 'setup', 'security_acknowledged', []));
+    if (hasUnresolvedIssues(dCont, uCont, acknowledgedCont)) {
       const modal = new ModalBuilder()
         .setCustomId(CUSTOM_IDS.securityConfirmModal)
         .setTitle(t('roleSecurity.modalTitle', {}, { guildId }).slice(0, 45));
@@ -2153,20 +2154,46 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.customId.startsWith(`${CUSTOM_IDS.securityRoleAction}:`)) {
+    const roleId = interaction.customId.split(':').pop();
+    const role = interaction.guild?.roles.cache.get(roleId);
+    const msg = role ? t('roleSecurity.modifyEphemeral', { name: role.name }, { guildId }) : null;
+    const saved = getGuildSetting(guildId, 'setup', 'security_acknowledged', []);
+    const acknowledged = new Set([...saved, roleId]);
+    setGuildSetting(guildId, 'setup', 'security_acknowledged', [...acknowledged]);
+    const guild = interaction.guild;
+    const mappingsRA = getGradeMappings(guildId);
+    const guardianIdsRA = Object.values(mappingsRA).filter(Boolean);
+    const { dangerous: dRA, unused: uRA } = analyzeNonGuardianRoles(guild, guardianIdsRA);
+    const _ra = (key, vars) => t(key, vars || {}, { guildId });
+    const secContent = buildSecurityCheckContent(dRA, uRA, _ra, acknowledged);
+    if (secContent) {
+      await interaction.update({ content: secContent, components: buildSecurityComponents(dRA, uRA, _ra, acknowledged) }).catch(() => {
+        interaction.deferUpdate().catch(() => {});
+      });
+    } else {
+      await interaction.deferUpdate().catch(() => {});
+    }
+    if (msg) await replyEphemeral(interaction, msg).catch(() => {});
+    return true;
+  }
+
   if (interaction.customId.startsWith(`${CUSTOM_IDS.securityDeleteUnused}:`)) {
     const roleId = interaction.customId.split(':').pop();
     await interaction.deferUpdate().catch(() => {});
-    const roleToDelete = interaction.guild?.roles.cache.get(roleId);
-    if (roleToDelete) await roleToDelete.delete('Guardian setup — suppression rôle inutilisé').catch(() => {});
     const guild = interaction.guild;
-    const mappingsForSecurity = getGradeMappings(guildId);
-    const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
     if (guild) await guild.roles.fetch().catch(() => {});
+    const roleToDelete = guild?.roles.cache.get(roleId);
+    if (roleToDelete) await roleToDelete.delete('Guardian setup — suppression rôle inutilisé').catch(() => {});
+    if (guild) await guild.roles.fetch().catch(() => {});
+    const mappingsDU = getGradeMappings(guildId);
+    const guardianIdsDU = Object.values(mappingsDU).filter(Boolean);
+    const acknowledged = new Set(getGuildSetting(guildId, 'setup', 'security_acknowledged', []));
+    const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianIdsDU);
     const _sd = (key, vars) => t(key, vars || {}, { guildId });
-    const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
-    const securityContent = buildSecurityCheckContent(dangerous, unused, _sd);
+    const securityContent = buildSecurityCheckContent(dangerous, unused, _sd, acknowledged);
     if (securityContent) {
-      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerous, unused, _sd) }).catch(() => {});
+      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerous, unused, _sd, acknowledged) }).catch(() => {});
     } else {
       await advanceToStep2AfterSecurity(interaction, guildId);
     }
@@ -2177,13 +2204,16 @@ async function handleSetupInteraction(interaction) {
     const roleId = interaction.customId.split(':').pop();
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
-    const mappingsForSecurity = getGradeMappings(guildId);
-    const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
+    const mappingsKU = getGradeMappings(guildId);
+    const guardianIdsKU = Object.values(mappingsKU).filter(Boolean);
+    const acknowledged = new Set(getGuildSetting(guildId, 'setup', 'security_acknowledged', []));
+    acknowledged.add(roleId);
+    setGuildSetting(guildId, 'setup', 'security_acknowledged', [...acknowledged]);
+    const { dangerous, unused: remainingUnused } = analyzeNonGuardianRoles(guild, [...guardianIdsKU, roleId]);
     const _sk = (key, vars) => t(key, vars || {}, { guildId });
-    const { dangerous, unused: remainingUnused } = analyzeNonGuardianRoles(guild, [...guardianRoleIds, roleId]);
-    const securityContent = buildSecurityCheckContent(dangerous, remainingUnused, _sk);
+    const securityContent = buildSecurityCheckContent(dangerous, remainingUnused, _sk, acknowledged);
     if (securityContent) {
-      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerous, remainingUnused, _sk) }).catch(() => {});
+      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerous, remainingUnused, _sk, acknowledged) }).catch(() => {});
     } else {
       await advanceToStep2AfterSecurity(interaction, guildId);
     }
@@ -2193,72 +2223,24 @@ async function handleSetupInteraction(interaction) {
   if (interaction.customId === CUSTOM_IDS.securityDeleteAllUnused) {
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
-    const mappingsForSecurity = getGradeMappings(guildId);
-    const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
     if (guild) await guild.roles.fetch().catch(() => {});
-    const { unused: allUnused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
+    const mappingsDA = getGradeMappings(guildId);
+    const guardianIdsDA = Object.values(mappingsDA).filter(Boolean);
+    const { unused: allUnused } = analyzeNonGuardianRoles(guild, guardianIdsDA);
     for (const r of allUnused) {
       const role = guild?.roles.cache.get(r.id);
       if (role) await role.delete('Guardian setup — suppression rôles inutilisés').catch(() => {});
     }
     if (guild) await guild.roles.fetch().catch(() => {});
+    const acknowledged = new Set(getGuildSetting(guildId, 'setup', 'security_acknowledged', []));
+    const { dangerous: dangerousAfter, unused: unusedAfter } = analyzeNonGuardianRoles(guild, guardianIdsDA);
     const _da = (key, vars) => t(key, vars || {}, { guildId });
-    const { dangerous: dangerousAfter, unused: unusedAfter } = analyzeNonGuardianRoles(guild, guardianRoleIds);
-    const securityContent = buildSecurityCheckContent(dangerousAfter, unusedAfter, _da);
+    const securityContent = buildSecurityCheckContent(dangerousAfter, unusedAfter, _da, acknowledged);
     if (securityContent) {
-      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerousAfter, unusedAfter, _da) }).catch(() => {});
+      await interaction.message.edit({ content: securityContent, components: buildSecurityComponents(dangerousAfter, unusedAfter, _da, acknowledged) }).catch(() => {});
     } else {
       await advanceToStep2AfterSecurity(interaction, guildId);
     }
-    return true;
-  }
-
-  if (interaction.customId === CUSTOM_IDS.securityKeepAllUnused) {
-    await interaction.deferUpdate().catch(() => {});
-    const guild = interaction.guild;
-    const mappingsForSecurity = getGradeMappings(guildId);
-    const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
-    const { unused: allUnused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
-    const keptIds = allUnused.map(r => r.id);
-    const _ka = (key, vars) => t(key, vars || {}, { guildId });
-    const { dangerous: dangerousAfter } = analyzeNonGuardianRoles(guild, [...guardianRoleIds, ...keptIds]);
-    const securityContent = buildSecurityCheckContent(dangerousAfter, [], _ka);
-    if (securityContent) {
-      const rows = buildSecurityComponents(dangerousAfter, [], _ka);
-      await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
-    } else {
-      await interaction.message.delete().catch(() => {});
-      const nextStep = 2;
-      setGuildSetting(guildId, 'setup', 'step', nextStep);
-      const wizardChannel = interaction.channel;
-      if (wizardChannel) {
-        const msgs = await wizardChannel.messages.fetch({ limit: 10 });
-        const wizardMsg = msgs.find((m) => m.author.id === interaction.client.user.id && m.components.length > 0);
-        if (wizardMsg) await wizardMsg.edit(buildStepPayload(guildId, guild, nextStep)).catch(() => {});
-      }
-    }
-    return true;
-  }
-
-  if (interaction.customId.startsWith(`${CUSTOM_IDS.securityRoleAction}:`)) {
-    const roleId = interaction.customId.split(':').pop();
-    const role = interaction.guild?.roles.cache.get(roleId);
-    const msg = role ? t('roleSecurity.modifyEphemeral', { name: role.name }, { guildId }) : null;
-    const guild = interaction.guild;
-    const mappingsRA = getGradeMappings(guildId);
-    const guardianIdsRA = Object.values(mappingsRA).filter(Boolean);
-    const { dangerous: dRA, unused: uRA } = analyzeNonGuardianRoles(guild, guardianIdsRA);
-    const acknowledgedIds = new Set([roleId]);
-    const _ra = (key, vars) => t(key, vars || {}, { guildId });
-    const secContent = buildSecurityCheckContent(dRA, uRA, _ra, acknowledgedIds);
-    if (secContent) {
-      await interaction.update({ content: secContent, components: buildSecurityComponents(dRA, uRA, _ra, acknowledgedIds) }).catch(() => {
-        interaction.deferUpdate().catch(() => {});
-      });
-    } else {
-      await interaction.deferUpdate().catch(() => {});
-    }
-    if (msg) await replyEphemeral(interaction, msg).catch(() => {});
     return true;
   }
 
