@@ -120,9 +120,21 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 | v0.12.1 | 2026-07-07 | Fix FAQ créée comme channel texte au lieu d'un forum |
 | v0.12.0 | 2026-07-07 | Topics sur tous les channels Guardian + messages seed auto-supprimés après 8s |
 
-### v0.11.x — Résilience & MAJ
+### v0.11.x — Résilience, Sécurité & UX Setup
 | Version | Date | Contenu |
-|---------|------|---------|  
+|---------|------|---------|
+| v0.11.13 | 2026-07-07 | Fix déplacer channel jeu existant dans la bonne catégorie (pas de doublon en bas) |
+| v0.11.12 | 2026-07-07 | Feat détection auto channels Guardian step 3 + pré-remplissage + tri pertinence select + renommage Vocal Général→Général |
+| v0.11.11 | 2026-07-07 | Feat tri intelligent channels gamelink + détection jeux stricte + bouton Tout effacer |
+| v0.11.10 | 2026-07-07 | Feat repositionnement auto rôle bot au-dessus du rôle Owner lors du setup |
+| v0.11.9 | 2026-07-07 | Feat audit rôles — pastilles colorées, modal confirmation, boutons Tout supprimer/conserver |
+| v0.11.8 | 2026-07-07 | Feat audit sécurité rôles — permissions dangereuses + rôles inutilisés + 100% i18n |
+| v0.11.7 | 2026-07-07 | Feat détection invitant bot (BotAdd) + DM guildCreate traduit (fr/en) + auto-détection langue |
+| v0.11.6 | 2026-07-07 | Feat détection jeux Steam top 250 hardcodée + match fuzzy + aliases (cs2/gta/lol/bg3…) |
+| v0.11.5 | 2026-07-07 | UX auto-avance après sélection — grade suivant (step 1), jeu suivant (step 6) |
+| v0.11.4 | 2026-07-07 | Fix `#guardian-backup` placé dans catégorie ⚙️ Configuration |
+| v0.11.3 | 2026-07-07 | Feat `#guardian-backup` — position bas, protection suppression, alerte DM owner/manager |
+| v0.11.2 | 2026-07-07 | Docs README v0.11.x — changelog release, roadmap post-v1.0.0 |
 | v0.11.1 | 2026-07-06 | Rate limiting / debounce boutons — 4 niveaux 600ms→5s, cleanup auto, 102 tests |
 | v0.11.0 | 2026-07-06 | Nouvelles options MAJ wizard + backup/restore config via `#guardian-backup` |
 
