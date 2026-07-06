@@ -925,9 +925,45 @@ async function postSetupSummary(guild) {
   );
 }
 
+async function seedExistingMembers(guild) {
+  const db = getDb();
+  const roleMap = getGradeMappings(guild.id);
+  const invertedMap = {};
+  for (const [gradeName, roleId] of Object.entries(roleMap)) {
+    if (roleId) invertedMap[roleId] = gradeName;
+  }
+
+  const members = await guild.members.fetch().catch(() => null);
+  if (!members) return;
+
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO members (guild_id, user_id, grade, join_date, score_comportement)
+     VALUES (?, ?, ?, ?, ?)`
+  );
+
+  for (const member of members.values()) {
+    if (member.user.bot) continue;
+    let grade = GRADE_NAMES.invite;
+    for (const [roleId, gradeName] of Object.entries(invertedMap)) {
+      if (member.roles.cache.has(roleId)) {
+        grade = gradeName;
+        break;
+      }
+    }
+    insert.run(
+      guild.id,
+      member.id,
+      grade,
+      member.joinedAt?.toISOString() || new Date().toISOString(),
+      200
+    );
+  }
+}
+
 async function completeGuildSetup(guild) {
   const owner = await guild.fetchOwner();
   await runSetupInstallationPhases(guild, owner.id);
+  await seedExistingMembers(guild);
   await postSetupSummary(guild);
   await cleanupSetupArea(guild);
 }
