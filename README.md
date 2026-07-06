@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.11.1-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -109,10 +109,15 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ## Changelog
 
+### v1.0.0 — Release publique 🎉
+| Version | Date | Contenu |
+|---------|------|---------|  
+| **v1.0.0** | 2026-07-06 | Release publique — merge `feature/init-setup`, 102 tests, toutes les fonctionnalités v1 ← *actuel* |
+
 ### v0.11.x — Résilience & MAJ
 | Version | Date | Contenu |
 |---------|------|---------|  
-| **v0.11.1** | 2026-07-06 | Rate limiting / debounce boutons — 4 niveaux 600ms→5s, cleanup auto, 102 tests ← *actuel* |
+| v0.11.1 | 2026-07-06 | Rate limiting / debounce boutons — 4 niveaux 600ms→5s, cleanup auto, 102 tests |
 | v0.11.0 | 2026-07-06 | Nouvelles options MAJ wizard + backup/restore config via `#guardian-backup` |
 
 ### v0.10.x — Robustesse & Notifications
@@ -178,9 +183,9 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ---
 
-## 🎯 Roadmap v1.0.0
+## ✅ Roadmap v1.0.0 — Complète
 
-Ce qui reste à faire avant la **release publique** :
+Tous les items ont été livrés dans la v1.0.0 :
 
 ### 🔴 Bloquant
 - [x] **Tests d'intégration end-to-end** — 8 tests E2E, 6 flows complets, 95 tests total ✅ v0.10.5
