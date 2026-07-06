@@ -46,7 +46,7 @@ async function seedGuildMessages(guild) {
     const voiceCreate = findGuildTextChannelByName(guild, CHANNEL_NAMES.voiceCreate);
     if (voiceCreate && !voiceCreate.lastMessageId) {
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('creer:open').setLabel(t('tempVoice.createButton', {}, { guildId: guild.id }) || 'Créer un vocal').setStyle(ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('tempvoice:create').setLabel(t('tempVoice.createButton', {}, { guildId: guild.id }) || 'Créer un vocal').setStyle(ButtonStyle.Primary)
       );
       await voiceCreate.send({ content: t('tempVoice.panelText', {}, { guildId: guild.id }) || 'Cliquez pour créer un vocal temporaire', components: [row] }).catch(() => undefined);
     }
