@@ -208,6 +208,49 @@ Ce qui reste à faire avant la **release publique** :
 
 ---
 
+## 🚀 Roadmap post-v1.0.0
+
+Fonctionnalités prévues après la release publique, classées par priorité :
+
+### v1.1 — Commande `/help` & UX
+| Feature | Description |
+|---------|-------------|
+| `/help` | Aide contextuelle par module avec exemples de commandes |
+| Rate limiting | Debounce sur les boutons pour éviter les doubles actions |
+| Résumé post-install | Message `#bienvenue` avec checklist des prochaines étapes admin |
+
+### v1.2 — Internationalisation
+| Feature | Description |
+|---------|-------------|
+| Multi-langues | ES, DE, PT, IT, NL, PL, RU, ZH, JA, KO — structure prête, JSON à créer |
+| Détection langue automatique | Proposer la langue selon les paramètres Discord du serveur |
+
+### v1.3 — Modération avancée
+| Feature | Description |
+|---------|-------------|
+| Sanctions temporaires | Mute/ban avec expiration automatique |
+| `/warn` avec seuils | Escalade automatique (warn → mute → kick → ban) |
+| Logs enrichis | Export des logs de modération en CSV |
+| Anti-raid | Détection de join massif et verrouillage temporaire |
+
+### v1.4 — Jeux & Communauté
+| Feature | Description |
+|---------|-------------|
+| Notifications Steam | Webhook direct API Steam au lieu du polling |
+| `/setup resume` | Reprendre le wizard depuis n'importe où via slash command |
+| Support forums Discord | Forum Channels pour suggestions et rapports |
+| Leaderboard comportemental | Classement des membres par score comportemental |
+
+### v1.5 — Administration & Infra
+| Feature | Description |
+|---------|-------------|
+| Export/import config | Sauvegarder/restaurer la configuration complète d'un serveur en JSON |
+| Multi-bot support | Guardian peut gérer plusieurs bots sur le même serveur |
+| Tableau de bord web | Interface légère pour visualiser stats et logs sans ouvrir Discord |
+| API REST interne | Endpoints pour intégrations tierces (webhooks entrants, stats) |
+
+---
+
 ## 🤝 Contribution
 
 Les issues et pull requests sont les bienvenues. Merci de respecter la convention de commits [Conventional Commits](https://www.conventionalcommits.org/).
