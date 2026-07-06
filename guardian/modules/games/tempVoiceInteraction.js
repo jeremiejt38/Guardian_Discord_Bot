@@ -14,6 +14,8 @@ const IDS = Object.freeze({
   gameSelect: 'tempvoice:select'
 });
 
+const LEGACY_CREATE_IDS = ['init.createChannel', 'creer:open'];
+
 function getMemberGrade(guildId, userId) {
   const db = getDb();
   const row = db.prepare('SELECT grade FROM members WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
@@ -112,7 +114,7 @@ async function handleTempVoiceInteraction(interaction) {
     return false;
   }
 
-  if (interaction.isButton() && interaction.customId === IDS.createButton) {
+  if (interaction.isButton() && (interaction.customId === IDS.createButton || LEGACY_CREATE_IDS.includes(interaction.customId))) {
     if (!canCreateTempVoice(interaction.guildId, interaction.user.id)) {
       await replyEphemeral(interaction, t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }));
       return true;
