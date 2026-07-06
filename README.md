@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.11.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.11.1-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -112,7 +112,8 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 ### v0.11.x — Résilience & MAJ
 | Version | Date | Contenu |
 |---------|------|---------|  
-| **v0.11.0** | 2026-07-06 | Nouvelles options MAJ wizard + backup/restore config via `#guardian-backup`, 95 tests ← *actuel* |
+| **v0.11.1** | 2026-07-06 | Rate limiting / debounce boutons — 4 niveaux 600ms→5s, cleanup auto, 102 tests ← *actuel* |
+| v0.11.0 | 2026-07-06 | Nouvelles options MAJ wizard + backup/restore config via `#guardian-backup` |
 
 ### v0.10.x — Robustesse & Notifications
 | Version | Date | Contenu |
@@ -192,7 +193,7 @@ Ce qui reste à faire avant la **release publique** :
 - [ ] **Résumé post-installation** — message `#bienvenue` avec checklist des prochaines actions admins
 - [x] **Pagination liste de jeux** — 3 jeux par page, illimité ✅ v0.10.2
 - [x] **Validation step 3** — `#général` requis avant passage à l'étape suivante ✅ v0.10.2
-- [ ] **Rate limiting** — protection contre les interactions trop rapides (debounce sur les boutons)
+- [x] **Rate limiting** — debounce 4 niveaux 600ms→5s, `rateLimit.js`, cleanup auto ✅ v0.11.1
 
 ### 🟡 Nice-to-have
 - [ ] **Tableau de bord web** — interface légère pour visualiser les stats sans ouvrir Discord
@@ -217,6 +218,7 @@ Ce qui reste à faire avant la **release publique** :
 - [x] Tests E2E intégration — 6 flows complets, 95 tests
 - [x] Nouvelles options MAJ wizard — détection slots non configurés après mise à jour
 - [x] Backup/restore config — `#guardian-backup`, snapshot JSON base64, restauration automatique au démarrage
+- [x] Rate limiting debounce — protection double-clic, 4 niveaux de délai
 
 ---
 
