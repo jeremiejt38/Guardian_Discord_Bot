@@ -1366,11 +1366,7 @@ function buildSecurityComponents(dangerous, unused, _) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.securityDeleteAllUnused)
         .setLabel(_('roleSecurity.btnDeleteAll', { count: unused.length }).slice(0, 80))
-        .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.securityKeepAllUnused)
-        .setLabel(_('roleSecurity.btnKeepAll').slice(0, 80))
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Danger)
     ));
   }
 
