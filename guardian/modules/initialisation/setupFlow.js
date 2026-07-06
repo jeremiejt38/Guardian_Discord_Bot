@@ -869,6 +869,9 @@ async function createRolesAutoHelper(interaction, guild, guildId) {
   };
   for (const grade of ORDERED_GRADES) {
     try {
+      const existingMappedId = getGradeMappings(guildId)[grade];
+      const alreadyExists = existingMappedId && guild.roles.cache.has(existingMappedId);
+      if (alreadyExists) continue;
       const role = await guild.roles.create({
         name: gradeLabel(grade),
         color: roleColors[grade] ?? 0x99aab5,
