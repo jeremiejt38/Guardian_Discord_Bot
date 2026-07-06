@@ -405,14 +405,18 @@ function buildStep2Components(guildId) {
 }
 
 const CHANNEL_SLOTS = Object.freeze([
-  { key: 'general', label: '#général', desc: 'Channel de discussion principale de la communauté.', settingSection: 'channels', settingKey: 'general_channel_id', emoji: '💬' },
-  { key: 'voiceGeneral', label: 'Vocal Général', desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.', settingSection: 'channels', settingKey: 'voice_general_id', emoji: '🔊' },
-  { key: 'rules', label: '#règles', desc: 'Channel où le règlement du serveur est affiché.', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '📜' },
-  { key: 'announcements', label: '#annonces', desc: 'Channel réservé aux annonces officielles de l\'équipe.', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '📢' },
-  { key: 'faq', label: '#faq', desc: 'Channel FAQ / Ask — questions fréquentes ou canal communautaire "Ask a question".', settingSection: 'channels', settingKey: 'faq_channel_id', emoji: '❓' },
-  { key: 'welcome', label: '#bienvenue', desc: 'Channel où Guardian accueille les nouveaux membres.', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '👋' },
-  { key: 'voiceAfk', label: 'Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' },
-  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel réservé aux modérateurs — logs Guardian (sanctions, alertes auto-mod). Correspond au "Moderator Only" Discord.', settingSection: 'channels', settingKey: 'moderation_logs_channel_id', emoji: '🛡️' }
+  // ── Vocals (proposés en premier car souvent déjà là)
+  { key: 'voiceGeneral', label: 'Vocal Général',   desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                    settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '�' },
+  { key: 'voiceAfk',    label: 'Vocal AFK',         desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                          settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇' },
+  // ── Channels communautaires existants
+  { key: 'general',     label: '#général',           desc: 'Channel de discussion principale de la communauté.',                                               settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '�' },
+  { key: 'rules',       label: '#règles',            desc: 'Channel où le règlement du serveur est affiché.',                                                  settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜' },
+  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                    settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '�️' },
+  { key: 'securityUpdates', label: '#maj-securite', desc: 'Channel mises à jour de sécurité Discord — visible manager et owner uniquement.',                   settingSection: 'channels', settingKey: 'security_updates_channel_id',   emoji: '🔒' },
+  // ── Channels créés par Guardian si absents (en dernier)
+  { key: 'announcements', label: '#annonces',       desc: 'Channel réservé aux annonces officielles de l\'équipe. Guardian le crée si absent.',               settingSection: 'channels', settingKey: 'announcements_channel_id',      emoji: '�' },
+  { key: 'faq',         label: '#faq',               desc: 'Channel FAQ — Guardian le crée sous forme de forum si absent.',                                    settingSection: 'channels', settingKey: 'faq_channel_id',                emoji: '❓' },
+  { key: 'welcome',     label: '#bienvenue',         desc: 'Channel où Guardian accueille les nouveaux membres. Guardian le crée si absent.',                  settingSection: 'channels', settingKey: 'welcome_channel_id',            emoji: '�' }
 ]);
 
 function getChannelCursor(guildId) {
