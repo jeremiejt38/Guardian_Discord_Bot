@@ -127,7 +127,9 @@ const CUSTOM_IDS = Object.freeze({
   gameReviewRemovePrefix: 'setup:gamereview:remove:',
   gameReviewAdd: 'setup:gamereview:add',
   gameReviewAddModal: 'setup:gamereview:add:modal',
-  gameReviewContinue: 'setup:gamereview:continue'
+  gameReviewContinue: 'setup:gamereview:continue',
+  prereleaseConfirm: 'setup:prerelease:confirm',
+  prereleaseSkip: 'setup:prerelease:skip'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -2950,6 +2952,35 @@ async function handleSetupInteraction(interaction) {
     } catch (error) {
       logger.error('Failed to complete guild setup after notify', error);
     }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.prereleaseConfirm) {
+    await interaction.deferUpdate().catch(() => {});
+    const { version, prerelease } = require('../../package.json');
+    setGuildSetting(guildId, 'bot', 'last_version', version);
+    setGuildSetting(guildId, 'bot', 'prerelease_pending', null);
+    const confirmed = [
+      `## ✅ Mise à jour confirmée — **v${version}** ${prerelease ? '*(test)*' : ''}`,
+      ``,
+      `Guardian a été mis à jour sur **${interaction.guild?.name}**.`,
+      `> La configuration est préservée. Merci d'avoir validé cette version de test.`
+    ].join('\n');
+    await interaction.message?.edit({ content: confirmed, components: [] }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.prereleaseSkip) {
+    await interaction.deferUpdate().catch(() => {});
+    const { version } = require('../../package.json');
+    setGuildSetting(guildId, 'bot', 'prerelease_skipped', version);
+    const skipped = [
+      `## ⏭️ Mise à jour ignorée — v${version} *(test)*`,
+      ``,
+      `Guardian continue de fonctionner avec la version précédente.`,
+      `> Dès que cette version sera stable, la mise à jour s'appliquera automatiquement.`
+    ].join('\n');
+    await interaction.message?.edit({ content: skipped, components: [] }).catch(() => {});
     return true;
   }
 

@@ -15,7 +15,8 @@ const { getInstallContext } = require('../modules/initialisation/detectInstallCo
 const { CATEGORIES, CHANNELS } = require('../config');
 const { findCategoryByName, findGuildTextChannelByName } = require('../modules/utils/channels');
 const logger = require('../modules/logs/logger');
-const { version } = require('../package.json');
+const { version, prerelease } = require('../package.json');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
   name: 'clientReady',
@@ -74,19 +75,63 @@ module.exports = {
         await runChannelMigrations(guild);
 
         const lastVersion = getGuildSetting(guild.id, 'bot', 'last_version', null);
-        if (lastVersion && lastVersion !== version) {
-          const msg = [
-            `## 🔄 Guardian mis à jour — v${lastVersion} → **v${version}**`,
-            ``,
-            `> Le bot vient de redémarrer sur **${guild.name}** avec une nouvelle version.`,
-            `> Aucune action requise — la configuration est préservée.`,
-            ``,
-            `📋 Consulte le changelog complet : https://github.com/jeremiejt38/Guardian_Discord_Bot/releases`
-          ].join('\n');
-          await sendDmNotification(guild, 'bot_update', msg);
-          logger.info(`Bot update notified for guild ${guild.id}: ${lastVersion} → ${version}`);
+        const skippedPrerelease = getGuildSetting(guild.id, 'bot', 'prerelease_skipped', null);
+        const isNewVersion = lastVersion && lastVersion !== version;
+        const wasSkipped = skippedPrerelease === version;
+
+        if (isNewVersion && !wasSkipped) {
+          if (prerelease) {
+            const ownerId = getGuildSetting(guild.id, 'setup', 'owner_id', null)
+              ?? getGuildSetting(guild.id, 'setup', 'inviter_id', null)
+              ?? guild.ownerId;
+            const ownerUser = await client.users.fetch(ownerId).catch(() => null);
+            if (ownerUser) {
+              const msg = [
+                `## 🧪 Nouvelle version de test disponible — **v${version}** *(prerelease)*`,
+                ``,
+                `Guardian a été mis à jour sur **${guild.name}** avec une version **encore en cours de test**.`,
+                ``,
+                `> ⚠️ Cette version peut contenir des bugs ou des comportements non finalisés.`,
+                ``,
+                `**Souhaites-tu installer cette version de test ?**`,
+                `> Si tu refuses, Guardian continuera avec la version précédente.`,
+                `> Dès que la version sera marquée stable, la mise à jour s'appliquera automatiquement.`
+              ].join('\n');
+              const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setCustomId('setup:prerelease:confirm')
+                  .setLabel('✅ Installer la version de test')
+                  .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                  .setCustomId('setup:prerelease:skip')
+                  .setLabel('⏭️ Ignorer pour l\'instant')
+                  .setStyle(ButtonStyle.Secondary)
+              );
+              await ownerUser.send({ content: msg, components: [row] }).catch(() =>
+                logger.warn(`Ready: could not send prerelease DM to ${ownerId} for guild ${guild.id}`)
+              );
+              setGuildSetting(guild.id, 'bot', 'prerelease_pending', version);
+              logger.info(`Guild ${guild.id}: prerelease ${version} confirmation sent to ${ownerId}`);
+            }
+          } else {
+            setGuildSetting(guild.id, 'bot', 'last_version', version);
+            if (skippedPrerelease) {
+              setGuildSetting(guild.id, 'bot', 'prerelease_skipped', null);
+            }
+            const msg = [
+              `## 🔄 Guardian mis à jour — v${lastVersion} → **v${version}**`,
+              ``,
+              `> Le bot vient de redémarrer sur **${guild.name}** avec une nouvelle version stable.`,
+              `> Aucune action requise — la configuration est préservée.`,
+              ``,
+              `📋 Consulte le changelog complet : https://github.com/jeremiejt38/Guardian_Discord_Bot/releases`
+            ].join('\n');
+            await sendDmNotification(guild, 'bot_update', msg);
+            logger.info(`Bot update (stable) notified for guild ${guild.id}: ${lastVersion} → ${version}`);
+          }
+        } else if (!lastVersion) {
+          setGuildSetting(guild.id, 'bot', 'last_version', version);
         }
-        setGuildSetting(guild.id, 'bot', 'last_version', version);
 
         await saveConfigBackup(guild).catch(() => {});
       } catch (error) {

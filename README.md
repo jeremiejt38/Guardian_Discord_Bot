@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.14.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.15.0--prerelease-orange?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -109,10 +109,15 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ## Changelog
 
-### v0.14.x — Setup UX & Onboarding ← *actuel*
+### v0.15.x — MAJ automatique & prerelease ← *actuel*
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.15.0** | 2026-07-07 | Feat: MAJ automatique stable + confirmation DM prerelease (champ `prerelease` dans package.json) ← *actuel* *(prerelease)* |
+
+### v0.14.x — Setup UX & Onboarding
 | Version | Date | Contenu |
 |---------|------|---------|  
-| **v0.14.0** | 2026-07-07 | Fix création des rôles un par un grade par grade (label dynamique, transfert/recréation individuel) ← *actuel* |
+| **v0.14.0** | 2026-07-07 | Fix création des rôles un par un grade par grade (label dynamique, transfert/recréation individuel) |
 | v0.13.2 | 2026-07-07 | Fix bouton « Créer les rôles auto » toujours visible même quand des rôles existent |
 | v0.13.1 | 2026-07-07 | Étape de révision des jeux détectés avant gameLink (supprimer/ajouter/continuer) |
 | v0.13.0 | 2026-07-07 | Channel `#devenir-membre` + DM enrichi nouveaux membres + notification bulk membres au finalize |
