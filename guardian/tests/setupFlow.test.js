@@ -52,13 +52,26 @@ function buildFakeRolesCacheFromRoles(roles) {
 let nextGuildIndex = 1;
 
 function buildFakeGuild({ id, community = true } = {}) {
+  const fakeMembers = new Map();
+  fakeMembers.set('owner', { id: 'owner', user: { bot: false, username: 'owner', displayName: 'Owner' }, nickname: null, roles: { cache: new Map() } });
+  fakeMembers.find = (fn) => [...fakeMembers.values()].find(fn);
   return {
     id: id || `test-guild-${nextGuildIndex++}`,
     ownerId: 'owner',
     features: community ? ['COMMUNITY'] : [],
     roles: {
       cache: buildFakeRolesCache(),
-      everyone: { id: 'everyone' }
+      everyone: { id: 'everyone' },
+      fetch: async () => {}
+    },
+    members: {
+      cache: fakeMembers,
+      fetch: async () => {
+        const m = new Map(fakeMembers);
+        m.filter = (fn) => { const r = new Map(); for (const [k, v] of m) if (fn(v)) r.set(k, v); return r; };
+        return m;
+      },
+      filter: (fn) => { const r = new Map(); for (const [k, v] of fakeMembers) if (fn(v)) r.set(k, v); return r; }
     },
     channels: {
       cache: new Map()
@@ -90,7 +103,7 @@ function buildFakeInteraction({ customId, userId = 'owner', guild = buildFakeGui
       getField: (key) => fields[key] !== undefined ? { values: Array.isArray(fields[key]) ? fields[key] : [] } : { values: [] }
     },
     channel: {
-      send: async () => {},
+      send: async (payload) => { obj.channelSent = payload; return { id: 'sent-msg', delete: async () => {} }; },
       messages: { fetch: async () => new Map() }
     },
     message: { edit: async (payload) => { messageEdited = payload; return payload; } },
@@ -169,7 +182,7 @@ test('setup:step:next replies with validation error when mappings are incomplete
   assert.strictEqual(handled, true);
 });
 
-test('setup:step:next advances to step two when mappings are complete', async () => {
+test('setup:step:next shows owner confirmation when mappings are complete', async () => {
   initDatabase(':memory:');
 
   const roles = [
@@ -192,8 +205,8 @@ test('setup:step:next advances to step two when mappings are complete', async ()
   const handled = await handleSetupInteraction(interaction);
 
   assert.strictEqual(handled, true);
-  assert.strictEqual(getGuildSetting(guild.id, 'setup', 'step'), 2);
-  assert.ok(interaction.messageEdited?.content, 'Expected step two content after advancing');
+  assert.ok(interaction.channelSent?.content?.includes('Owner'), 'Expected owner confirmation message');
+  assert.ok(interaction.channelSent?.components?.length > 0, 'Expected select menu for owner confirmation');
 });
 
 test('toggleBioRequired updates the member bio config and rerenders step two', async () => {

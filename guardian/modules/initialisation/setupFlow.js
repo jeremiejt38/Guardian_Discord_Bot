@@ -1964,41 +1964,48 @@ async function handleSetupInteraction(interaction) {
       const guild = interaction.guild;
       if (guild.roles?.fetch) await guild.roles.fetch().catch(() => {});
       const validation = validateStepOneMappings(guild);
-      if (!validation.ok) {
-        const needsOwnerSelect =
-          (validation.reason === 'owner_cardinality' && validation.details?.ownerCount === 0) ||
-          validation.reason === 'owner_role_missing';
-        if (needsOwnerSelect && guild.members) {
-          await interaction.deferUpdate().catch(() => {});
-          const members = await guild.members.fetch();
-          const nonBots = [...members.filter((m) => !m.user.bot).values()].slice(0, 25);
-          const options = nonBots.map((m) => ({
-            label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
-            value: m.id,
-            description: `@${m.user.username}`.slice(0, 50)
-          }));
-          const ownerRoleId = validation.mappings[GRADE_NAMES.owner];
-          const selectRow = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId(CUSTOM_IDS.selectOwnerMember)
-              .setPlaceholder('Choisir le membre Owner (aura tous les droits)')
-              .setMinValues(1).setMaxValues(1)
-              .addOptions(options.length ? options : [{ label: 'Aucun membre', value: 'none' }])
-          );
-          const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : 'Owner';
-          await interaction.channel.send({
-            content: [
-              `⚠️ **Aucun membre n'a encore le rôle ${ownerRoleMention}.**`,
-              'Choisis le propriétaire du serveur — il aura tous les droits Guardian',
-              '(gestion des grades, modération, configuration).'
-            ].join('\n'),
-            components: [selectRow]
-          });
-          return true;
-        }
+      if (!validation.ok && validation.reason !== 'owner_cardinality' && validation.reason !== 'owner_role_missing') {
         await sendSetupMessage(interaction, explainStepOneValidation(guildId, validation));
         return true;
       }
+      await interaction.deferUpdate().catch(() => {});
+      const members = await guild.members.fetch().catch(() => null);
+      const nonBots = members ? [...members.filter((m) => !m.user.bot).values()].slice(0, 25) : [];
+      const mappings = getGradeMappings(guildId);
+      const ownerRoleId = mappings[GRADE_NAMES.owner];
+      const ownerRole = ownerRoleId ? guild.roles.cache.get(ownerRoleId) : null;
+      const currentOwnerMember = ownerRole
+        ? guild.members.cache.find((m) => m.roles.cache.has(ownerRoleId) && !m.user.bot)
+        : null;
+      const options = nonBots.map((m) => ({
+        label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
+        value: m.id,
+        description: (m.id === currentOwnerMember?.id ? '👑 Owner actuel — ' : '') + `@${m.user.username}`.slice(0, 50)
+      }));
+      const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : '**Owner**';
+      const selectRow = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(CUSTOM_IDS.selectOwnerMember)
+          .setPlaceholder(currentOwnerMember
+            ? `Owner actuel : ${(currentOwnerMember.nickname || currentOwnerMember.user.displayName).slice(0, 40)}`
+            : 'Choisir le membre Owner')
+          .setMinValues(1).setMaxValues(1)
+          .addOptions(options.length ? options : [{ label: 'Aucun membre', value: 'none' }])
+      );
+      await interaction.channel.send({
+        content: [
+          `## 👑 Confirmation de l'Owner`,
+          '',
+          currentOwnerMember
+            ? `Le rôle ${ownerRoleMention} est actuellement attribué à **${currentOwnerMember.nickname || currentOwnerMember.user.displayName}**.`
+            : `Aucun membre n'a encore le rôle ${ownerRoleMention}.`,
+          '',
+          '> ⚠️ **L\'Owner aura tous les droits Guardian sur ce serveur** : gestion des grades, modération, configuration complète.',
+          '> Confirme ou modifie le membre Owner avant de continuer.'
+        ].join('\n'),
+        components: [selectRow]
+      });
+      return true;
     }
 
     const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
