@@ -646,9 +646,9 @@ async function repositionCategories(guild) {
     CATEGORIES.informations,
     CATEGORIES.communaute,
     CATEGORIES.vocaux,
+    CATEGORIES.moderation
   ];
   const fixedEnd = [
-    CATEGORIES.moderation,
     CATEGORIES.configuration
   ];
 
@@ -1037,8 +1037,8 @@ async function adoptLinkedChannels(guild) {
 
 async function completeGuildSetup(guild) {
   const owner = await guild.fetchOwner();
-  await runSetupInstallationPhases(guild, owner.id);
   await adoptLinkedChannels(guild);
+  await runSetupInstallationPhases(guild, owner.id);
   await seedExistingMembers(guild);
   await postSetupSummary(guild);
   await cleanupSetupArea(guild);
