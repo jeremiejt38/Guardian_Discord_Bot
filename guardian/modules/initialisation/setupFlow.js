@@ -8,6 +8,7 @@ const {
   TextInputStyle
 } = require('discord.js');
 const { GRADE_NAMES, CHANNELS, CATEGORIES } = require('../../config');
+const { matchGameFromChannelName } = require('../games/steamGamesList');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
 const {
@@ -1079,7 +1080,13 @@ function detectExistingGameChannels(guild) {
     if (!gameMap.has(baseName)) gameMap.set(baseName, { baseName, channels: [] });
     gameMap.get(baseName).channels.push({ id: ch.id, name: ch.name, type });
   }
-  return [...gameMap.values()].filter((g) => g.channels.length >= 1 && g.baseName.length >= 2);
+  return [...gameMap.values()]
+    .filter((g) => g.channels.length >= 1 && g.baseName.length >= 2)
+    .map((g) => {
+      const steamMatch = matchGameFromChannelName(g.baseName);
+      return { ...g, steamName: steamMatch?.name ?? null, steamAppId: steamMatch?.appid ?? null };
+    })
+    .filter((g) => g.steamName !== null);
 }
 
 function getDetectedGames(guildId) {
@@ -1120,10 +1127,11 @@ function buildGameDetectContent(guildId, guild) {
       const types = g.channels.map((c) => {
         if (c.type === 'galerie') return '🖼️';
         if (c.type === 'changelog') return '📢';
-        if (c.type === 'forum') return '💬';
+        if (c.type === 'forum') return '🗂️';
         return '💬';
       }).join(' ');
-      lines.push(`> 🎮 **${g.baseName}** — ${types} (${g.channels.length} salon(s))`);
+      const steamLabel = g.steamName ? ` → **${g.steamName}**${g.steamAppId ? ` \`(#${g.steamAppId})\`` : ''}` : '';
+      lines.push(`> 🎮 \`${g.baseName}\`${steamLabel} — ${types} (${g.channels.length} salon(s))`);
     }
     lines.push(
       '',
@@ -1174,10 +1182,11 @@ function buildGameLinkContent(guildId) {
 
   const total = games.length;
   const activeType = getGameLinkActiveType(guildId);
+  const displayName = game.steamName || game.baseName;
   const lines = [
-    `## 🎮 Lier les channels — **${game.baseName}** (${cursor + 1}/${total})`,
+    `## 🎮 Lier les channels — **${displayName}** (${cursor + 1}/${total})`,
     '',
-    `Associe tes channels existants à **${game.baseName}** :`,
+    `Associe tes channels existants à **${displayName}** :`,
     '> Clique sur un type puis sélectionne le channel correspondant.',
     '> Tu peux ignorer les types que tu n\'as pas.',
     ''
@@ -2044,9 +2053,10 @@ async function handleSetupInteraction(interaction) {
     const games = detectExistingGameChannels(interaction.guild);
     setDetectedGames(guildId, games);
     setGameLinkCursor(guildId, 0);
+    setGameLinkActiveType(guildId, null);
     for (const g of games) {
-      const existing = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === g.baseName.toLowerCase());
-      if (!existing) addSetupGame(guildId, { name: g.baseName });
+      const existing = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === (g.steamName || g.baseName).toLowerCase());
+      if (!existing) addSetupGame(guildId, { name: g.steamName || g.baseName, steam_app_id: g.steamAppId || null });
     }
     await interaction.message.edit({
       content: buildGameLinkContent(guildId) + '\n\u200b',
