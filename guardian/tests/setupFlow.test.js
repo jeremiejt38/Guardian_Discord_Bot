@@ -51,10 +51,11 @@ function buildFakeRolesCacheFromRoles(roles) {
 
 let nextGuildIndex = 1;
 
-function buildFakeGuild({ id } = {}) {
+function buildFakeGuild({ id, community = true } = {}) {
   return {
     id: id || `test-guild-${nextGuildIndex++}`,
     ownerId: 'owner',
+    features: community ? ['COMMUNITY'] : [],
     roles: {
       cache: buildFakeRolesCache(),
       everyone: { id: 'everyone' }
@@ -209,7 +210,7 @@ test('toggleBioRequired updates the member bio config and rerenders step two', a
   assert.ok(interaction.messageEdited?.content, 'Expected step two rerender after toggle');
 });
 
-test('setup:step:next advances from step two to step three', async () => {
+test('setup:step:next from step two shows game detect screen then gamedetect:skip reaches step three', async () => {
   initDatabase(':memory:');
 
   const guild = buildFakeGuild();
@@ -217,10 +218,13 @@ test('setup:step:next advances from step two to step three', async () => {
 
   const interaction = buildFakeInteraction({ customId: 'setup:step:next', guild });
   const handled = await handleSetupInteraction(interaction);
-
   assert.strictEqual(handled, true);
+  assert.ok(interaction.messageEdited?.content, 'Expected game detect screen content');
+
+  const skipInteraction = buildFakeInteraction({ customId: 'setup:gamedetect:skip', guild });
+  const handled2 = await handleSetupInteraction(skipInteraction);
+  assert.strictEqual(handled2, true);
   assert.strictEqual(getGuildSetting(guild.id, 'setup', 'step'), 3);
-  assert.ok(interaction.messageEdited?.content, 'Expected step three content after advancing');
 });
 
 test('setup:finalize replies not ready when current step is less than five', async () => {

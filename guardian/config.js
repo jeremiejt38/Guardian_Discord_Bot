@@ -47,18 +47,15 @@ const CHANNELS = Object.freeze({
   serverList: 'liste-serveurs',
   serverManagement: 'gestion-serveurs',
   configLogs: 'guardian-logs',
-  statutBot: 'statut-bot',
   botConfig: 'bot',
-  jeuxServeur: 'jeux-serveur',
   membres: 'membres',
   channelsConfig: 'channels',
   vocauxConfig: 'vocaux',
   jeux: 'jeux',
-  changelogs: 'changelogs',
   suggestions: 'suggestions',
   annonces: 'annonces',
-  serveursJeu: 'serveurs-jeu',
-  approveGames: 'approve-games'
+  serveurs: 'serveurs',
+  securityUpdates: 'maj-securite'
 });
 
 const CHANNEL_NAMES = Object.freeze({
@@ -83,18 +80,15 @@ const CHANNEL_NAMES = Object.freeze({
   serverList: CHANNELS.serverList,
   serverManagement: CHANNELS.serverManagement,
   configLogs: CHANNELS.configLogs,
-  statutBot: CHANNELS.statutBot,
   botConfig: CHANNELS.botConfig,
-  jeuxServeur: CHANNELS.jeuxServeur,
   membres: CHANNELS.membres,
   channelsConfig: CHANNELS.channelsConfig,
   vocauxConfig: CHANNELS.vocauxConfig,
   jeux: CHANNELS.jeux,
-  changelogs: CHANNELS.changelogs,
   suggestions: CHANNELS.suggestions,
   annonces: CHANNELS.annonces,
-  serveursJeu: CHANNELS.serveursJeu,
-  approveGames: CHANNELS.approveGames
+  serveurs: CHANNELS.serveurs,
+  securityUpdates: CHANNELS.securityUpdates
 });
 
 const GRADE_NAMES = Object.freeze({

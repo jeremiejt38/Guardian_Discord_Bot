@@ -1,7 +1,8 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectMenuBuilder } = require('discord.js');
 const { getDb } = require('../../database/db');
-const { CHANNEL_NAMES } = require('../../config');
+const { CHANNEL_NAMES, GRADE_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
+const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { findTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
 const { getGuildGames } = require('./gameList');
@@ -14,15 +15,30 @@ const IDS = Object.freeze({
   gameSelect: 'tempvoice:select'
 });
 
+const LEGACY_CREATE_IDS = ['init.createChannel', 'creer:open'];
+
 function getMemberGrade(guildId, userId) {
   const db = getDb();
   const row = db.prepare('SELECT grade FROM members WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
   return row?.grade || null;
 }
 
-function canCreateTempVoice(guildId, userId) {
+function canCreateTempVoice(guildId, userId, discordMember) {
   const grade = getMemberGrade(guildId, userId);
-  return Boolean(grade && grade !== 'invite');
+  if (grade && grade !== GRADE_NAMES.invite) return true;
+
+  if (discordMember) {
+    const mappings = getGradeMappings(guildId);
+    const nonInviteRoleIds = [
+      mappings[GRADE_NAMES.membre],
+      mappings[GRADE_NAMES.moderateur],
+      mappings[GRADE_NAMES.manager],
+      mappings[GRADE_NAMES.owner]
+    ].filter(Boolean);
+    if (nonInviteRoleIds.some((id) => discordMember.roles?.cache?.has(id))) return true;
+  }
+
+  return false;
 }
 
 function buildName(prefix, gameName, suffix, index = 0) {
@@ -57,7 +73,12 @@ function getNextVoiceName(guild, prefix, gameName, suffix) {
 }
 
 function buildGameSelect(guildId, games) {
-  const options = games.slice(0, 25).map((game) => ({
+  const chatOption = {
+    label: t('tempVoice.chatOption', {}, { guildId }) || '💬 Chat — salon sans jeu',
+    value: 'chat',
+    description: 'Créer un vocal sans jeu spécifique'
+  };
+  const gameOptions = games.slice(0, 24).map((game) => ({
     label: game.name.slice(0, 100),
     value: String(game.game_id)
   }));
@@ -68,7 +89,7 @@ function buildGameSelect(guildId, games) {
       .setPlaceholder(t('tempVoice.selectPlaceholder', {}, { guildId }))
       .setMinValues(1)
       .setMaxValues(1)
-      .addOptions(options)
+      .addOptions([chatOption, ...gameOptions])
   );
 }
 
@@ -107,17 +128,13 @@ async function handleTempVoiceInteraction(interaction) {
     return false;
   }
 
-  if (interaction.isButton() && interaction.customId === IDS.createButton) {
-    if (!canCreateTempVoice(interaction.guildId, interaction.user.id)) {
+  if (interaction.isButton() && (interaction.customId === IDS.createButton || LEGACY_CREATE_IDS.includes(interaction.customId))) {
+    if (!canCreateTempVoice(interaction.guildId, interaction.user.id, interaction.member)) {
       await replyEphemeral(interaction, t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }));
       return true;
     }
 
     const games = getGuildGames(interaction.guildId);
-    if (!games.length) {
-      await replyEphemeral(interaction, t('tempVoice.noGames', {}, { guildId: interaction.guildId }));
-      return true;
-    }
 
     await interaction.reply({
       content: t('tempVoice.selectPrompt', {}, { guildId: interaction.guildId }),
@@ -128,7 +145,7 @@ async function handleTempVoiceInteraction(interaction) {
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === IDS.gameSelect) {
-    if (!canCreateTempVoice(interaction.guildId, interaction.user.id)) {
+    if (!canCreateTempVoice(interaction.guildId, interaction.user.id, interaction.member)) {
       await interaction.update({
         content: t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }),
         components: []
@@ -136,27 +153,37 @@ async function handleTempVoiceInteraction(interaction) {
       return true;
     }
 
-    const gameId = Number.parseInt(interaction.values[0], 10);
-    const games = getGuildGames(interaction.guildId);
-    const game = games.find((item) => Number(item.game_id) === gameId);
-    if (!game) {
-      await interaction.update({
-        content: t('tempVoice.invalidGame', {}, { guildId: interaction.guildId }),
-        components: []
-      });
-      return true;
+    const selectedValue = interaction.values[0];
+    const isChat = selectedValue === 'chat';
+
+    let gameName = null;
+    if (!isChat) {
+      const gameId = Number.parseInt(selectedValue, 10);
+      const games = getGuildGames(interaction.guildId);
+      const game = games.find((item) => Number(item.game_id) === gameId);
+      if (!game) {
+        await interaction.update({
+          content: t('tempVoice.invalidGame', {}, { guildId: interaction.guildId }),
+          components: []
+        });
+        return true;
+      }
+      gameName = game.name;
     }
 
     const prefix = getGuildSetting(interaction.guildId, 'vocaux', 'name_prefix', '🎮');
-    const suffix = getGuildSetting(interaction.guildId, 'vocaux', 'name_suffix', 'Partie');
+    const suffix = isChat ? '' : getGuildSetting(interaction.guildId, 'vocaux', 'name_suffix', 'Partie');
     const userLimit = Math.max(0, Number(getGuildSetting(interaction.guildId, 'vocaux', 'max_members', 0)));
     const category = interaction.guild.channels.cache.find(
       (channel) => channel.type === ChannelType.GuildCategory && channel.name.toLowerCase() === 'vocaux'
     );
 
-    const channelName = getNextVoiceName(interaction.guild, prefix, game.name, suffix);
+    const channelName = isChat
+      ? getNextVoiceName(interaction.guild, '💬', 'Chat', '')
+      : getNextVoiceName(interaction.guild, prefix, gameName, suffix);
     const created = await createTemporaryVoice(interaction.guild, channelName, userLimit, category?.id || null);
-    trackTempVoice(created.id, interaction.guildId, gameId, interaction.user.id);
+    const trackGameId = isChat ? null : Number.parseInt(selectedValue, 10);
+    trackTempVoice(created.id, interaction.guildId, trackGameId, interaction.user.id);
 
     const requester = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
     if (requester?.voice?.channel) {

@@ -10,10 +10,10 @@ const { seedMembresPanel } = require('../config/membresPanel');
 const { seedChannelsPanel } = require('../config/channelsPanel');
 const { seedVocauxPanel } = require('../config/vocauxPanel');
 const { seedJeuxPanel } = require('../config/jeuxPanel');
-const { seedChangelogsPanel } = require('../config/changelogsPanel');
-const { seedServeursJeuPanel } = require('../config/serveursJeuPanel');
+const { seedServeursJeuPanel, refreshServerListPanel } = require('../config/serveursJeuPanel');
 const { seedRolesPanel } = require('../config/rolesPanel');
-const { seedStatusBotPanel } = require('../config/statusBotPanel');
+const { seedBotPanel } = require('../config/botPanel');
+const { seedGuardianPanel } = require('../config/guardianPanel');
 
 async function seedGuildMessages(guild) {
   try {
@@ -35,20 +35,28 @@ async function seedGuildMessages(guild) {
       await suggestions.send(t('setup.suggestionsPlaceholder', {}, { guildId: guild.id }) || '💡 SUGGESTIONS & IDÉES\nProposez vos idées ici en créant un nouveau post !');
     }
 
-    // Server list placeholder
-    const serverList = findGuildTextChannelByName(guild, CHANNEL_NAMES.serverList);
-    if (serverList && !serverList.lastMessageId) {
-      await serverList.send(t('setup.serverListPlaceholder', {}, { guildId: guild.id }) || '🖥️ SERVEURS DE JEU DISPONIBLES\nAucun serveur configuré pour le moment.');
-    }
-
-    // Voice create seed button is handled by setup.createSetupArea when needed
-    // Ensure creer-channel has a button to open the Create-Channel flow
     const voiceCreate = findGuildTextChannelByName(guild, CHANNEL_NAMES.voiceCreate);
-    if (voiceCreate && !voiceCreate.lastMessageId) {
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('creer:open').setLabel(t('tempVoice.createButton', {}, { guildId: guild.id }) || 'Créer un vocal').setStyle(ButtonStyle.Primary)
+    if (voiceCreate) {
+      const LEGACY_IDS = ['init.createChannel', 'creer:open'];
+      const recent = await voiceCreate.messages.fetch({ limit: 10 }).catch(() => null);
+      const botMessages = recent?.filter((m) => m.author.id === guild.client.user.id) ?? new Map();
+      const legacyMsg = [...botMessages.values()].find((m) =>
+        m.components?.some((row) => row.components?.some((c) => LEGACY_IDS.includes(c.customId)))
       );
-      await voiceCreate.send({ content: t('tempVoice.panelText', {}, { guildId: guild.id }) || 'Cliquez pour créer un vocal temporaire', components: [row] }).catch(() => undefined);
+      const hasNewPanel = [...botMessages.values()].some((m) =>
+        m.components?.some((row) => row.components?.some((c) => c.customId === 'tempvoice:create'))
+      );
+
+      if (legacyMsg) {
+        await legacyMsg.delete().catch(() => undefined);
+      }
+
+      if (!hasNewPanel) {
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('tempvoice:create').setLabel(t('tempVoice.createButton', {}, { guildId: guild.id }) || 'Créer un vocal').setStyle(ButtonStyle.Primary)
+        );
+        await voiceCreate.send({ content: t('tempVoice.panelText', {}, { guildId: guild.id }) || 'Cliquez pour créer un vocal temporaire', components: [row] }).catch(() => undefined);
+      }
     }
     await seedSlowModePanel(guild);
     await seedBehaviorPanel(guild);
@@ -57,10 +65,11 @@ async function seedGuildMessages(guild) {
     await seedChannelsPanel(guild);
     await seedVocauxPanel(guild);
     await seedJeuxPanel(guild);
-    await seedChangelogsPanel(guild);
     await seedServeursJeuPanel(guild);
+    await refreshServerListPanel(guild);
     await seedRolesPanel(guild);
-    await seedStatusBotPanel(guild);
+    await seedBotPanel(guild);
+    await seedGuardianPanel(guild);
   } catch (error) {
     logger.error('Failed to seed guild messages', error);
   }

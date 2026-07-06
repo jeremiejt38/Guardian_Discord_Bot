@@ -17,7 +17,9 @@ const { getDb } = require('../../database/db');
 const IDS = Object.freeze({
   addServer: 'serveurs-jeu:add',
   addModal: 'serveurs-jeu:modal:add',
-  removePrefix: 'serveurs-jeu:remove:'
+  removePrefix: 'serveurs-jeu:remove:',
+  approvePrefix: 'servers:approve:',
+  rejectPrefix: 'servers:reject:'
 });
 
 function hasManagerGrade(member, guildId) {
@@ -73,7 +75,7 @@ function buildRows(guildId) {
 }
 
 async function seedServeursJeuPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.serveursJeu);
+  const channel = findTextChannelByName(guild, CHANNELS.serveurs);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
   const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
@@ -83,7 +85,7 @@ async function seedServeursJeuPanel(guild) {
 }
 
 async function refreshServeursJeuPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.serveursJeu);
+  const channel = findTextChannelByName(guild, CHANNELS.serveurs);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
   const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
@@ -92,9 +94,33 @@ async function refreshServeursJeuPanel(guild) {
   await panel.edit({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
 }
 
+async function refreshServerListPanel(guild) {
+  const channel = findTextChannelByName(guild, CHANNELS.serverList);
+  if (!channel) return;
+  const guildId = guild.id;
+  const servers = getServers(guildId).filter((s) => s.approved);
+  const lines = ['**🖥️ Serveurs de jeu disponibles**\n'];
+  if (servers.length === 0) {
+    lines.push('_Aucun serveur configuré pour le moment._');
+  } else {
+    for (const s of servers) {
+      const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : '🟡';
+      lines.push(`${emoji} **${s.name}** (${s.game}) — \`${s.ip}:${s.port}\``);
+    }
+  }
+  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+  const existing = msgs?.find((m) => m.author.id === guild.client.user.id);
+  const content = lines.join('\n');
+  if (existing) {
+    await existing.edit({ content }).catch(() => undefined);
+  } else {
+    await channel.send({ content }).catch(() => undefined);
+  }
+}
+
 async function handleServeursJeuInteraction(interaction) {
   const { customId, guildId } = interaction;
-  if (!customId?.startsWith('serveurs-jeu:')) return false;
+  if (!customId?.startsWith('serveurs-jeu:') && !customId?.startsWith('servers:approve:') && !customId?.startsWith('servers:reject:')) return false;
 
   if (!hasManagerGrade(interaction.member, guildId)) {
     await replyEphemeral(interaction, t(guildId, 'config.managerOnly'));
@@ -159,7 +185,29 @@ async function handleServeursJeuInteraction(interaction) {
     return true;
   }
 
+  if (interaction.isButton() && customId.startsWith(IDS.approvePrefix)) {
+    const serverId = Number(customId.slice(IDS.approvePrefix.length));
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    getDb().prepare('UPDATE servers_jeu SET approved = 1 WHERE server_id = ?').run(serverId);
+    await refreshServeursJeuPanel(interaction.guild);
+    await refreshServerListPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'servers.approved', { user: interaction.user.tag }));
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.rejectPrefix)) {
+    const serverId = Number(customId.slice(IDS.rejectPrefix.length));
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    getDb().prepare('DELETE FROM servers_jeu WHERE server_id = ?').run(serverId);
+    await refreshServeursJeuPanel(interaction.guild);
+    await refreshServerListPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'servers.rejected', { user: interaction.user.tag }));
+    return true;
+  }
+
   return false;
 }
 
-module.exports = { seedServeursJeuPanel, handleServeursJeuInteraction };
+module.exports = { seedServeursJeuPanel, refreshServeursJeuPanel, refreshServerListPanel, handleServeursJeuInteraction };

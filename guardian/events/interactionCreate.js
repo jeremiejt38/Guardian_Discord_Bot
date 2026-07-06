@@ -5,9 +5,10 @@ const { handleMembresInteraction } = require('../modules/config/membresPanel');
 const { handleChannelsInteraction } = require('../modules/config/channelsPanel');
 const { handleVocauxInteraction } = require('../modules/config/vocauxPanel');
 const { handleJeuxInteraction } = require('../modules/config/jeuxPanel');
-const { handleChangelogsInteraction } = require('../modules/config/changelogsPanel');
 const { handleServeursJeuInteraction } = require('../modules/config/serveursJeuPanel');
 const { handleRolesInteraction } = require('../modules/config/rolesPanel');
+const { handleBotInteraction } = require('../modules/config/botPanel');
+const { handleGuardianInteraction } = require('../modules/config/guardianPanel');
 const { handleHistoriquePagination } = require('../commands/historique');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
@@ -31,6 +32,7 @@ const {
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction, startWizardInChannel } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
+const { handleTempVoiceInteraction } = require('../modules/games/tempVoiceInteraction');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
@@ -52,6 +54,15 @@ module.exports = {
 
       await command.execute(interaction);
       return;
+    }
+
+    if (
+      interaction.customId?.startsWith('tempvoice:') ||
+      interaction.customId === 'init.createChannel' ||
+      interaction.customId === 'creer:open'
+    ) {
+      const handled = await handleTempVoiceInteraction(interaction);
+      if (handled) return;
     }
 
     if (interaction.customId?.startsWith('automod:slowmode:')) {
@@ -85,17 +96,31 @@ module.exports = {
     }
 
     if (interaction.customId?.startsWith('changelogs:')) {
-      const handled = await handleChangelogsInteraction(interaction);
+      const handled = await handleJeuxInteraction(interaction);
       if (handled) return;
     }
 
-    if (interaction.customId?.startsWith('serveurs-jeu:')) {
+    if (
+      interaction.customId?.startsWith('serveurs-jeu:') ||
+      interaction.customId?.startsWith('servers:approve:') ||
+      interaction.customId?.startsWith('servers:reject:')
+    ) {
       const handled = await handleServeursJeuInteraction(interaction);
       if (handled) return;
     }
 
     if (interaction.customId?.startsWith('roles:')) {
       const handled = await handleRolesInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('bot:')) {
+      const handled = await handleBotInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('guardian:')) {
+      const handled = await handleGuardianInteraction(interaction);
       if (handled) return;
     }
 
@@ -215,23 +240,6 @@ module.exports = {
       return;
     }
 
-    if (interaction.isButton() && interaction.customId === 'creer:open') {
-      const { handleCreateOpen } = require('../modules/games/gameList');
-      await handleCreateOpen(interaction);
-      return;
-    }
-
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('creer:select')) {
-      const { handleCreateSelection } = require('../modules/games/gameList');
-      await handleCreateSelection(interaction);
-      return;
-    }
-
-    if (interaction.isButton() && interaction.customId.startsWith('creer:validate')) {
-      const { handleCreateValidate } = require('../modules/games/gameList');
-      await handleCreateValidate(interaction);
-      return;
-    }
 
     if (interaction.isModalSubmit() && interaction.customId === 'servers:add:modal') {
       await handleServerModalSubmit(interaction);

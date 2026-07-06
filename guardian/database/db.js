@@ -113,7 +113,7 @@ function initDatabase(customPath = DATABASE_PATH) {
       category_id TEXT,
       galerie_enabled INTEGER NOT NULL DEFAULT 0,
       changelog_enabled INTEGER NOT NULL DEFAULT 1,
-      text_channel_enabled INTEGER NOT NULL DEFAULT 1
+      text_channel_enabled INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS member_games (

@@ -10,10 +10,11 @@ module.exports = {
   async execute(client, guild) {
     logger.info(`Bot added to guild: ${guild.name} (${guild.id})`);
     try {
-      if (!isGuildInstalled(guild.id)) {
+      const installed = isGuildInstalled(guild.id);
+      if (!installed) {
         await createSetupArea(guild);
       }
-      await ensureSetupInstallPrompt(guild);
+      await ensureSetupInstallPrompt(guild, { forceCreateIfMissing: !installed || true });
       await applyPersistedSlowModeForGuild(guild);
       await ensureMemberGameInterfaces(guild);
     } catch (error) {

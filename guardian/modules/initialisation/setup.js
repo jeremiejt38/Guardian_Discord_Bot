@@ -52,13 +52,14 @@ async function ensureCategory(guild, name, permissionOverwrites) {
   });
 }
 
-async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
+async function ensureTextChannel(guild, parentId, name, permissionOverwrites, { topic } = {}) {
   const existing = findGuildTextChannelByName(guild, name, parentId);
 
   if (existing) {
     await existing.edit({
       parent: parentId,
-      permissionOverwrites
+      permissionOverwrites,
+      ...(topic !== undefined ? { topic } : {})
     });
     return existing;
   }
@@ -67,8 +68,26 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
     name,
     type: ChannelType.GuildText,
     parent: parentId,
-    permissionOverwrites
+    permissionOverwrites,
+    ...(topic !== undefined ? { topic } : {})
   });
+}
+
+async function ensureAnnouncementChannel(guild, parentId, name, permissionOverwrites) {
+  const isCommunity = guild.features?.includes('COMMUNITY');
+  const targetType = isCommunity ? ChannelType.GuildAnnouncement : ChannelType.GuildText;
+  const existing = guild.channels.cache.find(
+    (c) => (c.type === ChannelType.GuildAnnouncement || c.type === ChannelType.GuildText) &&
+            c.name === name && (parentId === undefined || c.parentId === parentId)
+  ) ?? null;
+  if (existing) {
+    await existing.edit({ parent: parentId, permissionOverwrites }).catch(() => {});
+    if (isCommunity && existing.type !== ChannelType.GuildAnnouncement) {
+      await existing.setType(ChannelType.GuildAnnouncement).catch(() => {});
+    }
+    return existing;
+  }
+  return guild.channels.create({ name, type: targetType, parent: parentId, permissionOverwrites });
 }
 
 async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
@@ -359,19 +378,9 @@ async function seedVoiceCreateMessage(channel) {
 }
 
 async function seedGuardianConfigMessage(channel, options = {}) {
-  if (channel.lastMessageId) {
-    return;
+  if (options.withGameListButton && !channel.lastMessageId) {
+    await channel.send({ components: [buildOpenButtonRow(channel.guild.id)] }).catch(() => {});
   }
-
-  const payload = {
-    content: t(channel.guild.id, 'init.configReady', { channel: channel.name })
-  };
-
-  if (options.withGameListButton) {
-    payload.components = [buildOpenButtonRow(channel.guild.id)];
-  }
-
-  await channel.send(payload);
 }
 
 async function seedServerManagementPlaceholder(channel) {
@@ -405,10 +414,6 @@ async function seedServeursListMessage(channel) {
 }
 
 async function createInformationsArea(guild, roleMap) {
-  const informationsCategory = await ensureCategory(guild, CATEGORIES.informations, [
-    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
-  ]);
-
   const readOnlyPermissions = [
     {
       id: guild.roles.everyone.id,
@@ -417,17 +422,23 @@ async function createInformationsArea(guild, roleMap) {
     }
   ];
 
-  const welcomeChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.welcome, readOnlyPermissions);
-  const rulesChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.rules, readOnlyPermissions);
-  const announcementsChannel = await ensureTextChannel(guild, informationsCategory.id, CHANNELS.annonces, readOnlyPermissions);
-  const faqChannel = await ensureForumChannel(guild, informationsCategory.id, CHANNELS.faq, readOnlyPermissions);
+  const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions);
+  const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions);
+  const announcementsChannel = await ensureAnnouncementChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
+  const faqChannel = await ensureForumChannel(guild, null, CHANNELS.faq, readOnlyPermissions);
 
-  await ensureTextChannel(guild, informationsCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+  await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
 
   await seedStaticInfoMessage(welcomeChannel, 'init.welcomeInfo');
   await seedStaticInfoMessage(rulesChannel, 'init.rules');
   await seedStaticInfoMessage(announcementsChannel, 'init.announcements');
   await seedFaqMessages(faqChannel);
+
+  const existingCat = findCategoryByName(guild, CATEGORIES.informations);
+  if (existingCat) {
+    const children = guild.channels.cache.filter((c) => c.parentId === existingCat.id);
+    if (children.size === 0) await existingCat.delete('Guardian — catégorie Informations supprimée').catch(() => {});
+  }
 }
 
 async function createCommunauteArea(guild, roleMap, ownerId) {
@@ -441,6 +452,13 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
     : buildHiddenPermissions(guild, ownerId);
 
   await ensureTextChannel(guild, communauteCategory.id, CHANNELS.general, permissions);
+
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
+
+  const memberReadPermissions = [
+    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] }
+  ];
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.serverList, memberReadPermissions);
 
   const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
   if (suggestionsEnabled) {
@@ -492,55 +510,50 @@ async function createModerationArea(guild, roleMap, ownerId) {
   const moderationPermissions = buildModerationPermissions(guild, roleMap, ownerId);
   const moderationCategory = await ensureCategory(guild, CATEGORIES.moderation, moderationPermissions);
 
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.reports, moderationPermissions);
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.autoModeration, moderationPermissions);
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.behavior, moderationPermissions);
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderationLogs, moderationPermissions);
+  const guildId = guild.id;
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.reports,        moderationPermissions, { topic: t('init.topics.reports',        {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.autoModeration, moderationPermissions, { topic: t('init.topics.autoModeration', {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.behavior,       moderationPermissions, { topic: t('init.topics.behavior',        {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderationLogs, moderationPermissions, { topic: t('init.topics.moderationLogs',  {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.securityUpdates, buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager), { topic: t('init.topics.securityUpdates', {}, { guildId }) });
 }
 
 async function createConfigurationArea(guild, roleMap, ownerId) {
   const configurationCategory = await ensureCategory(guild, CATEGORIES.configuration, buildHiddenPermissions(guild, ownerId));
 
+  const guildId = guild.id;
   const channels = [
     // visible to members (opt-in features)
-    { name: CHANNELS.gameChannels, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre) },
-    { name: CHANNELS.gameList, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre) },
+    { name: CHANNELS.gameChannels,    permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre),                                                          topic: t('init.topics.gameChannels',    {}, { guildId }) },
+    { name: CHANNELS.gameList,        permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre),                                                          topic: t('init.topics.gameList',        {}, { guildId }) },
 
-    // servers listing and management
-    { name: CHANNELS.jeuxServeur, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
-    { name: CHANNELS.serverList, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur) },
+    // servers management (moderateur+)
+    { name: CHANNELS.serveurs,        permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager),                        topic: t('init.topics.serveurs',        {}, { guildId }) },
 
-    // bot & status
-    { name: CHANNELS.statutBot, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
-    { name: CHANNELS.botConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    // bot & status (manager+)
+    { name: CHANNELS.botConfig,       permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.botConfig',       {}, { guildId }) },
 
     // admin configuration channels
-    { name: CHANNELS.membres, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.channelsConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.vocauxConfig, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.jeux, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.changelogs, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.approveGames, permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager) },
-    { name: CHANNELS.serveursJeu, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.membres,         permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.membres',         {}, { guildId }) },
+    { name: CHANNELS.channelsConfig,  permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.channelsConfig',  {}, { guildId }) },
+    { name: CHANNELS.vocauxConfig,    permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.vocauxConfig',    {}, { guildId }) },
+    { name: CHANNELS.jeux,            permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.jeux',            {}, { guildId }) },
 
     // logs and guardian config
-    { name: CHANNELS.configLogs, permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
-    { name: CHANNELS.guardian, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager) },
+    { name: CHANNELS.configLogs,      permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                       topic: t('init.topics.configLogs',      {}, { guildId }) },
+
+    // owner only
+    { name: CHANNELS.roles,           permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),                                                           topic: t('init.topics.roles',           {}, { guildId }) },
+    { name: CHANNELS.guardian,        permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),                                                           topic: t('init.topics.guardian',        {}, { guildId }) },
 
     // legacy management channel (future Pterodactyl control)
-    { name: CHANNELS.serverManagement, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner) }
+    { name: CHANNELS.serverManagement, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),                                                          topic: t('init.topics.serverManagement', {}, { guildId }) }
   ];
 
   for (const item of channels) {
-    const channel = await ensureTextChannel(guild, configurationCategory.id, item.name, item.permissions);
-    if (item.name === CHANNELS.serverManagement) {
-      await seedServerManagementPlaceholder(channel);
-    } else if (item.name === CHANNELS.jeuxServeur) {
-      await seedServeursListMessage(channel);
-    } else {
-      const withGameListButton = item.name === CHANNELS.gameChannels || item.name === CHANNELS.gameList;
-      await seedGuardianConfigMessage(channel, { withGameListButton });
-    }
+    const channel = await ensureTextChannel(guild, configurationCategory.id, item.name, item.permissions, { topic: item.topic });
+    const withGameListButton = item.name === CHANNELS.gameChannels || item.name === CHANNELS.gameList;
+    await seedGuardianConfigMessage(channel, { withGameListButton });
   }
 }
 
@@ -611,18 +624,26 @@ async function purgeSetupChannel(setupChannel) {
   }
 }
 
-async function ensureSetupInstallPrompt(guild) {
-  const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+async function ensureSetupInstallPrompt(guild, { forceCreateIfMissing = false } = {}) {
+  let setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+  let setupChannel = setupCategory
+    ? findGuildTextChannelByName(guild, CHANNELS.setup, setupCategory.id)
+    : null;
 
-  if (!setupCategory) {
-    return;
+  if ((!setupCategory || !setupChannel) && forceCreateIfMissing) {
+    const owner = await guild.fetchOwner();
+    setupCategory = await ensureCategory(guild, CATEGORIES.setup, [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      { id: owner.id, allow: [PermissionFlagsBits.ViewChannel] }
+    ]);
+    await setupCategory.setPosition(0).catch(() => {});
+    setupChannel = await ensureTextChannel(guild, setupCategory.id, CHANNELS.setup, [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+    ]);
   }
 
-  const setupChannel = findGuildTextChannelByName(guild, CHANNELS.setup, setupCategory.id);
-
-  if (!setupChannel) {
-    return;
-  }
+  if (!setupChannel) return;
 
   await purgeSetupChannel(setupChannel);
 
@@ -639,18 +660,17 @@ function buildSetupInstallMessagePayloadForGuild(language) {
 
 async function repositionCategories(guild) {
   const order = [
-    CATEGORIES.informations,
     CATEGORIES.communaute,
     CATEGORIES.vocaux,
+    CATEGORIES.moderation
   ];
   const fixedEnd = [
-    CATEGORIES.moderation,
     CATEGORIES.configuration
   ];
 
   const allCategories = guild.channels.cache.filter((c) => c.type === 4);
   const gameCats = allCategories.filter(
-    (c) => !order.includes(c.name) && !fixedEnd.includes(c.name) && c.name !== CATEGORIES.setup
+    (c) => !order.includes(c.name) && !fixedEnd.includes(c.name) && c.name !== CATEGORIES.setup && c.name !== CATEGORIES.informations
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const ordered = [
@@ -686,6 +706,7 @@ async function createSetupArea(guild) {
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel] }
     ]);
+    await category.setPosition(0).catch(() => {});
 
     const channel = await ensureTextChannel(guild, category.id, CHANNELS.setup, [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -925,9 +946,119 @@ async function postSetupSummary(guild) {
   );
 }
 
+async function seedExistingMembers(guild) {
+  const db = getDb();
+  const roleMap = getGradeMappings(guild.id);
+  const invertedMap = {};
+  for (const [gradeName, roleId] of Object.entries(roleMap)) {
+    if (roleId) invertedMap[roleId] = gradeName;
+  }
+
+  const members = await guild.members.fetch().catch(() => null);
+  if (!members) return;
+
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO members (guild_id, user_id, grade, join_date, score_comportement)
+     VALUES (?, ?, ?, ?, ?)`
+  );
+
+  for (const member of members.values()) {
+    if (member.user.bot) continue;
+    let grade = GRADE_NAMES.invite;
+    for (const [roleId, gradeName] of Object.entries(invertedMap)) {
+      if (member.roles.cache.has(roleId)) {
+        grade = gradeName;
+        break;
+      }
+    }
+    insert.run(
+      guild.id,
+      member.id,
+      grade,
+      member.joinedAt?.toISOString() || new Date().toISOString(),
+      200
+    );
+  }
+}
+
+const LINKED_CHANNEL_MAP = [
+  { settingSection: 'channels', settingKey: 'general_channel_id',         targetName: CHANNELS.general,       targetCategory: CATEGORIES.communaute,   type: 'text'  },
+  { settingSection: 'channels', settingKey: 'rules_channel_id',            targetName: CHANNELS.rules,         targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'announcements_channel_id',    targetName: CHANNELS.annonces,      targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'faq_channel_id',              targetName: CHANNELS.faq,           targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'welcome_channel_id',          targetName: CHANNELS.welcome,       targetCategory: null, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'voice_general_id',            targetName: CHANNELS.voiceGeneral,  targetCategory: CATEGORIES.vocaux,        type: 'voice' },
+  { settingSection: 'channels', settingKey: 'voice_afk_id',                targetName: CHANNELS.voiceAfk,      targetCategory: CATEGORIES.vocaux,        type: 'voice' },
+  { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',   targetName: CHANNELS.moderationLogs,    targetCategory: CATEGORIES.moderation, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'security_updates_channel_id', targetName: CHANNELS.securityUpdates,   targetCategory: CATEGORIES.moderation, type: 'text', customPerms: true }
+];
+
+const DEFAULT_DISCORD_CATEGORIES = [
+  'Text Channels', 'Voice Channels', 'Salons vocaux', 'Salons textuels'
+];
+
+const DEFAULT_DISCORD_ORPHAN_CHANNELS = [
+  'update-safety', 'safety-updates'
+];
+
+async function adoptLinkedChannels(guild) {
+  const guildId = guild.id;
+  await guild.channels.fetch().catch(() => {});
+
+  for (const mapping of LINKED_CHANNEL_MAP) {
+    const channelId = getGuildSetting(guildId, mapping.settingSection, mapping.settingKey, null);
+    if (!channelId) continue;
+
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) continue;
+
+    const targetCategoryId = mapping.targetCategory
+      ? (findCategoryByName(guild, mapping.targetCategory)?.id ?? null)
+      : null;
+    if (mapping.targetCategory && !targetCategoryId) continue;
+
+    const alreadyCorrect = channel.parentId === targetCategoryId && channel.name === mapping.targetName;
+    if (alreadyCorrect) continue;
+
+    try {
+      const editPayload = {
+        name: mapping.targetName,
+        parent: targetCategoryId
+      };
+      if (mapping.customPerms) {
+        const roleMap = getGradeMappings(guildId);
+        editPayload.lockPermissions = false;
+        editPayload.permissionOverwrites = buildConfigPermissions(guild, roleMap, guild.ownerId, GRADE_NAMES.manager);
+      } else {
+        editPayload.lockPermissions = true;
+      }
+      await channel.edit(editPayload);
+    } catch (err) {
+      logger.error(`adoptLinkedChannels: failed to migrate channel ${channelId}`, err);
+    }
+  }
+
+  for (const orphanName of DEFAULT_DISCORD_ORPHAN_CHANNELS) {
+    const ch = guild.channels.cache.find((c) => c.name === orphanName && !c.parentId);
+    if (ch) await ch.delete('Guardian setup — channel système Discord non utilisé').catch(() => {});
+  }
+
+  for (const catName of DEFAULT_DISCORD_CATEGORIES) {
+    const cat = findCategoryByName(guild, catName);
+    if (!cat) continue;
+    await guild.channels.fetch().catch(() => {});
+    const children = guild.channels.cache.filter((c) => c.parentId === cat.id);
+    if (children.size === 0) {
+      await cat.delete('Guardian setup — catégorie Discord par défaut vide').catch(() => {});
+    }
+  }
+}
+
 async function completeGuildSetup(guild) {
   const owner = await guild.fetchOwner();
+  await adoptLinkedChannels(guild);
   await runSetupInstallationPhases(guild, owner.id);
+  await seedExistingMembers(guild);
   await postSetupSummary(guild);
   await cleanupSetupArea(guild);
 }

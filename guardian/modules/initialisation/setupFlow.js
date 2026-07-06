@@ -95,6 +95,13 @@ const CUSTOM_IDS = Object.freeze({
   channelSelectPrefix: 'setup:channel:select',
   channelSkip: 'setup:channel:skip',
   next: 'setup:step:next',
+  communityCheckContinue: 'setup:community:continue',
+  communityCheckRetry: 'setup:community:retry',
+  gameDetectAdopt: 'setup:gamedetect:adopt',
+  gameDetectSkip: 'setup:gamedetect:skip',
+  gameLinkNext: 'setup:gamelink:next',
+  gameLinkSkip: 'setup:gamelink:skip',
+  gameLinkChannelPrefix: 'setup:gamelink:channel',
   finalize: 'setup:finalize'
 });
 
@@ -147,7 +154,7 @@ function buildNavRow(guildId, step) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.back)
         .setStyle(ButtonStyle.Secondary)
-        .setLabel(t('setup.backStep', {}, { guildId }))
+        .setLabel('◀ ' + t('setup.backStep', {}, { guildId }))
     );
   }
   if (!isLastStep) {
@@ -155,14 +162,14 @@ function buildNavRow(guildId, step) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.next)
         .setStyle(ButtonStyle.Primary)
-        .setLabel(t('setup.nextStep', {}, { guildId }))
+        .setLabel(t('setup.nextStep', {}, { guildId }) + ' ▶')
     );
   } else {
     buttons.push(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.finalize)
         .setStyle(ButtonStyle.Success)
-        .setLabel(t('setup.finalizeButton', {}, { guildId }))
+        .setLabel('🚀 ' + t('setup.finalizeButton', {}, { guildId }))
     );
   }
   return new ActionRowBuilder().addComponents(buttons);
@@ -328,12 +335,12 @@ function buildStepOneComponents(guildId, guild) {
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.previousGrade)
       .setStyle(ButtonStyle.Secondary)
-      .setLabel('◀ Grade précédent')
+      .setLabel('◀ Grade préc.')
       .setDisabled(cursor === 0),
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.nextGrade)
       .setStyle(ButtonStyle.Secondary)
-      .setLabel('Grade suivant ▶')
+      .setLabel('Grade suiv. ▶')
       .setDisabled(cursor >= ORDERED_GRADES.length - 1)
   );
 
@@ -368,20 +375,25 @@ function setStep2Config(guildId, config) {
 
 function buildStep2Content(guildId) {
   const c = getStep2Config(guildId);
+  const dot = (v) => v ? '🟢 Actif' : '⚪ Inactif';
   return [
     `## ${t('setup.step2Title', {}, { guildId })} (2/${TOTAL_STEPS})`,
     t('setup.step2Instructions', {}, { guildId }),
     '',
-    `💡 **Suggestions** : ${onOff(c.suggestionsEnabled)}`,
-    '> Permet aux membres de soumettre des idées via un channel dédié.',
-    `🖥️ **Liste serveurs** : ${onOff(c.serverListEnabled)}`,
-    '> Affiche une liste des serveurs de jeu liés à la communauté.',
-    `🤖 **Statut bot** : ${onOff(c.statusBotEnabled)}`,
-    '> Poste un message de statut mis à jour automatiquement (uptime, version...).',
-    `🔇 **Vocal AFK** : ${onOff(c.afkEnabled)}`,
-    '> Crée un salon vocal AFK où les membres inactifs sont déplacés automatiquement.',
-    `🎮 **Game Updates** : ${onOff(c.gameUpdatesEnabled)}`,
-    '> Publie les mises à jour Steam des jeux configurés dans le channel dédié.'
+    `💡 **Suggestions** — ${dot(c.suggestionsEnabled)}`,
+    '> Les membres peuvent soumettre des idées et voter via un forum dédié.',
+    '',
+    `🖥️ **Liste de serveurs** — ${dot(c.serverListEnabled)}`,
+    '> Affiche les serveurs de jeu approuvés par la communauté.',
+    '',
+    `🤖 **Statut du bot** — ${dot(c.statusBotEnabled)}`,
+    '> Message automatique affichant l\'uptime et la version de Guardian.',
+    '',
+    `🔇 **Vocal AFK** — ${dot(c.afkEnabled)}`,
+    '> Salon où Discord déplace automatiquement les membres inactifs.',
+    '',
+    `📢 **Game Updates** — ${dot(c.gameUpdatesEnabled)}`,
+    '> Publie les changelogs Steam des jeux configurés dans un channel dédié.'
   ].join('\n');
 }
 
@@ -405,13 +417,18 @@ function buildStep2Components(guildId) {
 }
 
 const CHANNEL_SLOTS = Object.freeze([
-  { key: 'general', label: '#général', desc: 'Channel de discussion principale de la communauté.', settingSection: 'channels', settingKey: 'general_channel_id', emoji: '�' },
-  { key: 'voiceGeneral', label: 'Vocal Général', desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.', settingSection: 'channels', settingKey: 'voice_general_id', emoji: '�' },
-  { key: 'rules', label: '#règles', desc: 'Channel où le règlement du serveur est affiché.', settingSection: 'channels', settingKey: 'rules_channel_id', emoji: '�' },
-  { key: 'announcements', label: '#annonces', desc: 'Channel réservé aux annonces officielles de l\'équipe.', settingSection: 'channels', settingKey: 'announcements_channel_id', emoji: '�' },
-  { key: 'welcome', label: '#bienvenue', desc: 'Channel où Guardian accueille les nouveaux membres.', settingSection: 'channels', settingKey: 'welcome_channel_id', emoji: '�' },
-  { key: 'voiceAfk', label: 'Vocal AFK', desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.', settingSection: 'channels', settingKey: 'voice_afk_id', emoji: '🔇' },
-  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel réservé aux modérateurs — reçoit les logs Guardian (sanctions, alertes auto-mod). Correspond au channel "Moderator Only" des serveurs communautaires Discord.', settingSection: 'channels', settingKey: 'moderation_logs_channel_id', emoji: '🛡️' }
+  // ── Vocals (proposés en premier car souvent déjà là)
+  { key: 'voiceGeneral', label: 'Vocal Général',   desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                    settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '�' },
+  { key: 'voiceAfk',    label: 'Vocal AFK',         desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                          settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇' },
+  // ── Channels communautaires existants
+  { key: 'general',     label: '#général',           desc: 'Channel de discussion principale de la communauté.',                                               settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '�' },
+  { key: 'rules',       label: '#règles',            desc: 'Channel où le règlement du serveur est affiché.',                                                  settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜', communityOnly: true },
+  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                    settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '�️', communityOnly: true },
+  { key: 'securityUpdates', label: '#maj-securite', desc: 'Channel mises à jour de sécurité Discord — visible manager et owner uniquement.',                   settingSection: 'channels', settingKey: 'security_updates_channel_id',   emoji: '🔒', communityOnly: true },
+  // ── Channels créés par Guardian si absents (en dernier)
+  { key: 'announcements', label: '#annonces',       desc: 'Channel réservé aux annonces officielles de l\'équipe. Guardian le crée si absent.',               settingSection: 'channels', settingKey: 'announcements_channel_id',      emoji: '�' },
+  { key: 'faq',         label: '#faq',               desc: 'Channel FAQ — Guardian le crée sous forme de forum si absent.',                                    settingSection: 'channels', settingKey: 'faq_channel_id',                emoji: '❓' },
+  { key: 'welcome',     label: '#bienvenue',         desc: 'Channel où Guardian accueille les nouveaux membres. Guardian le crée si absent.',                  settingSection: 'channels', settingKey: 'welcome_channel_id',            emoji: '�' }
 ]);
 
 function getChannelCursor(guildId) {
@@ -441,16 +458,17 @@ function buildChannelOptions(guild, slot) {
   return channels.length > 0 ? channels : [{ label: 'Aucun channel compatible', value: 'none', description: 'Guardian en créera un automatiquement' }];
 }
 
-const FRESH_SLOTS = ['general', 'voiceGeneral'];
+function isCommunityGuild(guild) {
+  return guild?.features?.includes('COMMUNITY') ?? false;
+}
 
-function getActiveSlotsForInstall(guildId) {
-  return isFreshInstall(guildId)
-    ? CHANNEL_SLOTS.filter((s) => FRESH_SLOTS.includes(s.key))
-    : CHANNEL_SLOTS;
+function getActiveSlotsForInstall(_guildId, guild) {
+  if (!guild || isCommunityGuild(guild)) return CHANNEL_SLOTS;
+  return CHANNEL_SLOTS.filter((s) => !s.communityOnly);
 }
 
 function buildStep3ChannelsContent(guildId, guild) {
-  const slots = getActiveSlotsForInstall(guildId);
+  const slots = getActiveSlotsForInstall(guildId, guild);
   const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
   const slot = slots[cursor];
   const currentId = getGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
@@ -478,7 +496,7 @@ function buildStep3ChannelsContent(guildId, guild) {
 }
 
 function buildStep3ChannelsComponents(guildId, guild) {
-  const slots = getActiveSlotsForInstall(guildId);
+  const slots = getActiveSlotsForInstall(guildId, guild);
   const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
   const slot = slots[cursor];
   const options = buildChannelOptions(guild, slot);
@@ -494,9 +512,9 @@ function buildStep3ChannelsComponents(guildId, guild) {
   const selectRow = new ActionRowBuilder().addComponents(selectMenu);
   const navRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
-      .setLabel('◀ Précédent').setDisabled(cursor === 0),
+      .setLabel('◀ Préc.').setDisabled(cursor === 0),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
-      .setLabel('Laisser Guardian créer →').setDisabled(false),
+      .setLabel('🤖 Laisser Guardian créer').setDisabled(false),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:ignore`).setStyle(ButtonStyle.Secondary)
       .setLabel('⏭️ Ignorer ce channel').setDisabled(isRequired)
   );
@@ -558,21 +576,21 @@ function buildStep4Components(guildId) {
   const c = getStep4Config(guildId);
   const toggles = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBioRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Bio: ${onOffDot(c.bioRequired)}`),
+      .setLabel(`📝 Bio: ${onOffDot(c.bioRequired)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSponsorshipRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Parrainage: ${onOffDot(c.sponsorshipRequired)}`),
+      .setLabel(`👥 Parrainage: ${onOffDot(c.sponsorshipRequired)}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cyclePromotionReviewerGrade).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Réviseur: ${gradeLabel(c.reviewerGrade)}`)
+      .setLabel(`🔍 Réviseur: ${gradeLabel(c.reviewerGrade)}`)
   );
   const delay = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('-12h'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('+12h')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ -12h'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ +12h')
   );
   const expulsion = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteExpulsion).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Expulsion: ${onOffDot(c.inviteExpulsionEnabled)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('-1j'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('+1j')
+      .setLabel(`🚪 Expulsion: ${onOffDot(c.inviteExpulsionEnabled)}`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 -1j'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 +1j')
   );
   const welcomeBtn = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editWelcomeText).setStyle(ButtonStyle.Secondary)
@@ -608,21 +626,25 @@ function formatDelay(minutes) {
 
 function buildStep5VocalContent(guildId) {
   const c = getStep4VocalConfig(guildId);
-  const limitDisplay = c.memberLimit === 0 ? 'illimité' : `${c.memberLimit} membres max`;
+  const limitDisplay = c.memberLimit === 0 ? '\u221e illimité' : `${c.memberLimit} membre(s) max`;
   const prefixDisplay = c.prefix === '' ? '*aucun*' : c.prefix;
   const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
+  const exampleName = `${c.prefix ? c.prefix + ' ' : ''}Partie${suffixEnabled ? ' — Partie' : ''}`;
   return [
     `## ${t('setup.step5Title', {}, { guildId })} (5/${TOTAL_STEPS})`,
     t('setup.step5Instructions', {}, { guildId }),
     '',
-    `🔊 **Préfixe des salons vocaux** : ${prefixDisplay}`,
-    '> Emoji ou texte affiché au début du nom de chaque room vocale créée automatiquement.',
-    `📛 **Suffixe** : ${onOffDot(suffixEnabled)}`,
-    '> Texte affiché à la fin du nom de la room (ex : « — Partie »).',
+    `🏷️ **Préfixe** : ${prefixDisplay}`,
+    '> Emoji ou texte au début du nom — identifie visuellement les rooms Guardian.',
+    '',
+    `� **Suffixe** : ${onOffDot(suffixEnabled)}`,
+    `> Texte « — Partie » ajouté à la fin du nom (ex : \`${exampleName}\`).`,
+    '',
     `👥 **Limite de membres** : ${limitDisplay}`,
-    '> Nombre max de personnes autorisées dans chaque room vocale. 0 = illimité.',
+    '> Capacité max par room. Laisse à 0 pour illimité.',
+    '',
     `⏱️ **Délai de suppression** : ${formatDelay(c.deleteDelayMinutes)}`,
-    '> Temps après lequel une room vocale vide est supprimée automatiquement.'
+    '> Délai avant qu\'une room vocale vide soit supprimée automatiquement.'
   ].join('\n');
 }
 
@@ -633,18 +655,18 @@ function buildStep5VocalComponents(guildId) {
   const suffixEnabled = Boolean(getGuildSetting(guildId, 'vocal', 'suffix_enabled', true));
   const prefixRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleVocalPrefix).setStyle(ButtonStyle.Secondary)
-      .setLabel(`Préfixe: ${prefixDisplay} →`),
+      .setLabel(`🏷️ Préfixe: ${prefixDisplay} →`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleVocalSuffix)
       .setStyle(suffixEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel(`Suffixe: ${onOffDot(suffixEnabled)}`)
+      .setLabel(`🏷️ Suffixe: ${onOffDot(suffixEnabled)}`)
   );
   const limitRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('Limite -1')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('👤 -1')
       .setDisabled(c.memberLimit === 0),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel(`Limite +1 (${limitDisplay})`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('-30s')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel(`👤 +1 (${limitDisplay})`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ -30s')
       .setDisabled(c.deleteDelayMinutes <= 0.5),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`+30s (${formatDelay(c.deleteDelayMinutes)})`)
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseVocalDelay).setStyle(ButtonStyle.Secondary).setLabel(`⏱️ +30s (${formatDelay(c.deleteDelayMinutes)})`)
   );
   return [prefixRow, limitRow, buildNavRow(guildId, 5)];
 }
@@ -772,24 +794,28 @@ function setStep7Config(guildId, config) {
 function buildStep7Content(guildId) {
   const c = getStep7Config(guildId);
   const wordList = c.blacklistWords.length > 0
-    ? c.blacklistWords.slice(0, 8).map((w) => `\`${w}\``).join(', ') + (c.blacklistWords.length > 8 ? ` +${c.blacklistWords.length - 8}` : '')
-    : '*aucun*';
-  const slowDisplay = c.slowModeSeconds === 0 ? 'désactivé' : `${c.slowModeSeconds}s entre messages`;
-  const logsDisplay = c.logsEnabled ? `✅ ${c.logsLevel}` : '❌';
+    ? c.blacklistWords.slice(0, 8).map((w) => `\`${w}\``).join(', ') + (c.blacklistWords.length > 8 ? ` *(+${c.blacklistWords.length - 8} autres)*` : '')
+    : '*aucune*';
+  const slowDisplay = c.slowModeSeconds === 0 ? '*désactivé*' : `${c.slowModeSeconds}s entre messages`;
+  const logsDisplay = c.logsEnabled ? `🟢 ${c.logsLevel}` : '⚪ désactivé';
   return [
     `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
     t('setup.step7Instructions', {}, { guildId }),
     '',
-    `⚖️ **Score comportemental** : ${onOff(c.behaviorScoreEnabled)}`,
-    '> Attribue un score aux membres selon leur comportement (messages, sanctions, ancienneté).',
-    `🛡️ **Anti-spam** : max ${c.spamThreshold} msg/3s`,
-    '> Guardian supprime les messages si un membre dépasse ce seuil en 3 secondes.',
-    `⏱️ **Slow mode** : ${slowDisplay}`,
-    '> Impose un délai entre les messages pour calmer les discussions agitées.',
-    `🚫 **Blacklist** : ${c.blacklistWarn ? '⚠️ Avertissement public' : '🤫 Suppression silencieuse'} — ${c.blacklistWords.length} mot(s)`,
-    wordList !== '*aucun*' ? `> Mots bannis : ${wordList}` : '> Aucun mot banni configuré.',
-    `📋 **Logs Guardian** : ${logsDisplay}`,
-    '> Enregistre les actions du bot (sanctions, promotions, erreurs) dans un channel dédié.'
+    `⚖️ **Score comportemental** — ${onOff(c.behaviorScoreEnabled)}`,
+    '> Note chaque membre selon ses messages, sanctions et ancienneté.',
+    '',
+    `🛡️ **Anti-spam** — max ${c.spamThreshold} msg / 3s`,
+    '> Messages supprimés automatiquement si le seuil est dépassé.',
+    '',
+    `🐌 **Slow mode** — ${slowDisplay}`,
+    '> Délai imposé entre deux messages dans tous les salons.',
+    '',
+    `🚫 **Blacklist** — ${c.blacklistWarn ? '⚠️ warn public' : '🤫 suppression silencieuse'} — ${c.blacklistWords.length} mot(s)`,
+    `> ${wordList !== '*aucune*' ? wordList : 'Aucun mot banni configuré.'}`,
+    '',
+    `📋 **Logs Guardian** — ${logsDisplay}`,
+    '> Historique des actions du bot dans un salon dédié (sanctions, promotions, erreurs).'
   ].join('\n');
 }
 
@@ -804,11 +830,11 @@ function buildStep7Components(guildId) {
       .setLabel(`📋 Logs: ${c.logsEnabled ? c.logsLevel : 'OFF'}`)
   );
   const spamRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('Spam -1'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('Spam +1'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('Slow -1s')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('🛡️ Spam -1'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSpamThreshold).setStyle(ButtonStyle.Secondary).setLabel('🛡️ Spam +1'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('🐌 Slow -1s')
       .setDisabled(c.slowModeSeconds === 0),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('Slow +1s')
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseSlowMode).setStyle(ButtonStyle.Secondary).setLabel('🐌 Slow +1s')
       .setDisabled(c.slowModeSeconds >= 120)
   );
   const blacklistRow = new ActionRowBuilder().addComponents(
@@ -872,6 +898,9 @@ async function createRolesAutoHelper(interaction, guild, guildId) {
   };
   for (const grade of ORDERED_GRADES) {
     try {
+      const existingMappedId = getGradeMappings(guildId)[grade];
+      const alreadyExists = existingMappedId && guild.roles.cache.has(existingMappedId);
+      if (alreadyExists) continue;
       const role = await guild.roles.create({
         name: gradeLabel(grade),
         color: roleColors[grade] ?? 0x99aab5,
@@ -913,13 +942,225 @@ function addIgnoredChannelSlot(guildId, slotKey) {
   setGuildSetting(guildId, 'setup', 'ignored_channel_slots', JSON.stringify(ignored));
 }
 
-function autoPositionChannelCursor(guildId) {
-  const slots = getActiveSlotsForInstall(guildId);
+function autoPositionChannelCursor(guildId, guild) {
+  const slots = getActiveSlotsForInstall(guildId, guild);
   const ignored = getIgnoredChannelSlots(guildId);
   const firstUnconfigured = slots.findIndex(
     (s) => !ignored.includes(s.key) && !getGuildSetting(guildId, s.settingSection, s.settingKey, null)
   );
   if (firstUnconfigured !== -1) setChannelCursor(guildId, firstUnconfigured);
+}
+
+function buildCommunityCheckContent(guildId, guild) {
+  const memberCount = guild?.memberCount ?? 0;
+  const hasRules = guild?.rulesChannelId != null;
+  const hasVerification = guild ? guild.verificationLevel >= 1 : false;
+  const hasModChannel = guild?.publicUpdatesChannelId != null;
+
+  const req = (ok, label) => `${ok ? '✅' : '❌'} ${label}`;
+
+  return [
+    `## ⚠️ Serveur classique détecté (${TOTAL_STEPS > 0 ? `${TOTAL_STEPS}/` : ''}${TOTAL_STEPS})`,
+    '',
+    '> Ton serveur n\'est pas encore en mode **Communautaire**.',
+    '> Certains salons Guardian sont exclusifs à ce mode et seront ignorés si tu continues sans l\'activer.',
+    '',
+    '### 🔒 Salons exclusifs au mode Communautaire',
+    '> 📜 **#règles** — salon officiel du règlement (requis par Discord)',
+    '> 🛡️ **#logs-modération** — corresponds au salon « Moderator Only » de Discord',
+    '> 🔒 **#maj-securite** — reçoit les mises à jour de sécurité Discord',
+    '',
+    '### ✨ Ce que le mode Communautaire apporte',
+    '> 📣 Salons **Annonces** (abonnements croisés entre serveurs)',
+    '> 🎪 Accès aux **Événements** programmés (agenda communautaire)',
+    '> 📊 **Insights serveur** — statistiques d\'audience et de croissance',
+    '> 🎭 **Salons Stage** (conférences audio publiques)',
+    '> 🏷️ **Répertoire Discord** — ton serveur devient découvrable',
+    '',
+    '### ✅ Prérequis pour activer la Communauté',
+    req(memberCount >= 0, 'Serveur créé (toujours vrai)'),
+    req(hasVerification, 'Niveau de vérification ≥ Faible (e-mail requis)'),
+    req(hasRules, 'Salon « Règles » désigné'),
+    req(hasModChannel, 'Salon « Mises à jour de la communauté » désigné'),
+    '',
+    '### ⚙️ Comment activer la Communauté',
+    '> 1. Ouvre les **Paramètres du serveur** (roue dentée à côté du nom)',
+    '> 2. Menu **Activer la communauté** → clique sur **Commencer**',
+    '> 3. Suis les étapes Discord (vérification, règles, sécurité)',
+    '> 4. Reviens ici et clique **🔄 Vérifier à nouveau**',
+    '',
+    '*Tu peux aussi continuer sans activer — les salons communautaires seront simplement ignorés.*'
+  ].join('\n');
+}
+
+function buildCommunityCheckComponents() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.communityCheckRetry)
+        .setStyle(ButtonStyle.Primary)
+        .setLabel('🔄 Vérifier à nouveau'),
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.communityCheckContinue)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel('Continuer sans activer')
+    )
+  ];
+}
+
+// ── Détection jeux existants ──────────────────────────────────────────────────
+
+function normalizeGameSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function detectExistingGameChannels(guild) {
+  const allText = [...guild.channels.cache.values()].filter(
+    (c) => c.type === 0 || c.type === 5 || c.type === 15
+  );
+  const gameMap = new Map();
+  for (const ch of allText) {
+    const n = ch.name;
+    const isGalerie = n.endsWith('-galerie');
+    const isChangelog = n.endsWith('-changelogs') || n.endsWith('-updates');
+    const isForum = ch.type === 15;
+    let baseName = n;
+    let type = 'text';
+    if (isGalerie) { baseName = n.slice(0, -8); type = 'galerie'; }
+    else if (isChangelog) { baseName = n.endsWith('-changelogs') ? n.slice(0, -11) : n.slice(0, -8); type = 'changelog'; }
+    if (isForum) type = 'forum';
+    if (!gameMap.has(baseName)) gameMap.set(baseName, { baseName, channels: [] });
+    gameMap.get(baseName).channels.push({ id: ch.id, name: ch.name, type });
+  }
+  return [...gameMap.values()].filter((g) => g.channels.length >= 1 && g.baseName.length >= 2);
+}
+
+function getDetectedGames(guildId) {
+  const raw = getGuildSetting(guildId, 'setup', 'detected_games', null);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function setDetectedGames(guildId, games) {
+  setGuildSetting(guildId, 'setup', 'detected_games', JSON.stringify(games));
+}
+
+function getGameLinkCursor(guildId) {
+  return Math.max(0, Number(getGuildSetting(guildId, 'setup', 'game_link_cursor', 0)) || 0);
+}
+
+function setGameLinkCursor(guildId, v) {
+  setGuildSetting(guildId, 'setup', 'game_link_cursor', Math.max(0, v));
+}
+
+function buildGameDetectContent(guildId, guild) {
+  const games = detectExistingGameChannels(guild);
+  const lines = [
+    `## 🎮 Jeux détectés (3/${TOTAL_STEPS})`,
+    '',
+  ];
+  if (games.length === 0) {
+    lines.push(
+      'Aucun channel ressemblant à un jeu n\'a été détecté sur ce serveur.',
+      '> Guardian va créer automatiquement la structure pour les jeux que tu ajouteras à l\'étape suivante.'
+    );
+  } else {
+    lines.push(
+      `**${games.length} jeu(x) potentiel(s) détecté(s)** dans les channels existants :`,
+      ''
+    );
+    for (const g of games.slice(0, 10)) {
+      const types = g.channels.map((c) => {
+        if (c.type === 'galerie') return '🖼️';
+        if (c.type === 'changelog') return '📢';
+        if (c.type === 'forum') return '💬';
+        return '💬';
+      }).join(' ');
+      lines.push(`> 🎮 **${g.baseName}** — ${types} (${g.channels.length} salon(s))`);
+    }
+    lines.push(
+      '',
+      '**Veux-tu que Guardian récupère ces channels ?**',
+      '> ✅ **Oui** — Guardian va te demander de lier chaque channel à un jeu.',
+      '> ⏭️ **Non / Ignorer** — Guardian ignore ces channels et en crée de nouveaux.'
+    );
+  }
+  return lines.join('\n');
+}
+
+function buildGameDetectComponents(guild) {
+  const games = detectExistingGameChannels(guild);
+  if (games.length === 0) {
+    return [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectSkip).setStyle(ButtonStyle.Primary).setLabel('➡️ Continuer')
+      )
+    ];
+  }
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectAdopt).setStyle(ButtonStyle.Success).setLabel('✅ Récupérer ces channels'),
+      new ButtonBuilder().setCustomId(CUSTOM_IDS.gameDetectSkip).setStyle(ButtonStyle.Secondary).setLabel('⏭️ Ignorer')
+    )
+  ];
+}
+
+function buildGameLinkContent(guildId) {
+  const games = getDetectedGames(guildId);
+  const cursor = getGameLinkCursor(guildId);
+  const game = games[cursor];
+  if (!game) return '## Configuration des jeux\n\nAucun jeu à configurer.';
+
+  const total = games.length;
+  const lines = [
+    `## 🎮 Lier les channels — ${game.baseName} (${cursor + 1}/${total})`,
+    '',
+    `Configuration des channels pour le jeu **${game.baseName}** :`,
+    '> Sélectionne quel channel correspond à chaque type, ou ignore si tu n\'en as pas.',
+    '',
+  ];
+  for (const ch of game.channels) {
+    const icon = ch.type === 'galerie' ? '🖼️' : ch.type === 'changelog' ? '📢' : '💬';
+    const linked = ch.linkedId ? `✅ \`#${ch.linkedName}\`` : '— *non lié*';
+    lines.push(`> ${icon} **${ch.type}** : ${linked}`);
+  }
+  return lines.join('\n');
+}
+
+function buildGameLinkComponents(guildId, guild) {
+  const games = getDetectedGames(guildId);
+  const cursor = getGameLinkCursor(guildId);
+  const game = games[cursor];
+  if (!game) return [buildNavRow(guildId, 3)];
+
+  const rows = [];
+  const CHANNEL_TYPE_LABELS = { text: '💬 Chat', galerie: '🖼️ Galerie', changelog: '📢 Updates', forum: '💬 Forum' };
+
+  for (const ch of game.channels) {
+    const candidates = [...guild.channels.cache.values()]
+      .filter((c) => (c.type === 0 || c.type === 5 || c.type === 15) && c.name.includes(normalizeGameSlug(game.baseName)))
+      .slice(0, 25)
+      .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `Type ${c.type}`.slice(0, 50) }));
+    if (candidates.length === 0) continue;
+    rows.push(new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`${CUSTOM_IDS.gameLinkChannelPrefix}:${cursor}:${ch.type}`)
+        .setPlaceholder(`${CHANNEL_TYPE_LABELS[ch.type] || ch.type} — choisir un channel`)
+        .addOptions(candidates)
+    ));
+    if (rows.length >= 4) break;
+  }
+
+  const navButtons = [
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.gameLinkSkip).setStyle(ButtonStyle.Secondary).setLabel('⏭️ Passer ce jeu')
+  ];
+  if (cursor < games.length - 1) {
+    navButtons.push(new ButtonBuilder().setCustomId(CUSTOM_IDS.gameLinkNext).setStyle(ButtonStyle.Primary).setLabel('➡️ Jeu suivant'));
+  } else {
+    navButtons.push(new ButtonBuilder().setCustomId(CUSTOM_IDS.gameLinkNext).setStyle(ButtonStyle.Primary).setLabel('✅ Terminer'));
+  }
+  rows.push(new ActionRowBuilder().addComponents(...navButtons));
+  return rows;
 }
 
 function buildStepPayload(guildId, guild, step) {
@@ -962,7 +1203,13 @@ async function startWizardInChannel(interaction) {
     setGuildSetting(guildId, 'setup', 'step', 1);
     setGradeCursor(guildId, 0);
   } else if (step === 3) {
-    autoPositionChannelCursor(guildId);
+    const slots = getActiveSlotsForInstall(guildId, guild);
+    const anyConfigured = slots.some((s) => getGuildSetting(guildId, s.settingSection, s.settingKey, null));
+    if (anyConfigured) {
+      autoPositionChannelCursor(guildId, guild);
+    } else {
+      setChannelCursor(guildId, 0);
+    }
   }
   const payload = buildStepPayload(guildId, guild, step);
   try {
@@ -1179,14 +1426,14 @@ async function handleSetupInteraction(interaction) {
     if (slot && interaction.values?.[0] && interaction.values[0] !== 'none') {
       setGuildSetting(guildId, slot.settingSection, slot.settingKey, interaction.values[0]);
     }
-    const activeSlots = getActiveSlotsForInstall(guildId);
+    const activeSlots = getActiveSlotsForInstall(guildId, interaction.guild);
     const cursor = getChannelCursor(guildId);
     if (cursor < activeSlots.length - 1) setChannelCursor(guildId, cursor + 1);
     await renderStep(interaction, 3); return true;
   }
   if (interaction.customId.startsWith(`${CUSTOM_IDS.channelSkip}:`)) {
     const action = interaction.customId.split(':').pop();
-    const activeSlots = getActiveSlotsForInstall(guildId);
+    const activeSlots = getActiveSlotsForInstall(guildId, interaction.guild);
     const cursor = getChannelCursor(guildId);
     if (action === 'prev') { setChannelCursor(guildId, cursor - 1); await renderStep(interaction, 3); return true; }
     if (action === 'skip') { setChannelCursor(guildId, activeSlots.length - 1); await renderStep(interaction, 3); return true; }
@@ -1363,7 +1610,8 @@ async function handleSetupInteraction(interaction) {
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].filter(Boolean).join('\n');
     try {
-      await interaction.channel.send({ content: confirmMsg });
+      const sent = await interaction.channel.send({ content: confirmMsg });
+      if (sent?.deletable !== false) setTimeout(() => sent?.delete().catch(() => {}), 5000);
     } catch (err) {
       logger.error('addGameModal: channel.send failed', { error: err?.message });
     }
@@ -1400,7 +1648,7 @@ async function handleSetupInteraction(interaction) {
       '',
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].join('\n');
-    try { await interaction.channel.send({ content: confirmMsg }); } catch {}
+    try { const sent = await interaction.channel.send({ content: confirmMsg }); if (sent?.deletable !== false) setTimeout(() => sent?.delete().catch(() => {}), 5000); } catch {}
     if (deferredReply) await interaction.deleteReply().catch(() => {});
     const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
       .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
@@ -1637,9 +1885,121 @@ async function handleSetupInteraction(interaction) {
     }
 
     const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
+    if (nextStep === 3 && interaction.guild) {
+      await interaction.deferUpdate().catch(() => {});
+      if (!isCommunityGuild(interaction.guild)) {
+        await interaction.message.edit({
+          content: buildCommunityCheckContent(guildId, interaction.guild) + '\n\u200b',
+          components: buildCommunityCheckComponents()
+        }).catch(() => {});
+        return true;
+      }
+      await interaction.message.edit({
+        content: buildGameDetectContent(guildId, interaction.guild) + '\n\u200b',
+        components: buildGameDetectComponents(interaction.guild)
+      }).catch(() => {});
+      return true;
+    }
     setGuildSetting(guildId, 'setup', 'step', nextStep);
-    if (nextStep === 3) autoPositionChannelCursor(guildId);
+    if (nextStep === 3) autoPositionChannelCursor(guildId, interaction.guild);
     await renderStep(interaction, nextStep);
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.communityCheckRetry) {
+    await interaction.deferUpdate().catch(() => {});
+    if (interaction.guild) await interaction.guild.fetch().catch(() => {});
+    if (isCommunityGuild(interaction.guild)) {
+      setGuildSetting(guildId, 'setup', 'step', 3);
+      autoPositionChannelCursor(guildId, interaction.guild);
+      await renderStep(interaction, 3);
+    } else {
+      await interaction.message.edit({
+        content: buildCommunityCheckContent(guildId, interaction.guild) + '\n\u200b',
+        components: buildCommunityCheckComponents()
+      }).catch(() => {});
+    }
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.communityCheckContinue) {
+    await interaction.deferUpdate().catch(() => {});
+    await interaction.message.edit({
+      content: buildGameDetectContent(guildId, interaction.guild) + '\n\u200b',
+      components: buildGameDetectComponents(interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameDetectAdopt) {
+    await interaction.deferUpdate().catch(() => {});
+    const games = detectExistingGameChannels(interaction.guild);
+    setDetectedGames(guildId, games);
+    setGameLinkCursor(guildId, 0);
+    for (const g of games) {
+      const existing = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === g.baseName.toLowerCase());
+      if (!existing) addSetupGame(guildId, { name: g.baseName });
+    }
+    await interaction.message.edit({
+      content: buildGameLinkContent(guildId) + '\n\u200b',
+      components: buildGameLinkComponents(guildId, interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameDetectSkip) {
+    await interaction.deferUpdate().catch(() => {});
+    setGuildSetting(guildId, 'setup', 'step', 3);
+    setChannelCursor(guildId, 0);
+    await renderStep(interaction, 3);
+    return true;
+  }
+
+  if (interaction.customId.startsWith(`${CUSTOM_IDS.gameLinkChannelPrefix}:`)) {
+    const parts = interaction.customId.split(':');
+    const gameCursor = Number(parts[parts.length - 2]);
+    const channelType = parts[parts.length - 1];
+    const channelId = interaction.values?.[0];
+    if (channelId) {
+      const games = getDetectedGames(guildId);
+      const game = games[gameCursor];
+      if (game) {
+        const ch = game.channels.find((c) => c.type === channelType);
+        if (ch) { ch.linkedId = channelId; ch.linkedName = interaction.guild?.channels.cache.get(channelId)?.name || channelId; }
+        setDetectedGames(guildId, games);
+        const setupGame = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === game.baseName.toLowerCase());
+        if (setupGame) {
+          const patch = {};
+          if (channelType === 'text') patch.channel_text_id = channelId;
+          if (channelType === 'galerie') { patch.channel_galerie_id = channelId; patch.galerie_enabled = 1; }
+          if (channelType === 'changelog') { patch.channel_changelog_id = channelId; patch.changelog_enabled = 1; }
+          updateSetupGame(guildId, setupGame.game_id, patch);
+        }
+      }
+    }
+    await interaction.deferUpdate().catch(() => {});
+    await interaction.message.edit({
+      content: buildGameLinkContent(guildId) + '\n\u200b',
+      components: buildGameLinkComponents(guildId, interaction.guild)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.gameLinkNext || interaction.customId === CUSTOM_IDS.gameLinkSkip) {
+    await interaction.deferUpdate().catch(() => {});
+    const games = getDetectedGames(guildId);
+    const cursor = getGameLinkCursor(guildId);
+    if (cursor < games.length - 1) {
+      setGameLinkCursor(guildId, cursor + 1);
+      await interaction.message.edit({
+        content: buildGameLinkContent(guildId) + '\n\u200b',
+        components: buildGameLinkComponents(guildId, interaction.guild)
+      }).catch(() => {});
+    } else {
+      setGuildSetting(guildId, 'setup', 'step', 3);
+      setChannelCursor(guildId, 0);
+      await renderStep(interaction, 3);
+    }
     return true;
   }
 
