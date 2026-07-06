@@ -1,4 +1,4 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 const { addServer } = require('./servers');
 const { getModerationRoleIds } = require('../../database/db');
 const { CHANNELS } = require('../../config');
@@ -6,6 +6,38 @@ const { findGuildTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
 const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../i18n');
+
+function getServerManagerRoleIds(guildId) {
+  const db = getDb();
+  return db
+    .prepare('SELECT role_id FROM grades WHERE guild_id = ? AND grade_name IN (?, ?, ?)')
+    .all(guildId, 'moderateur', 'manager', 'owner')
+    .map((r) => r.role_id)
+    .filter(Boolean);
+}
+
+function memberCanManageServers(interaction) {
+  const member = interaction.member;
+  if (!member || !interaction.guildId) {
+    return false;
+  }
+
+  if (interaction.user.id === interaction.guild?.ownerId) {
+    return true;
+  }
+
+  const perms = interaction.memberPermissions;
+  if (perms?.has(PermissionFlagsBits.ManageGuild) || perms?.has(PermissionFlagsBits.Administrator)) {
+    return true;
+  }
+
+  const roleCache = member.roles?.cache;
+  if (!roleCache?.has) {
+    return false;
+  }
+
+  return getServerManagerRoleIds(interaction.guildId).some((roleId) => roleCache.has(roleId));
+}
 
 async function handleAddServerButton(interaction) {
   const modal = new ModalBuilder().setCustomId('servers:add:modal').setTitle('Ajouter un serveur');
@@ -68,4 +100,4 @@ async function handleServerModalSubmit(interaction) {
   await replyEphemeral(interaction, t(guildId, 'init.serverProposed', { name }));
 }
 
-module.exports = { handleAddServerButton, handleServerModalSubmit };
+module.exports = { handleAddServerButton, handleServerModalSubmit, memberCanManageServers };

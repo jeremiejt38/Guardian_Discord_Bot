@@ -31,7 +31,7 @@ const {
   handleSetupLanguageSelection
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction, startWizardInChannel } = require('../modules/initialisation/setupFlow');
-const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
+const { handleAddServerButton, handleServerModalSubmit, memberCanManageServers } = require('../modules/servers/interaction');
 const { handleTempVoiceInteraction } = require('../modules/games/tempVoiceInteraction');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
@@ -247,6 +247,10 @@ module.exports = {
     }
 
     if (interaction.isButton() && interaction.customId.startsWith('servers:approve:')) {
+      if (!memberCanManageServers(interaction)) {
+        await interaction.reply({ content: t(interaction.guildId, 'interaction.forbidden'), ephemeral: true });
+        return;
+      }
       const parts = interaction.customId.split(':');
       const serverId = Number(parts[2]);
       const db = getDb();
@@ -277,6 +281,10 @@ module.exports = {
     }
 
     if (interaction.isButton() && interaction.customId.startsWith('servers:reject:')) {
+      if (!memberCanManageServers(interaction)) {
+        await interaction.reply({ content: t(interaction.guildId, 'interaction.forbidden'), ephemeral: true });
+        return;
+      }
       const parts = interaction.customId.split(':');
       const serverId = Number(parts[2]);
       const db = getDb();
@@ -286,6 +294,10 @@ module.exports = {
     }
 
     if (interaction.isButton() && interaction.customId.startsWith('servers:connect:')) {
+      if (!memberCanManageServers(interaction)) {
+        await interaction.reply({ content: t(interaction.guildId, 'interaction.forbidden'), ephemeral: true });
+        return;
+      }
       const parts = interaction.customId.split(':');
       const serverId = Number(parts[2]);
       const db = getDb();
