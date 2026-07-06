@@ -2463,10 +2463,10 @@ async function handleSetupInteraction(interaction) {
         const setupGame = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === game.baseName.toLowerCase());
         if (setupGame) {
           const patch = {};
-          if (channelType === 'text') patch.channel_text_id = channelId;
-          if (channelType === 'galerie') { patch.channel_galerie_id = channelId; patch.galerie_enabled = 1; }
-          if (channelType === 'changelog') { patch.channel_changelog_id = channelId; patch.changelog_enabled = 1; }
-          updateSetupGame(guildId, setupGame.game_id, patch);
+          if (channelType === 'galerie') patch.galerie_enabled = 1;
+          if (channelType === 'changelog') patch.changelog_enabled = 1;
+          if (channelType === 'text') patch.text_channel_enabled = 1;
+          if (Object.keys(patch).length) updateSetupGame(guildId, setupGame.game_id, patch);
         }
       }
     }
