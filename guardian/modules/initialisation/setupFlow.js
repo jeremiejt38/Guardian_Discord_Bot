@@ -1977,18 +1977,30 @@ async function handleSetupInteraction(interaction) {
       const currentOwnerMember = ownerRole
         ? guild.members.cache.find((m) => m.roles.cache.has(ownerRoleId) && !m.user.bot)
         : null;
-      const options = nonBots.map((m) => ({
-        label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
-        value: m.id,
-        description: (m.id === currentOwnerMember?.id ? '👑 Owner actuel — ' : '') + `@${m.user.username}`.slice(0, 50)
-      }));
+      const inviterId = getGuildSetting(guildId, 'setup', 'inviter_id', null);
+      const suggestedId = currentOwnerMember?.id ?? inviterId ?? null;
+      const sorted = inviterId
+        ? [...nonBots].sort((a, b) => (a.id === inviterId ? -1 : b.id === inviterId ? 1 : 0))
+        : nonBots;
+      const options = sorted.map((m) => {
+        let tag = '';
+        if (m.id === currentOwnerMember?.id) tag = '👑 Owner actuel — ';
+        else if (m.id === inviterId) tag = '⭐ A invité le bot — ';
+        return {
+          label: (m.nickname || m.user.displayName || m.user.username).slice(0, 25),
+          value: m.id,
+          description: (tag + `@${m.user.username}`).slice(0, 50)
+        };
+      });
       const ownerRoleMention = ownerRoleId ? `<@&${ownerRoleId}>` : '**Owner**';
       const selectRow = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId(CUSTOM_IDS.selectOwnerMember)
           .setPlaceholder(currentOwnerMember
             ? `Owner actuel : ${(currentOwnerMember.nickname || currentOwnerMember.user.displayName).slice(0, 40)}`
-            : 'Choisir le membre Owner')
+            : inviterId && sorted[0]?.id === inviterId
+              ? `Suggéré : ${(sorted[0].nickname || sorted[0].user.displayName || sorted[0].user.username).slice(0, 35)}`
+              : 'Choisir le membre Owner')
           .setMinValues(1).setMaxValues(1)
           .addOptions(options.length ? options : [{ label: 'Aucun membre', value: 'none' }])
       );

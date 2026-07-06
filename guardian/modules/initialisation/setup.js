@@ -699,20 +699,27 @@ async function runSetupInstallationPhases(guild, ownerId) {
   markGuildInstalled(guild.id, ownerId);
 }
 
-async function createSetupArea(guild) {
+async function createSetupArea(guild, { inviterId } = {}) {
   try {
     const owner = await guild.fetchOwner();
+    const extraUserId = inviterId && inviterId !== owner.id ? inviterId : null;
 
-    const category = await ensureCategory(guild, CATEGORIES.setup, [
+    const categoryPerms = [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel] }
-    ]);
+    ];
+    if (extraUserId) categoryPerms.push({ id: extraUserId, allow: [PermissionFlagsBits.ViewChannel] });
+
+    const category = await ensureCategory(guild, CATEGORIES.setup, categoryPerms);
     await category.setPosition(0).catch(() => {});
 
-    const channel = await ensureTextChannel(guild, category.id, CHANNELS.setup, [
+    const channelPerms = [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
-    ]);
+    ];
+    if (extraUserId) channelPerms.push({ id: extraUserId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] });
+
+    const channel = await ensureTextChannel(guild, category.id, CHANNELS.setup, channelPerms);
 
     setGuildSetting(guild.id, 'setup', 'owner_id', owner.id);
     if (!Number.isInteger(getGuildSetting(guild.id, 'setup', 'step', null))) {
