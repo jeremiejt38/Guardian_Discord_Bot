@@ -71,6 +71,23 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites) {
   });
 }
 
+async function ensureAnnouncementChannel(guild, parentId, name, permissionOverwrites) {
+  const isCommunity = guild.features?.includes('COMMUNITY');
+  const targetType = isCommunity ? ChannelType.GuildAnnouncement : ChannelType.GuildText;
+  const existing = guild.channels.cache.find(
+    (c) => (c.type === ChannelType.GuildAnnouncement || c.type === ChannelType.GuildText) &&
+            c.name === name && (parentId === undefined || c.parentId === parentId)
+  ) ?? null;
+  if (existing) {
+    await existing.edit({ parent: parentId, permissionOverwrites }).catch(() => {});
+    if (isCommunity && existing.type !== ChannelType.GuildAnnouncement) {
+      await existing.setType(ChannelType.GuildAnnouncement).catch(() => {});
+    }
+    return existing;
+  }
+  return guild.channels.create({ name, type: targetType, parent: parentId, permissionOverwrites });
+}
+
 async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
   const existing = findGuildVoiceChannelByName(guild, name, parentId);
 
@@ -415,7 +432,7 @@ async function createInformationsArea(guild, roleMap) {
 
   const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions);
   const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions);
-  const announcementsChannel = await ensureTextChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
+  const announcementsChannel = await ensureAnnouncementChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
   const faqChannel = await ensureForumChannel(guild, null, CHANNELS.faq, readOnlyPermissions);
 
   await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap));
