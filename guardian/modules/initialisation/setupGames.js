@@ -63,6 +63,20 @@ function removeLastSetupGame(guildId) {
   return last.game_id;
 }
 
+function removeSetupGameById(guildId, gameId) {
+  const db = getDb();
+  const game = db.prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(guildId, gameId);
+  if (!game) return null;
+  db.prepare('DELETE FROM games WHERE guild_id = ? AND game_id = ?').run(guildId, gameId);
+  return game;
+}
+
+function findSetupGameByName(guildId, name) {
+  const db = getDb();
+  const normalized = String(name || '').trim().toLowerCase();
+  return db.prepare('SELECT * FROM games WHERE guild_id = ? AND lower(name) = ?').get(guildId, normalized) || null;
+}
+
 function updateSetupGame(guildId, gameId, patch = {}) {
   const db = getDb();
   const current = db
@@ -104,5 +118,7 @@ module.exports = {
   listSetupGames,
   addSetupGame,
   removeLastSetupGame,
+  removeSetupGameById,
+  findSetupGameByName,
   updateSetupGame
 };

@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { saveSanction } = require('../modules/moderation/moderation');
+const { sendModLog } = require('../modules/moderation/modLog');
 const { t, describe } = require('../modules/i18n');
 const { replyEphemeral } = require('../modules/utils/interactions');
 
@@ -25,6 +26,8 @@ module.exports = {
       appliedBy: interaction.user.id,
       auto: 0
     });
+
+    await sendModLog(interaction.guild, t(interaction.guildId, 'modLog.sanctionLog', { type: 'mute', userId: member.id, appliedBy: interaction.user.id, reason }));
 
     await replyEphemeral(
       interaction,

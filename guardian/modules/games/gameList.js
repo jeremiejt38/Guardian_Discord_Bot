@@ -112,7 +112,12 @@ async function provisionGameStructure(guild, game) {
   const slug = toChannelSlug(game.name);
 
   const category = await ensureCategory(guild, game.name, permissions, game.category_id);
-  const textChannel = await ensureTextChannel(guild, category.id, slug, permissions, game.channel_text_id);
+  const textEnabled = game.text_channel_enabled === undefined || Number(game.text_channel_enabled) !== 0;
+  let textChannelId = game.channel_text_id || null;
+  if (textEnabled) {
+    const textChannel = await ensureTextChannel(guild, category.id, slug, permissions, game.channel_text_id);
+    textChannelId = textChannel.id;
+  }
 
   let galerieChannelId = game.channel_galerie_id || null;
   if (Number(game.galerie_enabled) === 1) {
@@ -145,7 +150,7 @@ async function provisionGameStructure(guild, game) {
   ).run(
     gameRole?.id || null,
     category.id,
-    textChannel.id,
+    textChannelId,
     galerieChannelId,
     changelogChannelId,
     guild.id,
@@ -158,7 +163,7 @@ async function provisionGuildGameStructures(guild) {
   const games = db
     .prepare(
       `SELECT game_id, guild_id, name, role_id, channel_text_id, channel_galerie_id, channel_changelog_id,
-              category_id, galerie_enabled, changelog_enabled
+              category_id, galerie_enabled, changelog_enabled, text_channel_enabled
        FROM games WHERE guild_id = ? ORDER BY game_id ASC`
     )
     .all(guild.id);
