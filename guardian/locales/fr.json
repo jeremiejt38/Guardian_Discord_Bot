@@ -639,6 +639,7 @@
     "modalLabel": "Tape CONFIRMER pour continuer quand même",
     "modalConfirmWord": "CONFIRMER",
     "modalWarning": "⚠️ Des problèmes de sécurité sont encore présents. Tu peux quand même continuer, mais prends note que certains rôles peuvent représenter un risque.",
+    "deletePermissionError": "❌ Guardian n'a pas la permission de supprimer ces rôles. Va dans **Paramètres du serveur → Rôles** et place le rôle **Guardian** au-dessus des rôles à supprimer.",
     "modalCancelled": "Continuation annulée. Tu peux corriger les problèmes avant de continuer.",
     "modalInvalid": "Mot de confirmation incorrect. Tape exactement CONFIRMER pour continuer.",
     "members": "{count} membre(s)",

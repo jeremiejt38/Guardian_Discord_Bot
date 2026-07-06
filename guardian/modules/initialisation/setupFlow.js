@@ -2223,13 +2223,22 @@ async function handleSetupInteraction(interaction) {
   if (interaction.customId === CUSTOM_IDS.securityDeleteAllUnused) {
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
-    if (guild) await guild.roles.fetch().catch(() => {});
+    if (guild) await guild.roles.fetch().catch((e) => logger.warn(`[security] fetch roles failed: ${e?.message}`));
     const mappingsDA = getGradeMappings(guildId);
     const guardianIdsDA = Object.values(mappingsDA).filter(Boolean);
     const { unused: allUnused } = analyzeNonGuardianRoles(guild, guardianIdsDA);
+    let deleteFailed = false;
     for (const r of allUnused) {
       const role = guild?.roles.cache.get(r.id);
-      if (role) await role.delete('Guardian setup — suppression rôles inutilisés').catch(() => {});
+      if (role) {
+        await role.delete('Guardian setup — suppression rôles inutilisés').catch((err) => {
+          logger.warn(`[security] delete ${r.name} FAILED: ${err?.message} (code: ${err?.code})`);
+          if (err?.code === 50013) deleteFailed = true;
+        });
+      }
+    }
+    if (deleteFailed) {
+      await replyEphemeral(interaction, t('roleSecurity.deletePermissionError', {}, { guildId }));
     }
     if (guild) await guild.roles.fetch().catch(() => {});
     const acknowledged = new Set(getGuildSetting(guildId, 'setup', 'security_acknowledged', []));

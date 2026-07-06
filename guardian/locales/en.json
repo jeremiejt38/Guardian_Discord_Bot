@@ -456,6 +456,7 @@
     "modalLabel": "Type CONFIRM to continue anyway",
     "modalConfirmWord": "CONFIRM",
     "modalWarning": "⚠️ Security issues are still present. You can continue, but note that some roles may pose a risk.",
+    "deletePermissionError": "❌ Guardian doesn't have permission to delete these roles. Go to **Server Settings → Roles** and move the **Guardian** role above the roles to delete.",
     "modalCancelled": "Continuation cancelled. You can fix the issues before continuing.",
     "modalInvalid": "Incorrect confirmation word. Type exactly CONFIRM to continue.",
     "members": "{count} member(s)",

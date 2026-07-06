@@ -144,6 +144,7 @@
     "modalLabel": "Tippe BESTÄTIGEN um trotzdem fortzufahren",
     "modalConfirmWord": "BESTÄTIGEN",
     "modalWarning": "⚠️ Sicherheitsprobleme sind noch vorhanden. Du kannst fortfahren, aber beachte, dass einige Rollen ein Risiko darstellen können.",
+    "deletePermissionError": "❌ Guardian hat keine Berechtigung, diese Rollen zu löschen. Gehe zu **Servereinstellungen → Rollen** und verschiebe die **Guardian**-Rolle über die zu löschenden Rollen.",
     "modalCancelled": "Fortfahren abgebrochen. Du kannst die Probleme zuerst beheben.",
     "modalInvalid": "Falsches Bestätigungswort. Tippe genau BESTÄTIGEN um fortzufahren.",
     "members": "{count} Mitglied(er)",
