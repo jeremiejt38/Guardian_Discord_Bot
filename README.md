@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.14.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -109,10 +109,16 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ## Changelog
 
-### v1.0.0 — Release publique 🎉
+### v0.14.x — Setup UX & Onboarding ← *actuel*
 | Version | Date | Contenu |
 |---------|------|---------|  
-| **v1.0.0** | 2026-07-06 | Release publique — merge `feature/init-setup`, 102 tests, toutes les fonctionnalités v1 ← *actuel* |
+| **v0.14.0** | 2026-07-07 | Fix création des rôles un par un grade par grade (label dynamique, transfert/recréation individuel) ← *actuel* |
+| v0.13.2 | 2026-07-07 | Fix bouton « Créer les rôles auto » toujours visible même quand des rôles existent |
+| v0.13.1 | 2026-07-07 | Étape de révision des jeux détectés avant gameLink (supprimer/ajouter/continuer) |
+| v0.13.0 | 2026-07-07 | Channel `#devenir-membre` + DM enrichi nouveaux membres + notification bulk membres au finalize |
+| v0.12.2 | 2026-07-07 | DM automatique à l'owner quand setup `guardian_partial` détecté au démarrage |
+| v0.12.1 | 2026-07-07 | Fix FAQ créée comme channel texte au lieu d'un forum |
+| v0.12.0 | 2026-07-07 | Topics sur tous les channels Guardian + messages seed auto-supprimés après 8s |
 
 ### v0.11.x — Résilience & MAJ
 | Version | Date | Contenu |
@@ -183,9 +189,9 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ---
 
-## ✅ Roadmap v1.0.0 — Complète
+## ✅ Roadmap v1.0.0 — En cours
 
-Tous les items ont été livrés dans la v1.0.0 :
+Items livrés et en cours de validation avant release publique v1.0.0 :
 
 ### 🔴 Bloquant
 - [x] **Tests d'intégration end-to-end** — 8 tests E2E, 6 flows complets, 95 tests total ✅ v0.10.5
@@ -214,7 +220,7 @@ Tous les items ont été livrés dans la v1.0.0 :
 - [x] `text_channel_enabled` désactivé par défaut, activable par jeu
 - [x] Polish UX complet (emojis, mise en page, descriptions claires)
 - [x] i18n FR + EN aligné sur toutes les clés
-- [x] Versioning sémantique complet (v0.1.0 → v0.10.3)
+- [x] Versioning sémantique complet (v0.1.0 → v0.14.0)
 - [x] Notifications DM configurables — 8 catégories, panel `#guardian`
 - [x] Migrations DB + Discord versionnées
 - [x] Gestion erreurs Discord 50013 — crash silencieux éliminé
@@ -224,6 +230,13 @@ Tous les items ont été livrés dans la v1.0.0 :
 - [x] Nouvelles options MAJ wizard — détection slots non configurés après mise à jour
 - [x] Backup/restore config — `#guardian-backup`, snapshot JSON base64, restauration automatique au démarrage
 - [x] Rate limiting debounce — protection double-clic, 4 niveaux de délai
+- [x] Topics sur tous les channels Guardian — descriptions affichées à côté du titre
+- [x] Channel `#devenir-membre` — visible invités uniquement, infos onboarding
+- [x] DM enrichi nouveaux membres — statut, expulsion auto, lien `#devenir-membre`
+- [x] Notification bulk membres au finalize — DM optionnel à tout le serveur
+- [x] DM owner reconnexion setup incomplet — lien direct `#setup` au démarrage
+- [x] Création des rôles un par un — label dynamique, transfert/recréation grade par grade
+- [x] Étape révision jeux détectés — supprimer/ajouter avant liaison channels
 
 ---
 
