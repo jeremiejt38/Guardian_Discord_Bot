@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.10.3-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.10.4-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -111,7 +111,8 @@ Les tests tournent sur une base SQLite en mémoire et couvrent le wizard setup, 
 ### v0.10.x — Robustesse & Notifications
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.10.3** | 2026-07-06 | Gestion erreurs Discord 50013/50001 — `safeDiscordAction`, filet global `interactionCreate` ← *actuel* |
+| **v0.10.4** | 2026-07-06 | Commande `/help` contextuelle — 7 modules, embeds couleur, i18n FR+EN ← *actuel* |
+| v0.10.3 | 2026-07-06 | Gestion erreurs Discord 50013/50001 — `safeDiscordAction`, filet global `interactionCreate` |
 | v0.10.2 | 2026-07-06 | Validation `#général` requis step 3 + pagination jeux step 6 (3/page, illimité) |
 | v0.10.1 | 2026-07-06 | Migrations DB versionnées (`MIGRATIONS` array), migrations Discord versionnées (`channelMigrations`), version bot dans wizard |
 | v0.10.0 | 2026-07-06 | Notifications DM configurables — 8 catégories, panel `#guardian`, détection MAJ bot au démarrage |
@@ -177,7 +178,7 @@ Ce qui reste à faire avant la **release publique** :
 - [ ] **Tests d'intégration end-to-end** — couvrir les flows complets (setup → finalisation → jeu → modération)
 - [x] **Gestion des erreurs Discord 50013** — `safeDiscordAction` + filet global interactionCreate ✅ v0.10.3
 - [x] **Migration DB automatique** — système `MIGRATIONS` array versionné ✅ v0.10.1
-- [ ] **Commande `/help`** — aide contextuelle par module avec exemples
+- [x] **Commande `/help`** — aide contextuelle 7 modules, embeds, i18n ✅ v0.10.4
 
 ### 🟠 Important
 - [ ] **Multi-langues** — ajouter ES, DE, PT, IT, NL, PL, RU, ZH, JA, KO (structure prête, fichiers JSON à créer)
@@ -205,6 +206,7 @@ Ce qui reste à faire avant la **release publique** :
 - [x] Migrations DB + Discord versionnées
 - [x] Gestion erreurs Discord 50013 — crash silencieux éliminé
 - [x] Pagination jeux illimitée dans le wizard
+- [x] Commande `/help` contextuelle par module
 
 ---
 
