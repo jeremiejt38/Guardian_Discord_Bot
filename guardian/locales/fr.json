@@ -463,14 +463,32 @@
     "faq2": "FAQ Guardian: les roles Invite/Membre/Moderateur/Manager/Owner pilotent les permissions.",
     "faq3": "FAQ Guardian: pour support, ouvre une demande dans #demandes.",
     "voiceCreate": "Guardian Vocal: rejoins ce salon texte pour creer ton channel vocal temporaire.",
-    "configReady": "Guardian Configuration: ce salon #{{channel}} est pret et configure.",
     "serverPlaceholder": "Guardian Placeholder: ce salon est reserve au futur bot Pterodactyl pour la gestion serveurs.",
     "faqPostTitle": "FAQ #{{index}}",
     "welcomeInfo": "Bienvenue sur le serveur ! Lis les #regles, consulte la #faq et ouvre une demande dans #demandes pour devenir membre.",
     "rules": "**Reglement du serveur**\n1. Reste courtois et respectueux.\n2. Pas de spam ni de contenu interdit.\n3. Suis les consignes des Moderateurs et Managers.",
     "announcements": "**Annonces**\nLes annonces officielles du serveur seront publiees ici.",
     "suggestionsPostTitle": "Suggestions",
-    "suggestionsIntro": "Propose tes idees pour ameliorer le serveur en creant un nouveau post."
+    "suggestionsIntro": "Propose tes idees pour ameliorer le serveur en creant un nouveau post.",
+    "topics": {
+      "reports": "Signalements de membres — Guardian enregistre ici les rapports soumis via /signaler.",
+      "autoModeration": "Logs d'auto-moderation — Guardian y consigne les infractions detectees automatiquement (spam, blacklist…).",
+      "behavior": "Score comportemental — Guardian y affiche l'historique des avertissements et sanctions.",
+      "moderationLogs": "Logs de moderation Guardian — sanctions, promotions, actions d'equipe.",
+      "securityUpdates": "Mises a jour de securite Discord — visible uniquement par Manager et Owner.",
+      "gameChannels": "Mes salons de jeux — chaque membre peut y gerer ses opt-in de salons de jeu.",
+      "gameList": "Ma liste de jeux — affiche les jeux auxquels le membre participe.",
+      "serveurs": "Serveurs communautaires — propositions et liste des serveurs de jeu de la communaute.",
+      "botConfig": "Configuration du bot — statut, modules actifs et parametres generaux de Guardian.",
+      "membres": "Gestion des membres — configuration des regles d'acces, parrainage et promotions.",
+      "channelsConfig": "Configuration des salons — gestion des permissions et de la structure des channels.",
+      "vocauxConfig": "Configuration des vocaux — prefix, suffix, limite et delai des salons temporaires.",
+      "jeux": "Configuration des jeux — ajout, modification et suppression des jeux du serveur.",
+      "configLogs": "Logs de configuration Guardian — historique de toutes les modifications de config.",
+      "roles": "Configuration des roles Guardian — mapping des grades Invite/Membre/Moderateur/Manager/Owner.",
+      "guardian": "Panneau de controle principal Guardian — acces owner uniquement.",
+      "serverManagement": "Gestion des serveurs — reserve au futur systeme de controle Pterodactyl."
+    }
   },
   "commands": {
     "ban": {

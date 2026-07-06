@@ -304,14 +304,32 @@
     "faq2": "Guardian FAQ: Invite/Member/Moderator/Manager/Owner roles drive permissions.",
     "faq3": "Guardian FAQ: for support, open a request in #demandes.",
     "voiceCreate": "Guardian Voice: join this text channel to create your temporary voice channel.",
-    "configReady": "Guardian Configuration: channel #{{channel}} is ready and configured.",
     "serverPlaceholder": "Guardian Placeholder: this channel is reserved for the future Pterodactyl server management bot.",
     "faqPostTitle": "FAQ #{{index}}",
     "welcomeInfo": "Welcome to the server! Read #regles, check the #faq and open a request in #demandes to become a member.",
     "rules": "**Server rules**\n1. Stay courteous and respectful.\n2. No spam or forbidden content.\n3. Follow the guidance of Moderators and Managers.",
     "announcements": "**Announcements**\nOfficial server announcements will be posted here.",
     "suggestionsPostTitle": "Suggestions",
-    "suggestionsIntro": "Share your ideas to improve the server by creating a new post."
+    "suggestionsIntro": "Share your ideas to improve the server by creating a new post.",
+    "topics": {
+      "reports": "Member reports — Guardian logs reports submitted via /signaler here.",
+      "autoModeration": "Auto-moderation logs — Guardian records automatically detected violations (spam, blacklist…).",
+      "behavior": "Behavior score — Guardian displays warnings and sanction history here.",
+      "moderationLogs": "Guardian moderation logs — sanctions, promotions, team actions.",
+      "securityUpdates": "Discord security updates — visible to Manager and Owner only.",
+      "gameChannels": "My game channels — each member can manage their game channel opt-ins here.",
+      "gameList": "My game list — displays the games the member participates in.",
+      "serveurs": "Community servers — proposals and list of community game servers.",
+      "botConfig": "Bot configuration — status, active modules and general Guardian settings.",
+      "membres": "Member management — access rules, sponsorship and promotion configuration.",
+      "channelsConfig": "Channel configuration — permissions and channel structure management.",
+      "vocauxConfig": "Voice configuration — prefix, suffix, limit and delay for temporary voice channels.",
+      "jeux": "Game configuration — add, edit and remove server games.",
+      "configLogs": "Guardian config logs — history of all configuration changes.",
+      "roles": "Guardian role configuration — grade mapping Invite/Member/Moderator/Manager/Owner.",
+      "guardian": "Guardian main control panel — owner access only.",
+      "serverManagement": "Server management — reserved for the future Pterodactyl control system."
+    }
   },
   "commands": {
     "ban": {
