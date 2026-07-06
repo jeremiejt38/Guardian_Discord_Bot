@@ -8,6 +8,8 @@ const { handleJeuxInteraction } = require('../modules/config/jeuxPanel');
 const { handleChangelogsInteraction } = require('../modules/config/changelogsPanel');
 const { handleServeursJeuInteraction } = require('../modules/config/serveursJeuPanel');
 const { handleRolesInteraction } = require('../modules/config/rolesPanel');
+const { handleBotInteraction } = require('../modules/config/botPanel');
+const { handleGuardianInteraction } = require('../modules/config/guardianPanel');
 const { handleHistoriquePagination } = require('../commands/historique');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
@@ -106,6 +108,16 @@ module.exports = {
 
     if (interaction.customId?.startsWith('roles:')) {
       const handled = await handleRolesInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('bot:')) {
+      const handled = await handleBotInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId?.startsWith('guardian:')) {
+      const handled = await handleGuardianInteraction(interaction);
       if (handled) return;
     }
 
