@@ -31,6 +31,7 @@ const {
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction, startWizardInChannel } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit } = require('../modules/servers/interaction');
+const { handleTempVoiceInteraction } = require('../modules/games/tempVoiceInteraction');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
@@ -52,6 +53,11 @@ module.exports = {
 
       await command.execute(interaction);
       return;
+    }
+
+    if (interaction.customId?.startsWith('tempvoice:')) {
+      const handled = await handleTempVoiceInteraction(interaction);
+      if (handled) return;
     }
 
     if (interaction.customId?.startsWith('automod:slowmode:')) {
