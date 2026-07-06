@@ -410,9 +410,9 @@ const CHANNEL_SLOTS = Object.freeze([
   { key: 'voiceAfk',    label: 'Vocal AFK',         desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                          settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇' },
   // ── Channels communautaires existants
   { key: 'general',     label: '#général',           desc: 'Channel de discussion principale de la communauté.',                                               settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '�' },
-  { key: 'rules',       label: '#règles',            desc: 'Channel où le règlement du serveur est affiché.',                                                  settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜' },
-  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                    settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '�️' },
-  { key: 'securityUpdates', label: '#maj-securite', desc: 'Channel mises à jour de sécurité Discord — visible manager et owner uniquement.',                   settingSection: 'channels', settingKey: 'security_updates_channel_id',   emoji: '🔒' },
+  { key: 'rules',       label: '#règles',            desc: 'Channel où le règlement du serveur est affiché.',                                                  settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜', communityOnly: true },
+  { key: 'moderationLogs', label: '#logs-modération', desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                    settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '�️', communityOnly: true },
+  { key: 'securityUpdates', label: '#maj-securite', desc: 'Channel mises à jour de sécurité Discord — visible manager et owner uniquement.',                   settingSection: 'channels', settingKey: 'security_updates_channel_id',   emoji: '🔒', communityOnly: true },
   // ── Channels créés par Guardian si absents (en dernier)
   { key: 'announcements', label: '#annonces',       desc: 'Channel réservé aux annonces officielles de l\'équipe. Guardian le crée si absent.',               settingSection: 'channels', settingKey: 'announcements_channel_id',      emoji: '�' },
   { key: 'faq',         label: '#faq',               desc: 'Channel FAQ — Guardian le crée sous forme de forum si absent.',                                    settingSection: 'channels', settingKey: 'faq_channel_id',                emoji: '❓' },
@@ -446,12 +446,17 @@ function buildChannelOptions(guild, slot) {
   return channels.length > 0 ? channels : [{ label: 'Aucun channel compatible', value: 'none', description: 'Guardian en créera un automatiquement' }];
 }
 
-function getActiveSlotsForInstall(_guildId) {
-  return CHANNEL_SLOTS;
+function isCommunityGuild(guild) {
+  return guild?.features?.includes('COMMUNITY') ?? false;
+}
+
+function getActiveSlotsForInstall(_guildId, guild) {
+  if (!guild || isCommunityGuild(guild)) return CHANNEL_SLOTS;
+  return CHANNEL_SLOTS.filter((s) => !s.communityOnly);
 }
 
 function buildStep3ChannelsContent(guildId, guild) {
-  const slots = getActiveSlotsForInstall(guildId);
+  const slots = getActiveSlotsForInstall(guildId, guild);
   const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
   const slot = slots[cursor];
   const currentId = getGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
@@ -479,7 +484,7 @@ function buildStep3ChannelsContent(guildId, guild) {
 }
 
 function buildStep3ChannelsComponents(guildId, guild) {
-  const slots = getActiveSlotsForInstall(guildId);
+  const slots = getActiveSlotsForInstall(guildId, guild);
   const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
   const slot = slots[cursor];
   const options = buildChannelOptions(guild, slot);
@@ -917,8 +922,8 @@ function addIgnoredChannelSlot(guildId, slotKey) {
   setGuildSetting(guildId, 'setup', 'ignored_channel_slots', JSON.stringify(ignored));
 }
 
-function autoPositionChannelCursor(guildId) {
-  const slots = getActiveSlotsForInstall(guildId);
+function autoPositionChannelCursor(guildId, guild) {
+  const slots = getActiveSlotsForInstall(guildId, guild);
   const ignored = getIgnoredChannelSlots(guildId);
   const firstUnconfigured = slots.findIndex(
     (s) => !ignored.includes(s.key) && !getGuildSetting(guildId, s.settingSection, s.settingKey, null)
@@ -966,10 +971,10 @@ async function startWizardInChannel(interaction) {
     setGuildSetting(guildId, 'setup', 'step', 1);
     setGradeCursor(guildId, 0);
   } else if (step === 3) {
-    const slots = getActiveSlotsForInstall(guildId);
+    const slots = getActiveSlotsForInstall(guildId, guild);
     const anyConfigured = slots.some((s) => getGuildSetting(guildId, s.settingSection, s.settingKey, null));
     if (anyConfigured) {
-      autoPositionChannelCursor(guildId);
+      autoPositionChannelCursor(guildId, guild);
     } else {
       setChannelCursor(guildId, 0);
     }
@@ -1189,14 +1194,14 @@ async function handleSetupInteraction(interaction) {
     if (slot && interaction.values?.[0] && interaction.values[0] !== 'none') {
       setGuildSetting(guildId, slot.settingSection, slot.settingKey, interaction.values[0]);
     }
-    const activeSlots = getActiveSlotsForInstall(guildId);
+    const activeSlots = getActiveSlotsForInstall(guildId, interaction.guild);
     const cursor = getChannelCursor(guildId);
     if (cursor < activeSlots.length - 1) setChannelCursor(guildId, cursor + 1);
     await renderStep(interaction, 3); return true;
   }
   if (interaction.customId.startsWith(`${CUSTOM_IDS.channelSkip}:`)) {
     const action = interaction.customId.split(':').pop();
-    const activeSlots = getActiveSlotsForInstall(guildId);
+    const activeSlots = getActiveSlotsForInstall(guildId, interaction.guild);
     const cursor = getChannelCursor(guildId);
     if (action === 'prev') { setChannelCursor(guildId, cursor - 1); await renderStep(interaction, 3); return true; }
     if (action === 'skip') { setChannelCursor(guildId, activeSlots.length - 1); await renderStep(interaction, 3); return true; }
