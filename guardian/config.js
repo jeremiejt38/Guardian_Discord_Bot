@@ -56,7 +56,8 @@ const CHANNELS = Object.freeze({
   annonces: 'annonces',
   serveurs: 'serveurs',
   securityUpdates: 'maj-securite',
-  guardianBackup: 'guardian-backup'
+  guardianBackup: 'guardian-backup',
+  becomeMember: 'devenir-membre'
 });
 
 const CHANNEL_NAMES = Object.freeze({
@@ -89,7 +90,8 @@ const CHANNEL_NAMES = Object.freeze({
   suggestions: CHANNELS.suggestions,
   annonces: CHANNELS.annonces,
   serveurs: CHANNELS.serveurs,
-  securityUpdates: CHANNELS.securityUpdates
+  securityUpdates: CHANNELS.securityUpdates,
+  becomeMember: CHANNELS.becomeMember
 });
 
 const GRADE_NAMES = Object.freeze({

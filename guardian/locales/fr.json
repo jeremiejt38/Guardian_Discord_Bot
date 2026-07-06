@@ -483,6 +483,7 @@
       "voiceCreate": "Creez votre salon vocal temporaire en cliquant sur le bouton ci-dessous.",
       "voiceGeneral": "Salon vocal principal — rejoignez pour discuter avec la communaute.",
       "voiceAfk": "Salon AFK — les membres inactifs y sont deplaces automatiquement.",
+      "becomeMember": "Comment devenir Membre — regles du serveur, comment faire une demande et rester actif.",
       "reports": "Signalements de membres — Guardian enregistre ici les rapports soumis via /signaler.",
       "autoModeration": "Logs d'auto-moderation — Guardian y consigne les infractions detectees automatiquement (spam, blacklist…).",
       "behavior": "Score comportemental — Guardian y affiche l'historique des avertissements et sanctions.",

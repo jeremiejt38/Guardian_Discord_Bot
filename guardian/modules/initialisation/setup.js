@@ -465,6 +465,14 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   ];
   await ensureTextChannel(guild, communauteCategory.id, CHANNELS.serverList, memberReadPermissions, { topic: t('init.topics.serverList', {}, { guildId: guildIdC }) });
 
+  const inviteRoleId = roleMap[GRADE_NAMES.invite];
+  const becomeMemberPerms = [
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+    ...(inviteRoleId ? [{ id: inviteRoleId, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] }] : []),
+    { id: ownerId, allow: [PermissionFlagsBits.ViewChannel] }
+  ];
+  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.becomeMember, becomeMemberPerms, { topic: t('init.topics.becomeMember', {}, { guildId: guildIdC }) });
+
   const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
   if (suggestionsEnabled) {
     const suggestionsForum = await ensureForumChannel(guild, communauteCategory.id, CHANNELS.suggestions, [

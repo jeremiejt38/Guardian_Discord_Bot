@@ -121,7 +121,9 @@ const CUSTOM_IDS = Object.freeze({
   securityConfirmModal: 'setup:security:confirm-modal',
   clearAllGames: 'setup:games:clear-all',
   channelAutoDetectAccept: 'setup:channel:autodetect:accept',
-  channelAutoDetectSkip: 'setup:channel:autodetect:skip'
+  channelAutoDetectSkip: 'setup:channel:autodetect:skip',
+  notifyMembersYes: 'setup:notify-members:yes',
+  notifyMembersNo: 'setup:notify-members:no'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -2676,6 +2678,18 @@ async function handleSetupInteraction(interaction) {
       return true;
     }
 
+    // Intercept : proposition de notifier les membres existants ?
+    const notifyDone = getGuildSetting(guildId, 'setup', 'notify_members_done', 0);
+    if (!notifyDone) {
+      setGuildSetting(guildId, 'setup', 'notify_members_done', 1);
+      await interaction.message?.edit({
+        content: buildNotifyMembersContent(guildId),
+        components: buildNotifyMembersComponents()
+      }).catch(() => {});
+      await interaction.deferUpdate().catch(() => {});
+      return true;
+    }
+
     await interaction.deferUpdate().catch(() => {});
     try {
       const { completeGuildSetup } = require('./setup');
@@ -2697,7 +2711,127 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.customId === CUSTOM_IDS.notifyMembersYes || interaction.customId === CUSTOM_IDS.notifyMembersNo) {
+    await interaction.deferUpdate().catch(() => {});
+    if (interaction.customId === CUSTOM_IDS.notifyMembersYes && interaction.guild) {
+      const members = await interaction.guild.members.fetch().catch(() => null);
+      if (members) {
+        let sent = 0;
+        for (const member of members.values()) {
+          if (member.user.bot) continue;
+          await sendInstallNotifyDm(member, guildId);
+          sent++;
+        }
+        logger.info(`Guild ${guildId}: install notify DMs sent to ${sent} members`);
+      }
+    }
+    const { completeGuildSetup } = require('./setup');
+    const { recordInstallVersion } = require('../migrations/channelMigrations');
+    const { saveConfigBackup } = require('../config/configBackup');
+    const { version } = require('../../package.json');
+    try {
+      await completeGuildSetup(interaction.guild);
+      recordInstallVersion(guildId, version);
+      await saveConfigBackup(interaction.guild);
+      if (interaction.channel?.send) {
+        await interaction.channel.send({ content: t('setup.finalized', {}, { guildId }) });
+      }
+    } catch (error) {
+      logger.error('Failed to complete guild setup after notify', error);
+    }
+    return true;
+  }
+
   return false;
+}
+
+// ─── Notification membres à l'installation ──────────────────────────────────
+
+function buildNotifyMembersContent(guildId) {
+  const expulsionEnabled = Boolean(getGuildSetting(guildId, 'members', 'invite_expulsion_enabled', true));
+  const expulsionDays = Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30)));
+  return [
+    `## 📢 Notifier les membres existants ?`,
+    ``,
+    `Tu peux envoyer un DM à **tous les membres actuels** du serveur pour les informer que Guardian Bot est maintenant actif.`,
+    ``,
+    `Les invités recevront en plus :`,
+    `- Leur statut actuel et comment devenir Membre`,
+    expulsionEnabled ? `- Un avertissement sur l'expulsion automatique après **${expulsionDays} jour${expulsionDays > 1 ? 's' : ''}** d'inactivité` : '',
+    `- Un lien direct vers **#${CHANNELS.becomeMember}**`,
+    ``,
+    `> ⚠️ Cette action envoie un DM à chaque membre non-bot du serveur.`
+  ].filter((l) => l !== '').join('\n');
+}
+
+function buildNotifyMembersComponents() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.notifyMembersYes)
+        .setLabel('📢 Oui, notifier tout le monde')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.notifyMembersNo)
+        .setLabel('Non, passer')
+        .setStyle(ButtonStyle.Secondary)
+    )
+  ];
+}
+
+async function sendInstallNotifyDm(member, guildId) {
+  try {
+    const expulsionEnabled = Boolean(getGuildSetting(guildId, 'members', 'invite_expulsion_enabled', true));
+    const expulsionDays = Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30)));
+    const promotionDelayHours = Number(getGuildSetting(guildId, 'members', 'promotion_delay_hours', 48));
+    const { getGrade } = require('../../database/db');
+    const inviteRoleId = getGrade(guildId, GRADE_NAMES.invite);
+    const isInvite = inviteRoleId ? member.roles.cache.has(inviteRoleId) : false;
+
+    const becomeMemberChannel = member.guild.channels.cache.find(
+      (c) => c.name === CHANNELS.becomeMember && c.isTextBased?.()
+    );
+    const becomeMemberLink = becomeMemberChannel
+      ? `https://discord.com/channels/${guildId}/${becomeMemberChannel.id}`
+      : null;
+
+    const lines = [
+      `## 🤖 Guardian Bot est arrivé sur **${member.guild.name}** !`,
+      ``,
+      `Guardian Bot vient d'être installé sur ce serveur. Il gère automatiquement les grades, la modération, les salons de jeux et bien plus.`,
+      ``
+    ];
+
+    if (isInvite) {
+      lines.push(
+        `**🎭 Ton statut actuel : Invité**`,
+        `Tu as accès limité au serveur pour l'instant.`,
+        ``,
+        `**📋 Devenir Membre**`,
+        `Pour accéder à toute la communauté, fais une demande de membre.`,
+        promotionDelayHours > 0 ? `> Tu pourras faire ta demande après **${promotionDelayHours}h** de présence sur le serveur.` : `> Tu peux faire ta demande dès maintenant.`,
+        becomeMemberLink ? `> 🔗 **[Voir le channel Devenir Membre](${becomeMemberLink})**` : `> Rends-toi dans **#${CHANNELS.becomeMember}** sur le serveur.`,
+        ``
+      );
+      if (expulsionEnabled) {
+        lines.push(
+          `**⚠️ Expulsion automatique**`,
+          `En tant qu'invité, si tu restes inactif pendant **${expulsionDays} jour${expulsionDays > 1 ? 's' : ''}** (sans écrire ni rejoindre un vocal), tu seras automatiquement expulsé.`,
+          `> Pour éviter ça, deviens Membre ou reste actif régulièrement.`,
+          ``
+        );
+      }
+    } else {
+      lines.push(
+        `Aucune action requise de ta part. Toutes les configurations existantes sont préservées.`,
+        ``
+      );
+    }
+
+    lines.push(`_Ce message est envoyé automatiquement par Guardian Bot._`);
+    await member.send(lines.join('\n'));
+  } catch {
+  }
 }
 
 // ─── Nouvelles options MAJ helpers ──────────────────────────────────────────

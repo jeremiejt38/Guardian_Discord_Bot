@@ -324,6 +324,7 @@
       "voiceCreate": "Create your temporary voice channel by clicking the button below.",
       "voiceGeneral": "Main voice channel — join to chat with the community.",
       "voiceAfk": "AFK channel — inactive members are automatically moved here.",
+      "becomeMember": "How to become a Member — server rules, how to apply and stay active.",
       "reports": "Member reports — Guardian logs reports submitted via /signaler here.",
       "autoModeration": "Auto-moderation logs — Guardian records automatically detected violations (spam, blacklist…).",
       "behavior": "Behavior score — Guardian displays warnings and sanction history here.",
