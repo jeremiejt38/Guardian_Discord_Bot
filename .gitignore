@@ -75,6 +75,10 @@ guardian/data/guardian.db
 guardian/data/*.db
 guardian/data/*.db-shm
 guardian/data/*.db-wal
+guardian/guardian.db
+guardian/*.db
+guardian/*.db-shm
+guardian/*.db-wal
 
 # Lando local overrides and runtime metadata
 .lando.local.yml

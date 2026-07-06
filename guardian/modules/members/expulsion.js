@@ -1,5 +1,6 @@
 const { getDb } = require('../../database/db');
 const { getGuildSetting } = require('../config/settings');
+const { sendModLog } = require('../moderation/modLog');
 const logger = require('../logs/logger');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -27,6 +28,7 @@ function startInviteExpulsionJob(client, intervalMs = DAY_MS) {
         if (member) {
           await member.kick('Guardian: délai de promotion dépassé');
           await logger.logToDiscord(guild, `Expulsion automatique: <@${row.user_id}> (délai dépassé)`);
+          await sendModLog(guild, `🚪 **Expulsion auto** | Membre: <@${row.user_id}> | Raison: délai de promotion dépassé`);
         }
       } catch (error) {
         logger.error('Failed invite expulsion cycle item', error);
