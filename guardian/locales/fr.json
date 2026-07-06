@@ -624,5 +624,33 @@
     "dmLinkFallback": "➡️ Retrouve le channel **#setup** sur ton serveur pour commencer.",
     "dmFooter1": "> Le channel setup n'est visible que par toi et le propriétaire du serveur.",
     "dmFooter2": "> La configuration prend environ 5 minutes."
+  },
+  "roleSecurity": {
+    "title": "## 🔐 Audit de sécurité des rôles",
+    "intro": "Guardian a détecté des rôles existants qui méritent ton attention avant de continuer.",
+    "dangerousTitle": "### ⚠️ Rôles avec permissions sensibles",
+    "dangerousIntro": "> Ces rôles ont des permissions qui peuvent représenter un risque de sécurité.",
+    "unusedTitle": "### 🗑️ Rôles inutilisés (0 membres)",
+    "unusedIntro": "> Ces rôles n'ont aucun membre. Tu peux les supprimer ou les conserver.",
+    "footer": "> Clique sur un rôle pour agir dessus, ou **Continuer** pour ignorer.",
+    "members": "{count} membre(s)",
+    "noMembers": "aucun membre",
+    "btnModify": "🔐 Modifier @{name}",
+    "btnDelete": "🗑️ Supprimer @{name}",
+    "btnKeep": "✅ Conserver @{name}",
+    "btnContinue": "➡️ Continuer sans modifications",
+    "modifyEphemeral": "🔐 **Modifier le rôle @{name}**\n> Va dans **Paramètres du serveur → Rôles → @{name}** pour modifier ses permissions.",
+    "permAdministrator": "Administrateur",
+    "permManageGuild": "Gérer le serveur",
+    "permManageRoles": "Gérer les rôles",
+    "permManageChannels": "Gérer les salons",
+    "permBanMembers": "Bannir des membres",
+    "permKickMembers": "Expulser des membres",
+    "permManageWebhooks": "Gérer les webhooks",
+    "permManageNicknames": "Gérer les pseudos",
+    "permMentionEveryone": "Mentionner @everyone",
+    "permModerateMembers": "Mettre en sourdine (timeout)",
+    "permManageMessages": "Gérer les messages",
+    "permViewAuditLog": "Voir les logs d'audit"
   }
 }

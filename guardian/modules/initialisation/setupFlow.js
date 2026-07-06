@@ -1332,7 +1332,7 @@ function explainStepOneValidation(guildId, validation) {
   return t('setup.validationGenericError', {}, { guildId });
 }
 
-function buildSecurityComponents(dangerous, unused) {
+function buildSecurityComponents(dangerous, unused, _) {
   const rows = [];
 
   const unusedSlot = unused.length > 0 ? 1 : 0;
@@ -1342,7 +1342,7 @@ function buildSecurityComponents(dangerous, unused) {
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.securityRoleAction}:${r.id}`)
-        .setLabel(`🔐 Modifier @${r.name}`.slice(0, 80))
+        .setLabel(_('roleSecurity.btnModify', { name: r.name }).slice(0, 80))
         .setStyle(ButtonStyle.Danger)
     ));
   }
@@ -1352,11 +1352,11 @@ function buildSecurityComponents(dangerous, unused) {
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.securityDeleteUnused}:${r.id}`)
-        .setLabel(`🗑️ Suppr. @${r.name}`.slice(0, 40))
+        .setLabel(_('roleSecurity.btnDelete', { name: r.name }).slice(0, 40))
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.securityKeepUnused}:${r.id}`)
-        .setLabel(`✅ Garder @${r.name}`.slice(0, 40))
+        .setLabel(_('roleSecurity.btnKeep', { name: r.name }).slice(0, 40))
         .setStyle(ButtonStyle.Secondary)
     ));
   }
@@ -1364,7 +1364,7 @@ function buildSecurityComponents(dangerous, unused) {
   rows.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.securityContinue)
-      .setLabel('➡️ Continuer sans modifications')
+      .setLabel(_('roleSecurity.btnContinue'))
       .setStyle(ButtonStyle.Primary)
   ));
 
@@ -2051,10 +2051,11 @@ async function handleSetupInteraction(interaction) {
     const mappingsForSecurity = getGradeMappings(guildId);
     const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
     const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
-    const securityContent = buildSecurityCheckContent(dangerous, unused);
+    const _s = (key, vars) => t(key, vars || {}, { guildId });
+    const securityContent = buildSecurityCheckContent(dangerous, unused, _s);
     if (securityContent) {
-      const rows = buildSecurityComponents(dangerous, unused);
-      await interaction.channel.send({ content: securityContent, components: rows }).catch(() => {});
+      const rows = buildSecurityComponents(dangerous, unused, _s);
+      await interaction.channel.send({ content: securityContent, components: rows }).catch(() => {}); 
     } else {
       const nextStep = 2;
       setGuildSetting(guildId, 'setup', 'step', nextStep);
@@ -2093,10 +2094,11 @@ async function handleSetupInteraction(interaction) {
     const mappingsForSecurity = getGradeMappings(guildId);
     const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
     if (guild) await guild.roles.fetch().catch(() => {});
+    const _sd = (key, vars) => t(key, vars || {}, { guildId });
     const { dangerous, unused } = analyzeNonGuardianRoles(guild, guardianRoleIds);
-    const securityContent = buildSecurityCheckContent(dangerous, unused);
+    const securityContent = buildSecurityCheckContent(dangerous, unused, _sd);
     if (securityContent) {
-      const rows = buildSecurityComponents(dangerous, unused);
+      const rows = buildSecurityComponents(dangerous, unused, _sd);
       await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
     } else {
       await interaction.message.delete().catch(() => {});
@@ -2118,10 +2120,11 @@ async function handleSetupInteraction(interaction) {
     const guild = interaction.guild;
     const mappingsForSecurity = getGradeMappings(guildId);
     const guardianRoleIds = Object.values(mappingsForSecurity).filter(Boolean);
+    const _sk = (key, vars) => t(key, vars || {}, { guildId });
     const { dangerous, unused: remainingUnused } = analyzeNonGuardianRoles(guild, [...guardianRoleIds, roleId]);
-    const securityContent = buildSecurityCheckContent(dangerous, remainingUnused);
+    const securityContent = buildSecurityCheckContent(dangerous, remainingUnused, _sk);
     if (securityContent) {
-      const rows = buildSecurityComponents(dangerous, remainingUnused);
+      const rows = buildSecurityComponents(dangerous, remainingUnused, _sk);
       await interaction.message.edit({ content: securityContent, components: rows }).catch(() => {});
     } else {
       await interaction.message.delete().catch(() => {});
@@ -2142,12 +2145,8 @@ async function handleSetupInteraction(interaction) {
     await interaction.deferUpdate().catch(() => {});
     const role = interaction.guild?.roles.cache.get(roleId);
     if (role) {
-      const url = `https://discord.com/channels/${guildId}`;
-      await replyEphemeral(interaction, [
-        `🔐 **Modifier le rôle @${role.name}**`,
-        `> Va dans **Paramètres du serveur → Rôles → @${role.name}** pour modifier ses permissions.`,
-        `> ${url}`
-      ].join('\n'));
+      const msg = t('roleSecurity.modifyEphemeral', { name: role.name }, { guildId });
+      await replyEphemeral(interaction, msg);
     }
     return true;
   }

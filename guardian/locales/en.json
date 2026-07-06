@@ -441,5 +441,33 @@
     "dmLinkFallback": "➡️ Look for the **#setup** channel in your server to get started.",
     "dmFooter1": "> The setup channel is only visible to you and the server owner.",
     "dmFooter2": "> It takes about 5 minutes to configure Guardian for your server."
+  },
+  "roleSecurity": {
+    "title": "## 🔐 Role Security Audit",
+    "intro": "Guardian detected existing roles that need your attention before continuing.",
+    "dangerousTitle": "### ⚠️ Roles with sensitive permissions",
+    "dangerousIntro": "> These roles have permissions that may represent a security risk.",
+    "unusedTitle": "### 🗑️ Unused roles (0 members)",
+    "unusedIntro": "> These roles have no members. You can delete or keep them.",
+    "footer": "> Click a role to act on it, or **Continue** to skip.",
+    "members": "{count} member(s)",
+    "noMembers": "no members",
+    "btnModify": "🔐 Edit @{name}",
+    "btnDelete": "🗑️ Delete @{name}",
+    "btnKeep": "✅ Keep @{name}",
+    "btnContinue": "➡️ Continue without changes",
+    "modifyEphemeral": "🔐 **Edit role @{name}**\n> Go to **Server Settings → Roles → @{name}** to change its permissions.",
+    "permAdministrator": "Administrator",
+    "permManageGuild": "Manage Server",
+    "permManageRoles": "Manage Roles",
+    "permManageChannels": "Manage Channels",
+    "permBanMembers": "Ban Members",
+    "permKickMembers": "Kick Members",
+    "permManageWebhooks": "Manage Webhooks",
+    "permManageNicknames": "Manage Nicknames",
+    "permMentionEveryone": "Mention @everyone",
+    "permModerateMembers": "Timeout Members",
+    "permManageMessages": "Manage Messages",
+    "permViewAuditLog": "View Audit Log"
   }
 }

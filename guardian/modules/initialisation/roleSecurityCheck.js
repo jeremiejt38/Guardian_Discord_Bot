@@ -1,29 +1,27 @@
 const { PermissionFlagsBits } = require('discord.js');
 
 const DANGEROUS_PERMISSIONS = [
-  { flag: PermissionFlagsBits.Administrator,        label: 'Administrateur',                  severity: 'critical' },
-  { flag: PermissionFlagsBits.ManageGuild,          label: 'Gérer le serveur',                severity: 'high'     },
-  { flag: PermissionFlagsBits.ManageRoles,          label: 'Gérer les rôles',                 severity: 'high'     },
-  { flag: PermissionFlagsBits.ManageChannels,       label: 'Gérer les salons',                severity: 'high'     },
-  { flag: PermissionFlagsBits.BanMembers,           label: 'Bannir des membres',              severity: 'medium'   },
-  { flag: PermissionFlagsBits.KickMembers,          label: 'Expulser des membres',            severity: 'medium'   },
-  { flag: PermissionFlagsBits.ManageWebhooks,       label: 'Gérer les webhooks',              severity: 'medium'   },
-  { flag: PermissionFlagsBits.ManageNicknames,      label: 'Gérer les pseudos',               severity: 'low'      },
-  { flag: PermissionFlagsBits.MentionEveryone,      label: 'Mentionner @everyone',            severity: 'medium'   },
-  { flag: PermissionFlagsBits.ModerateMembers,      label: 'Mettre en sourdine (timeout)',    severity: 'medium'   },
-  { flag: PermissionFlagsBits.ManageMessages,       label: 'Gérer les messages',              severity: 'low'      },
-  { flag: PermissionFlagsBits.ViewAuditLog,         label: 'Voir les logs d\'audit',          severity: 'low'      },
+  { flag: PermissionFlagsBits.Administrator,   key: 'permAdministrator', severity: 'critical' },
+  { flag: PermissionFlagsBits.ManageGuild,     key: 'permManageGuild',   severity: 'high'     },
+  { flag: PermissionFlagsBits.ManageRoles,     key: 'permManageRoles',   severity: 'high'     },
+  { flag: PermissionFlagsBits.ManageChannels,  key: 'permManageChannels',severity: 'high'     },
+  { flag: PermissionFlagsBits.BanMembers,      key: 'permBanMembers',    severity: 'medium'   },
+  { flag: PermissionFlagsBits.KickMembers,     key: 'permKickMembers',   severity: 'medium'   },
+  { flag: PermissionFlagsBits.ManageWebhooks,  key: 'permManageWebhooks',severity: 'medium'   },
+  { flag: PermissionFlagsBits.ManageNicknames, key: 'permManageNicknames',severity: 'low'     },
+  { flag: PermissionFlagsBits.MentionEveryone, key: 'permMentionEveryone',severity: 'medium'  },
+  { flag: PermissionFlagsBits.ModerateMembers, key: 'permModerateMembers',severity: 'medium'  },
+  { flag: PermissionFlagsBits.ManageMessages,  key: 'permManageMessages', severity: 'low'     },
+  { flag: PermissionFlagsBits.ViewAuditLog,    key: 'permViewAuditLog',   severity: 'low'     },
 ];
 
 const SEVERITY_ICONS = { critical: '🔴', high: '🟠', medium: '🟡', low: '🔵' };
 
 /**
  * Analyse les rôles d'une guild qui ne sont pas des rôles Guardian mappés.
- * Retourne les rôles dangereux et les rôles inutilisés.
- *
  * @param {import('discord.js').Guild} guild
- * @param {string[]} guardianRoleIds - IDs des rôles déjà mappés à Guardian
- * @returns {{ dangerous: RoleIssue[], unused: RoleInfo[] }}
+ * @param {string[]} guardianRoleIds
+ * @returns {{ dangerous: object[], unused: object[] }}
  */
 function analyzeNonGuardianRoles(guild, guardianRoleIds = []) {
   const guardianSet = new Set(guardianRoleIds);
@@ -35,9 +33,7 @@ function analyzeNonGuardianRoles(guild, guardianRoleIds = []) {
     if (role.id === guild.roles.everyone.id) continue;
     if (guardianSet.has(role.id)) continue;
 
-    const dangerousPerms = DANGEROUS_PERMISSIONS.filter(
-      ({ flag }) => role.permissions.has(flag)
-    );
+    const dangerousPerms = DANGEROUS_PERMISSIONS.filter(({ flag }) => role.permissions.has(flag));
 
     if (dangerousPerms.length > 0) {
       dangerous.push({
@@ -64,34 +60,34 @@ function analyzeNonGuardianRoles(guild, guardianRoleIds = []) {
 
 /**
  * Builds the content string for the security check step.
+ * @param {object[]} dangerous
+ * @param {object[]} unused
+ * @param {function} _ - tForLanguage bound to current guild lang: (key, vars?) => string
  */
-function buildSecurityCheckContent(dangerous, unused) {
+function buildSecurityCheckContent(dangerous, unused, _) {
   if (dangerous.length === 0 && unused.length === 0) return null;
 
-  const lines = [
-    '## 🔐 Audit de sécurité des rôles',
-    '',
-    'Guardian a détecté des rôles existants qui méritent ton attention avant de continuer.',
-    ''
-  ];
+  const lines = [_('roleSecurity.title'), '', _('roleSecurity.intro'), ''];
 
   if (dangerous.length > 0) {
-    lines.push('### ⚠️ Rôles avec permissions sensibles');
-    lines.push('> Ces rôles ont des permissions qui peuvent représenter un risque de sécurité.');
+    lines.push(_('roleSecurity.dangerousTitle'));
+    lines.push(_('roleSecurity.dangerousIntro'));
     lines.push('');
     for (const r of dangerous.slice(0, 10)) {
       const icon = SEVERITY_ICONS[r.highestSeverity];
-      const perms = r.permissions.map(p => `\`${p.label}\``).join(', ');
-      const members = r.memberCount > 0 ? ` — ${r.memberCount} membre(s)` : ' — aucun membre';
-      lines.push(`> ${icon} **@${r.name}**${members}`);
+      const perms = r.permissions.map(p => `\`${_(p.key ? `roleSecurity.${p.key}` : 'roleSecurity.permAdministrator')}\``).join(', ');
+      const membersLabel = r.memberCount > 0
+        ? ` — ${_('roleSecurity.members', { count: r.memberCount })}`
+        : ` — ${_('roleSecurity.noMembers')}`;
+      lines.push(`> ${icon} **@${r.name}**${membersLabel}`);
       lines.push(`> ↳ ${perms}`);
     }
     lines.push('');
   }
 
   if (unused.length > 0) {
-    lines.push('### 🗑️ Rôles inutilisés (0 membres)');
-    lines.push('> Ces rôles n\'ont aucun membre. Tu peux les supprimer ou les conserver.');
+    lines.push(_('roleSecurity.unusedTitle'));
+    lines.push(_('roleSecurity.unusedIntro'));
     lines.push('');
     for (const r of unused.slice(0, 10)) {
       lines.push(`> ⚪ **@${r.name}**`);
@@ -99,8 +95,7 @@ function buildSecurityCheckContent(dangerous, unused) {
     lines.push('');
   }
 
-  lines.push('> Clique sur un rôle pour agir dessus, ou **Continuer** pour ignorer.');
-
+  lines.push(_('roleSecurity.footer'));
   return lines.join('\n');
 }
 
