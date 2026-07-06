@@ -102,33 +102,43 @@ function decodeSnapshot(encoded) {
 
 // ─── Channel helpers ─────────────────────────────────────────────────────────
 
+function buildBackupPerms(guild) {
+  const perms = [
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+    {
+      id: guild.client.user.id,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]
+    }
+  ];
+  if (guild.ownerId) {
+    perms.push({ id: guild.ownerId, allow: [PermissionFlagsBits.ViewChannel] });
+  }
+  return perms;
+}
+
 async function findOrCreateBackupChannel(guild) {
   const existing = guild.channels.cache.find(
     (c) => c.name === BACKUP_CHANNEL_NAME && c.type === ChannelType.GuildText
   );
-  if (existing) return existing;
+
+  if (existing) {
+    await existing.permissionOverwrites.set(buildBackupPerms(guild)).catch(() => {});
+    return existing;
+  }
 
   const guardianCategory = guild.channels.cache.find(
     (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('guardian')
   );
 
-  const perms = [
-    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-    { id: guild.client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages] }
-  ];
-
-  const ownerId = guild.ownerId;
-  if (ownerId) {
-    perms.push({ id: ownerId, allow: [PermissionFlagsBits.ViewChannel] });
-  }
-
-  return guild.channels.create({
+  const channel = await guild.channels.create({
     name: BACKUP_CHANNEL_NAME,
     type: ChannelType.GuildText,
     topic: 'Canal de sauvegarde Guardian — ne pas supprimer ni modifier.',
     parent: guardianCategory?.id ?? null,
-    permissionOverwrites: perms
+    permissionOverwrites: buildBackupPerms(guild)
   });
+
+  return channel;
 }
 
 // ─── Save backup ─────────────────────────────────────────────────────────────
