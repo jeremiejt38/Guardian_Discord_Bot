@@ -118,7 +118,8 @@ const CUSTOM_IDS = Object.freeze({
   securityKeepUnused: 'setup:security:unused:keep',
   securityDeleteAllUnused: 'setup:security:unused:delete-all',
   securityKeepAllUnused: 'setup:security:unused:keep-all',
-  securityConfirmModal: 'setup:security:confirm-modal'
+  securityConfirmModal: 'setup:security:confirm-modal',
+  clearAllGames: 'setup:games:clear-all'
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -771,13 +772,17 @@ function buildStep6Components_Games(guildId) {
   const pageGames = games.slice(page * GAMES_PAGE_SIZE, (page + 1) * GAMES_PAGE_SIZE);
   const rows = [];
 
-  const addRow = new ActionRowBuilder().addComponents(
+  const addRowButtons = [
     new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.gamePagePrev).setStyle(ButtonStyle.Secondary)
       .setLabel('◀').setDisabled(page === 0),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.gamePageNext).setStyle(ButtonStyle.Secondary)
       .setLabel(`▶ (${page + 1}/${totalPages})`).setDisabled(page >= totalPages - 1)
-  );
+  ];
+  if (games.length > 0) {
+    addRowButtons.push(new ButtonBuilder().setCustomId(CUSTOM_IDS.clearAllGames).setStyle(ButtonStyle.Danger).setLabel('🧹 Tout effacer'));
+  }
+  const addRow = new ActionRowBuilder().addComponents(addRowButtons);
   rows.push(addRow);
 
   for (const game of pageGames) {
@@ -1075,6 +1080,7 @@ function normalizeGameSlug(name) {
 
 const GUARDIAN_RESERVED_CHANNEL_NAMES = new Set(Object.values(CHANNELS));
 const GUARDIAN_RESERVED_CATEGORY_NAMES = new Set(Object.values(CATEGORIES));
+const GUARDIAN_RESERVED_BASE_NAMES = new Set(Object.values(CHANNELS).map((n) => n.replace(/-changelogs?|-updates?|-galerie|-texte$/, '').toLowerCase()));
 
 function detectExistingGameChannels(guild) {
   const guardianCategoryIds = new Set(
@@ -1105,12 +1111,13 @@ function detectExistingGameChannels(guild) {
     gameMap.get(baseName).channels.push({ id: ch.id, name: ch.name, type });
   }
   return [...gameMap.values()]
-    .filter((g) => g.channels.length >= 1 && g.baseName.length >= 2)
+    .filter((g) => g.channels.length >= 1 && g.baseName.length >= 3)
+    .filter((g) => !GUARDIAN_RESERVED_BASE_NAMES.has(g.baseName.toLowerCase()))
     .map((g) => {
       const steamMatch = matchGameFromChannelName(g.baseName);
       return { ...g, steamName: steamMatch?.name ?? null, steamAppId: steamMatch?.appid ?? null };
     })
-    .filter((g) => g.steamName !== null);
+    .filter((g) => g.steamName !== null && g.steamAppId != null);
 }
 
 function getDetectedGames(guildId) {
@@ -1956,6 +1963,14 @@ async function handleSetupInteraction(interaction) {
     const gameId = Number(interaction.customId.split(':').pop());
     const db = require('../../database/db').getDb();
     db.prepare('DELETE FROM games WHERE guild_id = ? AND game_id = ?').run(guildId, gameId);
+    await renderStep(interaction, 6); return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.clearAllGames) {
+    const db = require('../../database/db').getDb();
+    db.prepare('DELETE FROM games WHERE guild_id = ?').run(guildId);
+    setGuildSetting(guildId, 'setup', 'detected_games', null);
+    setGamesPage(guildId, 0);
     await renderStep(interaction, 6); return true;
   }
 
