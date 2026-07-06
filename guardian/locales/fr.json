@@ -566,6 +566,10 @@
       "steamCleared": "Steam AppID de **{{name}}** supprime (jeu non-Steam).",
       "syncDone": "Structure Discord synchronisee pour **{{name}}**."
     },
+    "help": {
+      "description": "Afficher l'aide Guardian par module",
+      "moduleOption": "Module à consulter (optionnel)"
+    },
     "langue": {
       "description": "Changer la langue du bot",
       "optionCode": "Code langue",
@@ -576,6 +580,19 @@
       "title": "Langues disponibles",
       "current": "Langue active: {{language}} ({{code}}).",
       "item": "- {{language}} ({{code}})"
+    }
+  },
+  "help": {
+    "overviewDesc": "Guardian est un bot tout-en-un pour serveurs gaming. Choisis un module ci-dessous pour en savoir plus.",
+    "unknownModule": "Module inconnu.",
+    "modules": {
+      "setup": "Setup & Configuration",
+      "members": "Membres & Promotions",
+      "moderation": "Modération",
+      "games": "Jeux",
+      "notifications": "Notifications DM",
+      "servers": "Serveurs de jeu",
+      "config": "Configuration générale"
     }
   },
   "notifications": {

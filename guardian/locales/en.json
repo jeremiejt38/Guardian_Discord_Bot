@@ -383,6 +383,10 @@
       "forbiddenPagination": "You cannot control this pagination.",
       "moderatorOnly": "Command restricted to Moderator+."
     },
+    "help": {
+      "description": "Display Guardian help by module",
+      "moduleOption": "Module to look up (optional)"
+    },
     "langue": {
       "description": "Change bot language",
       "optionCode": "Language code",
@@ -393,6 +397,19 @@
       "title": "Available languages",
       "current": "Current language: {{language}} ({{code}}).",
       "item": "- {{language}} ({{code}})"
+    }
+  },
+  "help": {
+    "overviewDesc": "Guardian is an all-in-one bot for gaming communities. Pick a module below to learn more.",
+    "unknownModule": "Unknown module.",
+    "modules": {
+      "setup": "Setup & Configuration",
+      "members": "Members & Promotions",
+      "moderation": "Moderation",
+      "games": "Games",
+      "notifications": "DM Notifications",
+      "servers": "Game Servers",
+      "config": "General Configuration"
     }
   },
   "notifications": {
