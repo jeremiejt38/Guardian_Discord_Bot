@@ -50,3 +50,25 @@ test('i18n module loads locales and translates with interpolation', () => {
   getDb().close();
   fs.rmSync(tempDbPath, { force: true });
 });
+
+test('new locales es/pt/it are loaded and have required keys', () => {
+  process.env.DISCORD_TOKEN = process.env.DISCORD_TOKEN || 'test-token';
+  const tempDbPath = path.join(os.tmpdir(), `guardian-${Date.now()}-${Math.random()}.db`);
+  const { initDatabase, getDb } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  const i18n = freshModule('../modules/i18n');
+
+  const langs = i18n.getAvailableLanguages();
+  for (const code of ['es', 'pt', 'it']) {
+    assert.ok(langs.includes(code), `Language ${code} should be available`);
+    const label = i18n.getLanguageLabel(code);
+    assert.ok(label.length > 0, `Label for ${code} should not be empty`);
+    const translated = i18n.tForLanguage(code, 'setup.finalizeButton');
+    assert.ok(typeof translated === 'string' && translated !== 'setup.finalizeButton', `setup.finalizeButton should be translated in ${code}`);
+    const continueBtn = i18n.tForLanguage(code, 'setup.continueButton');
+    assert.ok(typeof continueBtn === 'string' && continueBtn !== 'setup.continueButton', `setup.continueButton should be translated in ${code}`);
+  }
+
+  getDb().close();
+  fs.rmSync(tempDbPath, { force: true });
+});
