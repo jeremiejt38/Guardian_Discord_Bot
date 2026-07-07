@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.15.0--prerelease-orange?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.19.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -109,10 +109,35 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ## Changelog
 
-### v0.15.x — MAJ automatique & prerelease ← *actuel*
+### v0.19.x — RAWG.io & Jeux non-Steam ← *actuel*
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.15.0** | 2026-07-07 | Feat: MAJ automatique stable + confirmation DM prerelease (champ `prerelease` dans package.json) ← *actuel* *(prerelease)* |
+| **v0.19.0** | 2026-07-07 | Intégration RAWG.io pour jeux non-Steam — `rawgApi.js`, migration DB v7 `rawg_id`, clé RAWG dans `#bot`, pseudo App ID `000XXXXXXX` ← *actuel* |
+| v0.19.1 | 2026-07-07 | Fix: `général` et `moderator-only` détectés comme jeux — normalisation NFD accents dans `GENERIC_CHANNEL_NAMES` |
+| v0.19.2 | 2026-07-07 | Fix: setup re-run — rôles déjà mappés modifiables (option Effacer + placeholder dynamique) |
+| v0.19.3 | 2026-07-07 | Fix: détection auto channels Guardian avec accents et matching fuzzy (général→general, logs-modération→logs-mod) |
+| v0.19.4 | 2026-07-07 | Fix: modal edit jeu setup — `deferUpdate` au lieu de `deferReply` (erreur Discord corrigée) |
+| v0.19.5 | 2026-07-07 | Feat: `postSetupSummary` dynamique — récap config réelle dans `#bienvenue` (rôles, jeux, modules, prochaines étapes) |
+
+### v0.18.x — Jeux non-Steam
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.18.0** | 2026-07-07 | Support jeux non-Steam — pseudo App ID `000XXXXXXX`, `generateNonSteamId()`, `isNonSteamId()`, fix doublons détection |
+
+### v0.17.x — Backup & Diagnostic
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.17.0** | 2026-07-07 | Backup message protection, `guardian-logs` enrichis, diagnostic bot panel, serveurs de jeu mot de passe |
+
+### v0.16.x — Setup UX & Game Requests
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.16.0** | 2026-07-07 | Setup UX amélioré, game requests membres, topics channels, couleurs rôles |
+
+### v0.15.x — MAJ automatique & prerelease
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.15.0** | 2026-07-07 | Feat: MAJ automatique stable + confirmation DM prerelease (champ `prerelease` dans package.json) |
 
 ### v0.14.x — Setup UX & Onboarding
 | Version | Date | Contenu |
