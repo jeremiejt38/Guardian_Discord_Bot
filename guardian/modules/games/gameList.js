@@ -205,7 +205,7 @@ function buildGamesEmbed(guildId, userId) {
   const games = getGuildGames(guildId);
   const selectedIds = new Set(getMemberGames(guildId, userId).map((row) => row.game_id));
   const lines = games.length
-    ? games.map((game) => `• ${selectedIds.has(game.game_id) ? '✅' : '⬜'} ${game.name}`).join('\n')
+    ? games.map((game) => `• ${selectedIds.has(game.game_id) ? '✅' : '➖'} ${game.name}`).join('\n')
     : t(guildId, 'games.noneConfigured');
 
   return new EmbedBuilder()

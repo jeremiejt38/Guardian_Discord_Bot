@@ -38,6 +38,11 @@ function getInstallContext(guild) {
   logger.debug(`[detectInstallContext] guild=${guild.id} isInstalled=${installed}`);
 
   if (installed) {
+    const freshInstall = getGuildSetting(guild.id, 'setup', 'fresh_install', false);
+    const savedStep = Number(getGuildSetting(guild.id, 'setup', 'step', 0));
+    if (freshInstall || (savedStep >= 1 && savedStep < 8)) {
+      return 'guardian_partial';
+    }
     return 'reinstall';
   }
 

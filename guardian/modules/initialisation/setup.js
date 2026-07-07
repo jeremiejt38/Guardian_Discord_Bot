@@ -4,7 +4,10 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } = require('discord.js');
 const { getDb } = require('../../database/db');
 const { CATEGORIES, CHANNELS, GRADE_NAMES } = require('../../config');
@@ -39,6 +42,9 @@ const SETUP_INTEGRATE_BUTTON_ID = 'setup:integrate';
 const SETUP_RESET_BUTTON_ID = 'setup:reset';
 const SETUP_FORCE_EXISTING_BUTTON_ID = 'setup:force-existing';
 const SETUP_FORCE_REINSTALL_BUTTON_ID = 'setup:force-reinstall';
+const SETUP_CLEAN_SERVER_BUTTON_ID = 'setup:clean-server';
+const SETUP_CLEAN_MODAL_ID = 'setup:clean-modal';
+const SETUP_FRESH_START_BUTTON_ID = 'setup:fresh-start';
 
 async function ensureCategory(guild, name, permissionOverwrites) {
   const existing = findCategoryByName(guild, name);
@@ -55,13 +61,14 @@ async function ensureCategory(guild, name, permissionOverwrites) {
 }
 
 async function ensureTextChannel(guild, parentId, name, permissionOverwrites, { topic } = {}) {
+  const safeTopic = typeof topic === 'string' ? topic : undefined;
   const existing = findGuildTextChannelByName(guild, name, parentId);
 
   if (existing) {
     await existing.edit({
       parent: parentId,
       permissionOverwrites,
-      ...(topic !== undefined ? { topic } : {})
+      ...(safeTopic !== undefined ? { topic: safeTopic } : {})
     });
     return existing;
   }
@@ -71,11 +78,12 @@ async function ensureTextChannel(guild, parentId, name, permissionOverwrites, { 
     type: ChannelType.GuildText,
     parent: parentId,
     permissionOverwrites,
-    ...(topic !== undefined ? { topic } : {})
+    ...(safeTopic !== undefined ? { topic: safeTopic } : {})
   });
 }
 
-async function ensureAnnouncementChannel(guild, parentId, name, permissionOverwrites) {
+async function ensureAnnouncementChannel(guild, parentId, name, permissionOverwrites, { topic } = {}) {
+  const safeTopic = typeof topic === 'string' ? topic : undefined;
   const isCommunity = guild.features?.includes('COMMUNITY');
   const targetType = isCommunity ? ChannelType.GuildAnnouncement : ChannelType.GuildText;
   const existing = guild.channels.cache.find(
@@ -83,7 +91,7 @@ async function ensureAnnouncementChannel(guild, parentId, name, permissionOverwr
             c.name === name && (parentId === undefined || c.parentId === parentId)
   ) ?? null;
   if (existing) {
-    await existing.edit({ parent: parentId, permissionOverwrites }).catch(() => {});
+    await existing.edit({ parent: parentId, permissionOverwrites, ...(safeTopic !== undefined ? { topic: safeTopic } : {}) }).catch(() => {});
     if (isCommunity && existing.type !== ChannelType.GuildAnnouncement) {
       await existing.setType(ChannelType.GuildAnnouncement).catch(() => {});
     }
@@ -111,10 +119,11 @@ async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
   });
 }
 
-async function ensureForumChannel(guild, parentId, name, permissionOverwrites) {
+async function ensureForumChannel(guild, parentId, name, permissionOverwrites, { topic } = {}) {
+  const safeTopic = typeof topic === 'string' ? topic : undefined;
   const existingForum = findGuildForumChannelByName(guild, name, parentId);
   if (existingForum) {
-    await existingForum.edit({ parent: parentId, permissionOverwrites });
+    await existingForum.edit({ parent: parentId, permissionOverwrites, ...(safeTopic !== undefined ? { topic: safeTopic } : {}) });
     return existingForum;
   }
 
@@ -122,7 +131,7 @@ async function ensureForumChannel(guild, parentId, name, permissionOverwrites) {
   // forum; keep it as-is so we do not destroy existing content.
   const existingText = findGuildTextChannelByName(guild, name, parentId);
   if (existingText) {
-    await existingText.edit({ parent: parentId, permissionOverwrites });
+    await existingText.edit({ parent: parentId, permissionOverwrites, ...(safeTopic !== undefined ? { topic: safeTopic } : {}) });
     return existingText;
   }
 
@@ -130,7 +139,8 @@ async function ensureForumChannel(guild, parentId, name, permissionOverwrites) {
     name,
     type: ChannelType.GuildForum,
     parent: parentId,
-    permissionOverwrites
+    permissionOverwrites,
+    ...(safeTopic !== undefined ? { topic: safeTopic } : {})
   });
 }
 
@@ -428,7 +438,7 @@ async function createInformationsArea(guild, roleMap) {
   const guildIdI = guild.id;
   const welcomeChannel = await ensureTextChannel(guild, null, CHANNELS.welcome, readOnlyPermissions, { topic: t('init.topics.welcome', {}, { guildId: guildIdI }) });
   const rulesChannel = await ensureTextChannel(guild, null, CHANNELS.rules, readOnlyPermissions, { topic: t('init.topics.rules', {}, { guildId: guildIdI }) });
-  const announcementsChannel = await ensureAnnouncementChannel(guild, null, CHANNELS.annonces, readOnlyPermissions);
+  const announcementsChannel = await ensureAnnouncementChannel(guild, null, CHANNELS.annonces, readOnlyPermissions, { topic: t('init.topics.annonces', {}, { guildId: guildIdI }) });
   const faqChannel = await ensureTextChannel(guild, null, CHANNELS.faq, readOnlyPermissions, { topic: t('init.topics.faq', {}, { guildId: guildIdI }) });
 
   await ensureTextChannel(guild, null, CHANNELS.requests, buildRequestsPermissions(guild, roleMap), { topic: t('init.topics.requests', {}, { guildId: guildIdI }) });
@@ -477,7 +487,7 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   if (suggestionsEnabled) {
     const suggestionsForum = await ensureForumChannel(guild, communauteCategory.id, CHANNELS.suggestions, [
       { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
-    ]);
+    ], { topic: t('init.topics.suggestions', {}, { guildId: guild.id }) });
     await ensureForumPost(
       suggestionsForum,
       tForLanguage(getGuildLanguage(guild.id), 'init.suggestionsPostTitle'),
@@ -654,7 +664,7 @@ async function ensureSetupInstallPrompt(guild, { forceCreateIfMissing = false } 
     setupChannel = await ensureTextChannel(guild, setupCategory.id, CHANNELS.setup, [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       { id: owner.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
-    ]);
+    ], { topic: t('init.topics.setup', {}, { guildId: guild.id }) });
   }
 
   if (!setupChannel) return;
@@ -732,8 +742,6 @@ async function createSetupArea(guild, { inviterId } = {}) {
     ];
     if (extraUserId) channelPerms.push({ id: extraUserId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] });
 
-    const channel = await ensureTextChannel(guild, category.id, CHANNELS.setup, channelPerms);
-
     setGuildSetting(guild.id, 'setup', 'owner_id', owner.id);
     if (!Number.isInteger(getGuildSetting(guild.id, 'setup', 'step', null))) {
       setGuildSetting(guild.id, 'setup', 'step', 1);
@@ -747,6 +755,8 @@ async function createSetupArea(guild, { inviterId } = {}) {
     }
 
     const language = resolveSetupLanguage(guild.id);
+    const setupTopic = tForLanguage(language, 'init.topics.setup');
+    const channel = await ensureTextChannel(guild, category.id, CHANNELS.setup, channelPerms, { topic: typeof setupTopic === 'string' ? setupTopic : undefined });
     await channel.send(buildSetupInstallMessagePayloadForGuild(language));
     return { category, channel };
   } catch (error) {
@@ -794,10 +804,10 @@ function buildContextChoiceMessage(guildId, context) {
   return messages[context]?.join('\n') ?? '';
 }
 
-function buildFreshRow(guildId) {
-  return new ActionRowBuilder().addComponents(
+function buildFreshRow(guildId, guild) {
+  const buttons = [
     new ButtonBuilder()
-      .setCustomId(SETUP_START_BUTTON_ID)
+      .setCustomId(SETUP_FRESH_START_BUTTON_ID)
       .setLabel(t(guildId, 'setup.freshInstallButton'))
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
@@ -808,7 +818,20 @@ function buildFreshRow(guildId) {
       .setCustomId(SETUP_FORCE_REINSTALL_BUTTON_ID)
       .setLabel(t(guildId, 'setup.freshForceReinstallButton'))
       .setStyle(ButtonStyle.Secondary)
-  );
+  ];
+  if (guild) {
+    const hasExtra = guild.channels.cache.some((c) => c.type !== 4 && !Object.values(CHANNELS).includes(c.name))
+      || guild.roles.cache.some((r) => r.id !== guild.roles.everyone.id && !r.managed);
+    if (hasExtra) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(SETUP_CLEAN_SERVER_BUTTON_ID)
+          .setLabel('🗑️ Nettoyer le serveur')
+          .setStyle(ButtonStyle.Danger)
+      );
+    }
+  }
+  return new ActionRowBuilder().addComponents(...buttons);
 }
 
 
@@ -825,29 +848,30 @@ function buildPartialRow(guildId) {
   );
 }
 
-function buildContextChoiceRow(guildId, context) {
-  if (context === 'reinstall') {
-    return new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(SETUP_INTEGRATE_BUTTON_ID)
-        .setLabel(t(guildId, 'setup.contextKeepButton'))
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId(SETUP_RESET_BUTTON_ID)
-        .setLabel(t(guildId, 'setup.contextResetButton'))
-        .setStyle(ButtonStyle.Danger)
-    );
+function buildContextChoiceRow(guildId, context, guild) {
+  const mainRow = context === 'reinstall'
+    ? new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(SETUP_INTEGRATE_BUTTON_ID).setLabel(t(guildId, 'setup.contextKeepButton')).setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(SETUP_RESET_BUTTON_ID).setLabel(t(guildId, 'setup.contextResetButton')).setStyle(ButtonStyle.Danger)
+      )
+    : new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(SETUP_INTEGRATE_BUTTON_ID).setLabel(t(guildId, 'setup.contextIntegrateButton')).setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(SETUP_FRESH_START_BUTTON_ID).setLabel(t(guildId, 'setup.contextFreshButton')).setStyle(ButtonStyle.Secondary)
+      );
+  const rows = [mainRow];
+  if (guild) {
+    const hasExtra = guild.channels.cache.some((c) => c.type !== 4)
+      || guild.roles.cache.some((r) => r.id !== guild.roles.everyone.id && !r.managed);
+    if (hasExtra) {
+      rows.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(SETUP_CLEAN_SERVER_BUTTON_ID)
+          .setLabel('🗑️ Nettoyer le serveur (supprimer channels & rôles)')
+          .setStyle(ButtonStyle.Danger)
+      ));
+    }
   }
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(SETUP_INTEGRATE_BUTTON_ID)
-      .setLabel(t(guildId, 'setup.contextIntegrateButton'))
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(SETUP_RESET_BUTTON_ID)
-      .setLabel(t(guildId, 'setup.contextFreshButton'))
-      .setStyle(ButtonStyle.Secondary)
-  );
+  return rows;
 }
 
 async function handleSetupInstallButton(interaction) {
@@ -865,6 +889,15 @@ async function handleSetupInstallButton(interaction) {
   }
 
   const guildId = interaction.guildId;
+
+  if (!getGuildSetting(guildId, 'i18n', 'language', null) && interaction.locale) {
+    const detectedLang = detectLanguageFromLocale(interaction.locale);
+    if (detectedLang && detectedLang !== 'en') {
+      setGuildLanguage(guildId, detectedLang);
+      logger.info(`Guild ${guildId}: language auto-set to '${detectedLang}' from user locale '${interaction.locale}'`);
+    }
+  }
+
   const context = getInstallContext(interaction.guild);
 
   if (context === 'fresh') {
@@ -873,7 +906,7 @@ async function handleSetupInstallButton(interaction) {
         `✅ **${t(guildId, 'setup.freshTitle')}**`,
         t(guildId, 'setup.freshDesc')
       ].join('\n'),
-      components: [buildFreshRow(guildId)]
+      components: [buildFreshRow(guildId, interaction.guild)]
     });
     await interaction.deferUpdate().catch(() => {});
     return;
@@ -893,7 +926,7 @@ async function handleSetupInstallButton(interaction) {
 
   await interaction.message.edit({
     content: buildContextChoiceMessage(guildId, context),
-    components: [buildContextChoiceRow(guildId, context)]
+    components: buildContextChoiceRow(guildId, context, interaction.guild)
   });
   await interaction.deferUpdate().catch(() => {});
 }
@@ -921,14 +954,27 @@ async function handleSetupResetButton(interaction) {
   if (!interaction.inGuild() || !interaction.guild) return;
   const guildId = interaction.guildId;
   try {
+    const savedLanguage = getGuildLanguage(guildId);
     const db = getDb();
     db.prepare('DELETE FROM guild_config WHERE guild_id = ?').run(guildId);
     db.prepare('DELETE FROM grades WHERE guild_id = ?').run(guildId);
     db.prepare('UPDATE guilds SET setup_done = 0 WHERE guild_id = ?').run(guildId);
+    if (savedLanguage) setGuildLanguage(guildId, savedLanguage);
     setGuildSetting(guildId, 'setup', 'fresh_install', true);
 
-    const { startWizardInChannel } = require('./setupFlow');
-    await startWizardInChannel(interaction);
+    const { getInstallContext } = require('./detectInstallContext');
+    const context = getInstallContext(interaction.guild);
+
+    if (context === 'existing_server') {
+      await interaction.message.edit({
+        content: buildContextChoiceMessage(guildId, 'existing_server'),
+        components: [buildContextChoiceRow(guildId, 'existing_server')]
+      });
+      await interaction.deferUpdate().catch(() => {});
+    } else {
+      const { startWizardInChannel } = require('./setupFlow');
+      await startWizardInChannel(interaction);
+    }
   } catch (error) {
     logger.error('Failed setup reset', error);
     if (interaction.isRepliable()) await replyEphemeral(interaction, t(guildId, 'setup.installError'));
@@ -1110,9 +1156,75 @@ async function handleSetupForceExistingButton(interaction) {
   const guildId = interaction.guildId;
   await interaction.message.edit({
     content: buildContextChoiceMessage(guildId, 'existing_server'),
-    components: [buildContextChoiceRow(guildId, 'existing_server')]
+    components: buildContextChoiceRow(guildId, 'existing_server', interaction.guild)
   });
   await interaction.deferUpdate().catch(() => {});
+}
+
+async function handleSetupCleanServerButton(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
+  const guild = interaction.guild;
+  const channelCount = guild.channels.cache.filter((c) => c.type !== 4 && !Object.values(CHANNELS).includes(c.name)).size;
+  const roleCount = guild.roles.cache.filter((r) => r.id !== guild.roles.everyone.id && !r.managed).size;
+  const modal = new ModalBuilder()
+    .setCustomId(SETUP_CLEAN_MODAL_ID)
+    .setTitle('⚠️ Nettoyer le serveur')
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('confirm_input')
+          .setLabel(`Tape SUPPRIMER pour confirmer (${channelCount} channels, ${roleCount} rôles)`)
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('SUPPRIMER')
+          .setRequired(true)
+          .setMaxLength(20)
+      )
+    );
+  await interaction.showModal(modal).catch(() => {});
+}
+
+async function handleSetupCleanModal(interaction) {
+  if (!interaction.inGuild() || !interaction.guild) return;
+  const guildId = interaction.guildId;
+  const guild = interaction.guild;
+  const value = interaction.fields.getTextInputValue('confirm_input')?.trim();
+  if (value?.toUpperCase() !== 'SUPPRIMER') {
+    await interaction.reply({ content: '❌ Confirmation incorrecte — suppression annulée.', ephemeral: true }).catch(() => {});
+    return;
+  }
+  await interaction.deferReply({ ephemeral: true }).catch(() => {});
+  let deleted = 0;
+  const protectedNames = new Set(Object.values(CHANNELS));
+  for (const channel of [...guild.channels.cache.values()]) {
+    if (protectedNames.has(channel.name)) continue;
+    await channel.delete('Guardian: nettoyage serveur demandé par admin').catch(() => {});
+    deleted++;
+  }
+  const managedRoleIds = new Set(
+    guild.roles.cache.filter((r) => r.managed).map((r) => r.id)
+  );
+  for (const role of [...guild.roles.cache.values()]) {
+    if (role.id === guild.roles.everyone.id) continue;
+    if (managedRoleIds.has(role.id)) continue;
+    await role.delete('Guardian: nettoyage serveur demandé par admin').catch(() => {});
+    deleted++;
+  }
+  await guild.channels.fetch().catch(() => {});
+  logger.info(`Guild ${guildId}: server cleaned — ${deleted} items deleted`);
+  const { startWizardInChannel } = require('./setupFlow');
+  await interaction.editReply({ content: `✅ Serveur nettoyé — ${deleted} éléments supprimés. Le wizard va démarrer.` }).catch(() => {});
+  const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
+  const setupChannel = setupCategory
+    ? guild.channels.cache.find((c) => c.parentId === setupCategory.id && c.isTextBased?.())
+    : null;
+  if (setupChannel) {
+    const fakeInteraction = Object.assign(Object.create(Object.getPrototypeOf(interaction)), interaction, {
+      channel: setupChannel,
+      message: await setupChannel.messages.fetch({ limit: 1 }).then((msgs) => msgs.first()).catch(() => null)
+    });
+    if (fakeInteraction.message) await startWizardInChannel(fakeInteraction).catch(() => {});
+  }
 }
 
 async function handleSetupForceReinstallButton(interaction) {
@@ -1120,7 +1232,7 @@ async function handleSetupForceReinstallButton(interaction) {
   const guildId = interaction.guildId;
   await interaction.message.edit({
     content: buildContextChoiceMessage(guildId, 'reinstall'),
-    components: [buildContextChoiceRow(guildId, 'reinstall')]
+    components: buildContextChoiceRow(guildId, 'reinstall', interaction.guild)
   });
   await interaction.deferUpdate().catch(() => {});
 }
@@ -1129,10 +1241,13 @@ module.exports = {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_LANGUAGE_SELECT_ID,
   SETUP_START_BUTTON_ID,
+  SETUP_FRESH_START_BUTTON_ID,
   SETUP_INTEGRATE_BUTTON_ID,
   SETUP_RESET_BUTTON_ID,
   SETUP_FORCE_EXISTING_BUTTON_ID,
   SETUP_FORCE_REINSTALL_BUTTON_ID,
+  SETUP_CLEAN_SERVER_BUTTON_ID,
+  SETUP_CLEAN_MODAL_ID,
   createSetupArea,
   ensureSetupInstallPrompt,
   finalizeInstall,
@@ -1142,5 +1257,7 @@ module.exports = {
   handleSetupIntegrateButton,
   handleSetupResetButton,
   handleSetupForceExistingButton,
-  handleSetupForceReinstallButton
+  handleSetupForceReinstallButton,
+  handleSetupCleanServerButton,
+  handleSetupCleanModal
 };

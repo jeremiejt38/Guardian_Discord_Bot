@@ -13,6 +13,7 @@ const { handleHistoriquePagination } = require('../commands/historique');
 const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
 const { handleServerGamesInteraction } = require('../modules/games/serverGamesManager');
+const { handleGameRequestInteraction } = require('../modules/games/gameRequests');
 const { handlePromotionInteraction, IDS: PROMOTION_IDS } = require('../modules/members/promotion');
 const { t } = require('../modules/i18n');
 const {
@@ -28,11 +29,17 @@ const {
   handleSetupResetButton,
   handleSetupForceExistingButton,
   handleSetupForceReinstallButton,
-  handleSetupLanguageSelection
+  handleSetupLanguageSelection,
+  SETUP_CLEAN_SERVER_BUTTON_ID,
+  SETUP_CLEAN_MODAL_ID,
+  SETUP_FRESH_START_BUTTON_ID,
+  handleSetupCleanServerButton,
+  handleSetupCleanModal
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction, startWizardInChannel } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit, memberCanManageServers } = require('../modules/servers/interaction');
 const { handleTempVoiceInteraction } = require('../modules/games/tempVoiceInteraction');
+const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
 const { getDb } = require('../database/db');
 const { decrypt } = require('../modules/crypto/secrets');
 const { CHANNELS } = require('../config');
@@ -57,6 +64,35 @@ module.exports = {
       }
 
       await command.execute(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId?.startsWith('setup:prerelease:')) {
+      const parts = interaction.customId.split(':');
+      const action = parts[2];
+      const guildId = parts[3];
+      const { version, prerelease } = require('../package.json');
+      await interaction.deferUpdate().catch(() => {});
+      if (action === 'confirm' && guildId) {
+        setGuildSetting(guildId, 'bot', 'last_version', version);
+        setGuildSetting(guildId, 'bot', 'prerelease_pending', null);
+        const confirmed = [
+          `## ✅ Mise à jour confirmée — **v${version}**${prerelease ? ' *(test)*' : ''}`,
+          ``,
+          `Guardian a été mis à jour sur le serveur.`,
+          `> La configuration est préservée. Merci d'avoir validé cette version de test.`
+        ].join('\n');
+        await interaction.message?.edit({ content: confirmed, components: [] }).catch(() => {});
+      } else if (action === 'skip' && guildId) {
+        setGuildSetting(guildId, 'bot', 'prerelease_skipped', version);
+        const skipped = [
+          `## ⏭️ Mise à jour ignorée — v${version} *(test)*`,
+          ``,
+          `Guardian continue de fonctionner avec la version précédente.`,
+          `> Dès que cette version sera stable, la mise à jour s'appliquera automatiquement.`
+        ].join('\n');
+        await interaction.message?.edit({ content: skipped, components: [] }).catch(() => {});
+      }
       return;
     }
 
@@ -192,6 +228,9 @@ module.exports = {
         const handled = await handleServerGamesInteraction(interaction);
         if (handled) return;
       }
+
+      const gameRequestHandled = await handleGameRequestInteraction(interaction);
+      if (gameRequestHandled) return;
     }
 
     if (interaction.isButton() && interaction.customId === SETUP_INSTALL_BUTTON_ID) {
@@ -204,6 +243,13 @@ module.exports = {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId === SETUP_FRESH_START_BUTTON_ID) {
+      setGuildSetting(interaction.guildId, 'setup', 'step', 1);
+      setGuildSetting(interaction.guildId, 'setup', 'fresh_install', true);
+      await startWizardInChannel(interaction);
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId === SETUP_INTEGRATE_BUTTON_ID) {
       await handleSetupIntegrateButton(interaction);
       return;
@@ -211,6 +257,16 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId === SETUP_RESET_BUTTON_ID) {
       await handleSetupResetButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_CLEAN_SERVER_BUTTON_ID) {
+      await handleSetupCleanServerButton(interaction);
+      return;
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === SETUP_CLEAN_MODAL_ID) {
+      await handleSetupCleanModal(interaction);
       return;
     }
 

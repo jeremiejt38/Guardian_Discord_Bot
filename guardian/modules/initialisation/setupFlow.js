@@ -42,6 +42,7 @@ const TOTAL_STEPS = 8;
 const CUSTOM_IDS = Object.freeze({
   start: 'setup:start',
   createRolesAuto: 'setup:grade:create-auto',
+  createRolesAll: 'setup:grade:create-all',
   transferExistingRoles: 'setup:grade:transfer-existing',
   recreateRoles: 'setup:grade:recreate',
   renameGradePrefix: 'setup:grade:rename',
@@ -294,8 +295,8 @@ function buildStepOneContent(guildId, guild) {
       const roleId = mappings[grade];
       const roleExists = roleId && guild?.roles?.cache?.get(roleId);
       const required = REQUIRED_GRADES.includes(grade);
-      const marker = roleExists ? '✅' : (required ? '❌' : '⬜');
-      const roleText = roleExists ? `<@&${roleId}>` : (required ? '*obligatoire*' : '*optionnel*');
+      const marker = roleExists ? '✅' : '❌';
+      const roleText = roleExists ? `<@&${roleId}>` : (required ? '*obligatoire* ‼️' : '*optionnel*');
       return `${marker} **${gradeLabel(grade)}** → ${roleText}`;
     }).join('\n');
     lines.push(summary);
@@ -328,7 +329,7 @@ function buildStepOneComponents(guildId, guild) {
     const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
     const autoRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.createRolesAuto)
+        .setCustomId(CUSTOM_IDS.createRolesAll)
         .setStyle(ButtonStyle.Primary)
         .setLabel(t('setup.step1CreateRolesAuto', {}, { guildId }))
     );
@@ -413,7 +414,7 @@ function setStep2Config(guildId, config) {
 
 function buildStep2Content(guildId) {
   const c = getStep2Config(guildId);
-  const dot = (v) => v ? '🟢 Actif' : '⚪ Inactif';
+  const dot = (v) => v ? '🟢 Actif' : '🔴 Inactif';
   return [
     `## ${t('setup.step2Title', {}, { guildId })} (2/${TOTAL_STEPS})`,
     t('setup.step2Instructions', {}, { guildId }),
@@ -520,9 +521,8 @@ function autoDetectGuardianChannels(guild) {
   const detected = {};
   for (const slot of CHANNEL_SLOTS) {
     const isVoice = slot.key.startsWith('voice');
-    const targetName = isVoice
-      ? CHANNELS[slot.key] || slot.label.toLowerCase()
-      : (CHANNELS[slot.key] || slot.label).toLowerCase();
+    const rawName = CHANNELS[slot.key] || slot.label;
+    const targetName = rawName.toLowerCase().replace(/^#+/, '');
     const match = [...guild.channels.cache.values()].find((c) => {
       if (isVoice && !(c.isVoiceBased && c.isVoiceBased())) return false;
       if (!isVoice && !(c.isTextBased && c.isTextBased() && !c.isVoiceBased())) return false;
@@ -546,7 +546,7 @@ function buildChannelAutoDetectContent(guildId, guild) {
   for (const slot of slots) {
     const channelId = detected[slot.key];
     const ch = channelId ? guild.channels.cache.get(channelId) : null;
-    lines.push(ch ? `> ✅ ${slot.emoji} **${slot.label}** → #${ch.name}` : `> ⬜ ${slot.emoji} **${slot.label}** → *non détecté*`);
+    lines.push(ch ? `> ✅ ${slot.emoji} **${slot.label}** → #${ch.name}` : `> ➖ ${slot.emoji} **${slot.label}** → *non détecté*`);
   }
   lines.push('', '> **Conserver ces choix ?** Guardian les utilisera directement sans te les redemander.');
   lines.push('> Sinon, tu pourras configurer chaque channel manuellement.');
@@ -565,12 +565,18 @@ function buildStep3ChannelsContent(guildId, guild) {
   const cursor = Math.min(getChannelCursor(guildId), slots.length - 1);
   const slot = slots[cursor];
   const currentId = getGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
-  const currentChannel = currentId && guild ? guild.channels.cache.get(currentId) : null;
+  const currentChannel = (currentId && currentId !== 'guardian:create' && guild) ? guild.channels.cache.get(currentId) : null;
   const statusLines = slots.map((s, i) => {
     const id = getGuildSetting(guildId, s.settingSection, s.settingKey, null);
-    const ch = id && guild ? guild.channels.cache.get(id) : null;
-    const marker = i === cursor ? '▶' : (ch ? '✅' : '—');
-    return `${marker} ${s.emoji} **${s.label}** ${ch ? `→ #${ch.name}` : '*à configurer*'}`;
+    const ch = (id && id !== 'guardian:create' && guild) ? guild.channels.cache.get(id) : null;
+    const ignored = getIgnoredChannelSlots(guildId).includes(s.key);
+    const guardianWillCreate = id === 'guardian:create';
+    const configured = Boolean(id) || ignored;
+    const isRequired = s.key === 'general' || s.key === 'voiceGeneral';
+    const marker = i === cursor ? '▶' : (configured ? '✅' : '❌');
+    const requiredTag = isRequired && !configured ? ' ‼️' : '';
+    const label = ch ? `→ #${ch.name}` : (ignored ? '*ignoré*' : (guardianWillCreate ? '*🤖 Guardian crée*' : (id ? '*configuré*' : `*${isRequired ? 'obligatoire' : 'optionnel'}*${requiredTag}`)));
+    return `${marker} ${s.emoji} **${s.label}** ${label}`;
   }).join('\n');
 
   const lines = [
@@ -922,7 +928,7 @@ function buildStep7Content(guildId) {
     ? c.blacklistWords.slice(0, 8).map((w) => `\`${w}\``).join(', ') + (c.blacklistWords.length > 8 ? ` *(+${c.blacklistWords.length - 8} autres)*` : '')
     : '*aucune*';
   const slowDisplay = c.slowModeSeconds === 0 ? '*désactivé*' : `${c.slowModeSeconds}s entre messages`;
-  const logsDisplay = c.logsEnabled ? `🟢 ${c.logsLevel}` : '⚪ désactivé';
+  const logsDisplay = c.logsEnabled ? `🟢 ${c.logsLevel}` : '🔴 désactivé';
   return [
     `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
     t('setup.step7Instructions', {}, { guildId }),
@@ -1611,6 +1617,12 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  if (interaction.customId === CUSTOM_IDS.createRolesAll) {
+    await interaction.deferUpdate().catch(() => {});
+    await createRolesAutoHelper(interaction, interaction.guild, guildId);
+    return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.createRolesAuto) {
     await interaction.deferUpdate().catch(() => {});
     const guild = interaction.guild;
@@ -1688,6 +1700,7 @@ async function handleSetupInteraction(interaction) {
     } else {
       setGradeCursor(guildId, nextCursor);
     }
+    if (typeof guild.roles?.fetch === 'function') await guild.roles.fetch().catch(() => {});
     await renderStep(interaction, 1);
     return true;
   }
@@ -1703,7 +1716,22 @@ async function handleSetupInteraction(interaction) {
             (r) => r.name.toLowerCase() === label && !r.managed && r.id !== guild.roles.everyone?.id
           )
         : null;
-      if (existing) setGradeRole(guildId, grade, existing.id);
+      if (existing) {
+        setGradeRole(guildId, grade, existing.id);
+        const roleColors = {
+          [GRADE_NAMES.invite]: 0x95a5a6,
+          [GRADE_NAMES.membre]: 0x3498db,
+          [GRADE_NAMES.moderateur]: 0x2ecc71,
+          [GRADE_NAMES.manager]: 0xe67e22,
+          [GRADE_NAMES.owner]: 0xe74c3c
+        };
+        const currentColor = existing.color;
+        if (currentColor === 0 || currentColor === 0xffffff) {
+          await existing.edit({ color: roleColors[grade] ?? 0x99aab5 }).catch((err) =>
+            logger.warn(`[setup] Could not set color for role ${existing.name}: ${err?.message}`)
+          );
+        }
+      }
       const cursor = getGradeCursor(guildId);
       const nextCursor = cursor + 1;
       if (nextCursor >= ORDERED_GRADES.length) {
@@ -1810,6 +1838,21 @@ async function handleSetupInteraction(interaction) {
     }
     const roleId = interaction.values[0];
     setGradeRole(guildId, gradeName, roleId);
+    const selectedRole = interaction.guild?.roles?.cache?.get(roleId);
+    if (selectedRole) {
+      const ROLE_COLORS = {
+        [GRADE_NAMES.invite]: 0x95a5a6,
+        [GRADE_NAMES.membre]: 0x3498db,
+        [GRADE_NAMES.moderateur]: 0x2ecc71,
+        [GRADE_NAMES.manager]: 0xe67e22,
+        [GRADE_NAMES.owner]: 0xe74c3c
+      };
+      if (selectedRole.color === 0 || selectedRole.color === 0xffffff) {
+        await selectedRole.edit({ color: ROLE_COLORS[gradeName] ?? 0x99aab5 }).catch((err) =>
+          logger.warn(`[setup] Could not set color for role ${selectedRole.name}: ${err?.message}`)
+        );
+      }
+    }
     const cursor = getGradeCursor(guildId);
     if (cursor < ORDERED_GRADES.length - 1) {
       setGradeCursor(guildId, cursor + 1);
@@ -1876,10 +1919,18 @@ async function handleSetupInteraction(interaction) {
       return true;
     }
     if (action === 'next') {
+      if (typeof interaction.guild?.channels?.fetch === 'function') await interaction.guild.channels.fetch().catch(() => {});
+      const currentSlot = activeSlots[cursor];
+      if (currentSlot) {
+        const existingId = getGuildSetting(guildId, currentSlot.settingSection, currentSlot.settingKey, null);
+        if (!existingId || existingId === 'guardian:create') {
+          setGuildSetting(guildId, currentSlot.settingSection, currentSlot.settingKey, 'guardian:create');
+        }
+      }
       if (cursor >= activeSlots.length - 1) {
         const generalSlot = activeSlots.find((s) => s.key === 'general');
         const generalId = generalSlot ? getGuildSetting(guildId, generalSlot.settingSection, generalSlot.settingKey, null) : null;
-        if (!generalId) {
+        if (!generalId || generalId === '') {
           const generalIdx = activeSlots.findIndex((s) => s.key === 'general');
           if (generalIdx >= 0) setChannelCursor(guildId, generalIdx);
           await sendSetupMessage(interaction, '⚠️ Le channel **#général** est requis. Associe-le à un channel existant ou laisse Guardian en créer un.');

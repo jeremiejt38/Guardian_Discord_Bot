@@ -7,6 +7,7 @@ const { applyPersistedSlowModeForGuild } = require('../modules/moderation/autoMo
 const { ensureMemberGameInterfaces } = require('../modules/config/settings');
 const { runPassiveScoreRegen } = require('../modules/moderation/behavior');
 const { seedGuildMessages } = require('../modules/initialisation/seeds');
+const { ensureRequestsPanelHasGameButton } = require('../modules/games/gameRequests');
 const { sendDmNotification } = require('../modules/notifications/dmNotifier');
 const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
 const { runChannelMigrations } = require('../modules/migrations/channelMigrations');
@@ -89,21 +90,20 @@ module.exports = {
               const msg = [
                 `## 🧪 Nouvelle version de test disponible — **v${version}** *(prerelease)*`,
                 ``,
-                `Guardian a été mis à jour sur **${guild.name}** avec une version **encore en cours de test**.`,
-                ``,
-                `> ⚠️ Cette version peut contenir des bugs ou des comportements non finalisés.`,
+                `Guardian a été mis à jour sur **${guild.name}** : v${lastVersion} → **v${version}**`,
+                `> ⚠️ Cette version est encore en cours de test et peut contenir des bugs.`,
                 ``,
                 `**Souhaites-tu installer cette version de test ?**`,
-                `> Si tu refuses, Guardian continuera avec la version précédente.`,
+                `> Si tu refuses, Guardian continuera avec la version précédente (v${lastVersion}).`,
                 `> Dès que la version sera marquée stable, la mise à jour s'appliquera automatiquement.`
               ].join('\n');
               const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                  .setCustomId('setup:prerelease:confirm')
+                  .setCustomId(`setup:prerelease:confirm:${guild.id}`)
                   .setLabel('✅ Installer la version de test')
                   .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
-                  .setCustomId('setup:prerelease:skip')
+                  .setCustomId(`setup:prerelease:skip:${guild.id}`)
                   .setLabel('⏭️ Ignorer pour l\'instant')
                   .setStyle(ButtonStyle.Secondary)
               );
@@ -133,6 +133,9 @@ module.exports = {
           setGuildSetting(guild.id, 'bot', 'last_version', version);
         }
 
+        if (isGuildInstalled(guild.id)) {
+          await ensureRequestsPanelHasGameButton(guild).catch(() => {});
+        }
         await saveConfigBackup(guild).catch(() => {});
       } catch (error) {
         logger.error(`Failed ready setup check for guild ${guild.id}`, error);

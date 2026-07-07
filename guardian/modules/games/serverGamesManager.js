@@ -447,6 +447,7 @@ async function handleServerGamesInteraction(interaction) {
 
 module.exports = {
   IDS,
+  insertGame,
   ensureServerGamesPanelForGuild,
   handleServerGamesInteraction
 };

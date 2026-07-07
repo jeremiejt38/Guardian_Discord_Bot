@@ -70,7 +70,7 @@ function buildNotifPanelContent(guildId) {
     const on = prefs[cat.key];
     const label = t(guildId, cat.labelKey) !== cat.labelKey ? t(guildId, cat.labelKey) : cat.key;
     const desc = t(guildId, cat.descKey) !== cat.descKey ? t(guildId, cat.descKey) : '';
-    const state = on ? '🟢 Actif' : '⚪ Inactif';
+    const state = on ? '🟢 Actif' : '🔴 Inactif';
     const crit = cat.critical ? ' *(critique)*' : '';
     lines.push(`${cat.emoji} **${label}**${crit} — ${state}`);
     if (desc) lines.push(`> ${desc}`);

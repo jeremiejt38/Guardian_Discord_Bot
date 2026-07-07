@@ -259,6 +259,25 @@ const MIGRATIONS = [
         conn.exec('ALTER TABLE games ADD COLUMN text_channel_enabled INTEGER NOT NULL DEFAULT 0');
       }
     }
+  },
+  {
+    version: 6,
+    description: 'game_requests: table for member game addition requests',
+    up(conn) {
+      conn.exec(`
+        CREATE TABLE IF NOT EXISTS game_requests (
+          request_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+          guild_id     TEXT NOT NULL,
+          requester_id TEXT NOT NULL,
+          name         TEXT NOT NULL,
+          steam_app_id TEXT,
+          status       TEXT NOT NULL DEFAULT 'pending',
+          reviewed_by  TEXT,
+          created_at   TEXT NOT NULL,
+          reviewed_at  TEXT
+        )
+      `);
+    }
   }
 ];
 

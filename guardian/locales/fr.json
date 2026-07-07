@@ -500,7 +500,8 @@
       "configLogs": "Logs de configuration Guardian — historique de toutes les modifications de config.",
       "roles": "Configuration des roles Guardian — mapping des grades Invite/Membre/Moderateur/Manager/Owner.",
       "guardian": "Panneau de controle principal Guardian — acces owner uniquement.",
-      "serverManagement": "Gestion des serveurs — reserve au futur systeme de controle Pterodactyl."
+      "serverManagement": "Gestion des serveurs — reserve au futur systeme de controle Pterodactyl.",
+      "setup": "Canal de configuration Guardian — reserve a l'administration du serveur."
     }
   },
   "commands": {
