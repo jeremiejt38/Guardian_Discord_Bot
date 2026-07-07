@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.19.6-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.19.8-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -112,12 +112,14 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 ### v0.19.x — RAWG.io & Jeux non-Steam ← *actuel*
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.19.6** | 2026-07-07 | Fix: bouton "Lier" — force step=1 + reset `roles_auto_created` + placeholders `(changer ?)` étapes 3 et game-link ← *actuel* |
-| v0.19.5 | 2026-07-07 | Feat: `postSetupSummary` dynamique — récap config réelle dans `#bienvenue` (rôles, jeux, modules, prochaines étapes) |
+| **v0.19.8** | 2026-07-07 | Fix: setup Intégrer — force step=1, reset `roles_auto_created` + placeholders `(changer ?)` étapes 3 et game-link ← *actuel* |
+| v0.19.7 | 2026-07-07 | Feat: `postSetupSummary` dynamique — récap config réelle dans `#bienvenue` (rôles, jeux, modules, prochaines étapes) |
+| v0.19.6 | 2026-07-07 | Test: couverture i18n — vérification langues es/pt/it chargées et traduites |
+| v0.19.5 | 2026-07-07 | Feat: multi-langues ES/PT/IT — fichiers locales complets + README changelog v0.16→v0.19 |
 | v0.19.4 | 2026-07-07 | Fix: modal edit jeu setup — `deferUpdate` au lieu de `deferReply` (erreur Discord corrigée) |
-| v0.19.3 | 2026-07-07 | Fix: détection auto channels Guardian avec accents et matching fuzzy (général→general, logs-modération→logs-mod) |
-| v0.19.2 | 2026-07-07 | Fix: setup re-run — rôles déjà mappés modifiables (option Effacer + placeholder dynamique) |
-| v0.19.1 | 2026-07-07 | Fix: `général` et `moderator-only` détectés comme jeux — normalisation NFD accents dans `GENERIC_CHANNEL_NAMES` |
+| v0.19.3 | 2026-07-07 | Fix: détection auto channels Guardian avec accents et matching fuzzy |
+| v0.19.2 | 2026-07-07 | Fix: channels génériques avec accents (`général`, etc.) filtrés correctement |
+| v0.19.1 | 2026-07-07 | Fix: setup re-run — rôles déjà mappés modifiables (placeholder dynamique) |
 | **v0.19.0** | 2026-07-07 | Intégration RAWG.io pour jeux non-Steam — `rawgApi.js`, migration DB v7 `rawg_id`, clé RAWG dans `#bot`, pseudo App ID `000XXXXXXX` |
 
 ### v0.18.x — Jeux non-Steam
