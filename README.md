@@ -34,39 +34,120 @@
 
 ## 🚀 Démarrage rapide
 
-### Prérequis
+### Étape 0 — Prérequis
 
-- [Node.js](https://nodejs.org) ≥ 18
-- Un bot Discord (token + application ID depuis le [Developer Portal](https://discord.com/developers/applications))
+#### Node.js ≥ 18
 
-### Installation
+| OS | Commande |
+|----|----------|
+| **Windows** | Télécharger l'installeur sur [nodejs.org](https://nodejs.org) |
+| **macOS** | `brew install node` *(via [Homebrew](https://brew.sh))* |
+| **Linux** | `sudo apt install nodejs npm` *(Debian/Ubuntu)* ou `sudo dnf install nodejs` *(Fedora)* |
+
+Vérifier : `node -v` doit afficher `v18.x` ou supérieur.
+
+#### PM2 — Gestionnaire de processus *(recommandé pour la production)*
+
+PM2 maintient le bot en vie 24h/24 et permet la **mise à jour automatique** via Discord (sans redémarrage manuel).
+
+| OS | Commande |
+|----|----------|
+| **Windows** | `npm install -g pm2` *(dans un terminal administrateur)* |
+| **macOS** | `npm install -g pm2` |
+| **Linux** | `npm install -g pm2` |
+
+> Sans PM2, le bot fonctionne normalement mais le redémarrage après mise à jour devra être fait manuellement.
+
+#### Compte Discord Developer
+
+- Créer une application sur le [Discord Developer Portal](https://discord.com/developers/applications)
+- Récupérer le **Token** et l'**Application ID** du bot
+- Activer les intents : `Server Members Intent`, `Message Content Intent`
+
+---
+
+### Étape 1 — Installation
+
+Les commandes suivantes sont identiques sur Windows, macOS et Linux :
 
 ```bash
-# 1. Cloner le dépôt
+# Cloner le dépôt
 git clone https://github.com/jeremiejt38/Guardian_Discord_Bot.git
 cd Guardian_Discord_Bot/guardian
 
-# 2. Installer les dépendances
+# Installer les dépendances
 npm install
 
-# 3. Configurer les variables d'environnement
+# Configurer les variables d'environnement
 cp .env.example .env
-# → éditer .env avec ton token, application ID, etc.
+# → Éditer .env avec ton éditeur de texte (voir section Variables ci-dessous)
 
-# 4. Déployer les slash commands
-npm run deploy-commands
+# Déployer les slash commands Discord
+npm run deploy:commands
+```
 
-# 5. Lancer le bot
+---
+
+### Étape 2 — Lancer le bot
+
+#### Avec PM2 *(recommandé)*
+
+```bash
+pm2 start index.js --name guardian   # Lance le bot en arrière-plan
+pm2 save                              # Sauvegarde pour redémarrage automatique
+pm2 startup                           # Lance PM2 au démarrage de la machine (Linux/macOS)
+```
+
+Commandes utiles :
+```bash
+pm2 logs guardian      # Voir les logs en temps réel
+pm2 restart guardian   # Redémarrer le bot
+pm2 stop guardian      # Arrêter le bot
+pm2 status             # Voir l'état de tous les processus
+```
+
+#### Sans PM2 *(développement/test)*
+
+```bash
 npm start
 ```
 
-### Variables d'environnement
+---
+
+### Variables d'environnement (`.env`)
+
+#### Obligatoires
 
 | Variable | Description |
 |----------|-------------|
-| `DISCORD_TOKEN` | Token du bot Discord |
-| `APPLICATION_ID` | ID de l'application Discord |
-| `STEAM_API_KEY` | *(optionnel)* Clé API Steam pour les changelogs |
+| `DISCORD_TOKEN` | Token du bot Discord (Developer Portal → Bot → Token) |
+| `CLIENT_ID` | ID de l'application Discord (Developer Portal → General Information) |
+| `NODE_ENV` | `production` ou `development` |
+
+#### Optionnelles
+
+| Variable | Description |
+|----------|-------------|
+| `BOT_ADMIN_ID` | ID Discord de l'administrateur système bot — reçoit les alertes et peut déclencher les MAJ depuis Discord. Si vide, le bot demandera automatiquement au premier utilisateur. |
+| `RAWG_API_KEY` | Clé API [RAWG.io](https://rawg.io/apidocs) — enrichit les fiches jeux (description, genres, plateformes). Fonctionnel sans. |
+| `DATABASE_PATH` | Chemin vers la base SQLite. Défaut : `./data/guardian.db` |
+| `DISCORD_TOKEN_PRODUCTION` | Token alternatif pour l'environnement production |
+| `DISCORD_TOKEN_DEVELOPMENT` | Token alternatif pour l'environnement développement |
+| `DISCORD_TOKEN_TEST` | Token alternatif pour les tests automatisés |
+
+---
+
+### Librairies principales
+
+| Librairie | Rôle |
+|-----------|------|
+| [discord.js](https://discord.js.org) v14 | Interaction complète avec l'API Discord (events, slash commands, boutons, modals…) |
+| `node:sqlite` *(built-in Node 22+)* | Base de données SQLite embarquée — aucune dépendance externe |
+| `dotenv` | Chargement des variables d'environnement depuis `.env` |
+| `node:child_process` *(built-in)* | Exécution de `git pull` + `npm install` pour les mises à jour automatiques |
+| `node:os` / `node:fs` *(built-in)* | Informations système (RAM, uptime, taille BDD) pour le panneau admin |
+
+> Guardian n'utilise **aucune dépendance lourde** : pas d'Express, pas d'ORM, pas de Redis. Le seul prérequis externe est discord.js.
 
 ---
 
