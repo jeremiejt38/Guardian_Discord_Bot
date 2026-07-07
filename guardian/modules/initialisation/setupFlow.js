@@ -390,11 +390,14 @@ function buildStepOneComponents(guildId, guild) {
 
   const cursor2 = getGradeCursor(guildId);
   const currentGradeForCreate = ORDERED_GRADES[cursor2];
+  const alreadyMappedRoleId = mappings[currentGradeForCreate];
+  const alreadyMappedRoleExists = alreadyMappedRoleId && guild?.roles?.cache?.get(alreadyMappedRoleId);
   const autoCreateRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.createRolesAuto)
       .setStyle(ButtonStyle.Primary)
       .setLabel(`✨ Créer le rôle « ${gradeLabel(currentGradeForCreate)} »`)
+      .setDisabled(Boolean(alreadyMappedRoleExists))
   );
 
   return [roleSelector, gradeNavigation, toggleInviteRow, autoCreateRow, buildNavRow(guildId, 1)];
@@ -646,7 +649,7 @@ function buildStep3ChannelsComponents(guildId, guild) {
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
       .setLabel('◀ Préc.').setDisabled(cursor === 0),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
-      .setLabel('🤖 Laisser Guardian créer').setDisabled(false),
+      .setLabel('🤖 Laisser Guardian créer').setDisabled(Boolean(currentChannel3)),
     new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:ignore`).setStyle(ButtonStyle.Secondary)
       .setLabel('⏭️ Ignorer ce channel').setDisabled(isRequired)
   );

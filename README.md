@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.19.8-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.19.9-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -112,7 +112,8 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 ### v0.19.x — RAWG.io & Jeux non-Steam ← *actuel*
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.19.8** | 2026-07-07 | Fix: setup Intégrer — force step=1, reset `roles_auto_created` + placeholders `(changer ?)` étapes 3 et game-link ← *actuel* |
+| **v0.19.9** | 2026-07-07 | Fix: boutons "Créer le rôle" et "Laisser Guardian créer" désactivés si rôle/channel déjà configuré (anti-doublon) ← *actuel* |
+| v0.19.8 | 2026-07-07 | Fix: setup Intégrer — force step=1, reset `roles_auto_created` + placeholders `(changer ?)` étapes 3 et game-link |
 | v0.19.7 | 2026-07-07 | Feat: `postSetupSummary` dynamique — récap config réelle dans `#bienvenue` (rôles, jeux, modules, prochaines étapes) |
 | v0.19.6 | 2026-07-07 | Test: couverture i18n — vérification langues es/pt/it chargées et traduites |
 | v0.19.5 | 2026-07-07 | Feat: multi-langues ES/PT/IT — fichiers locales complets + README changelog v0.16→v0.19 |
