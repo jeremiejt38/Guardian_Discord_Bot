@@ -603,7 +603,7 @@ function buildStep3ChannelsContent(guildId, guild) {
     const configured = Boolean(id) || ignored;
     const isRequired = s.key === 'general' || s.key === 'voiceGeneral';
     const statusIcon = configured ? '✅' : '❌';
-    const cursorIcon = i === cursor ? ' ▶' : '';
+    const cursorIcon = i === cursor ? '  ▶' : '';
     const requiredTag = isRequired && !configured ? ' ‼️' : '';
     const label = ch ? `→ #${ch.name}` : (ignored ? '*ignoré*' : (guardianWillCreate ? '*🤖 Guardian crée*' : (id ? '*configuré*' : `*${isRequired ? 'obligatoire' : 'optionnel'}*${requiredTag}`)));
     return `${statusIcon}${cursorIcon} ${s.emoji} **${s.label}** ${label}`;
