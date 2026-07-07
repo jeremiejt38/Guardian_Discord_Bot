@@ -1196,10 +1196,14 @@ function detectExistingGameChannels(guild) {
     if (!gameMap.has(baseName)) gameMap.set(baseName, { baseName, channels: [] });
     gameMap.get(baseName).channels.push({ id: ch.id, name: ch.name, type });
   }
+  const stripAccents = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const resolved = [...gameMap.values()]
     .filter((g) => g.channels.length >= 1 && g.baseName.length >= 3)
     .filter((g) => !GUARDIAN_RESERVED_BASE_NAMES.has(g.baseName.toLowerCase()))
-    .filter((g) => !GENERIC_CHANNEL_NAMES.has(g.baseName.toLowerCase()))
+    .filter((g) => {
+      const norm = stripAccents(g.baseName.toLowerCase());
+      return !GENERIC_CHANNEL_NAMES.has(norm) && !GENERIC_CHANNEL_NAMES.has(g.baseName.toLowerCase());
+    })
     .map((g) => {
       const steamMatch = matchGameFromChannelName(g.baseName);
       return {
