@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.20.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.21.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -109,10 +109,15 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ## Changelog
 
-### v0.20.x — Auto-update & Admin bot ← *actuel*
+### v0.21.x — Admin Panel DM ← *actuel*
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.20.0** | 2026-07-07 | Feat: `BOT_ADMIN_ID` dans `.env` — mise à jour automatique via bouton DM (`git pull` + `npm install` + redémarrage PM2) ← *actuel* |
+| **v0.21.0** | 2026-07-08 | Feat: panneau admin système en DM — 4 vues (Statut/Serveurs/BDD/Notifs), toggles alertes, timeout 15min, bootstrap automatique, `/admin`, alertes guild join/leave ← *actuel* |
+
+### v0.20.x — Auto-update & Admin bot
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.20.0** | 2026-07-07 | Feat: `BOT_ADMIN_ID` dans `.env` — mise à jour automatique via bouton DM (`git pull` + `npm install` + redémarrage PM2) |
 
 ### v0.19.x — RAWG.io & Jeux non-Steam
 | Version | Date | Contenu |

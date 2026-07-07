@@ -6,6 +6,7 @@ const { ensureMemberGameInterfaces } = require('../modules/config/settings');
 const { setGuildSetting, getGuildSetting } = require('../modules/config/settings');
 const { detectLanguageFromLocale, tForLanguage } = require('../modules/i18n');
 const logger = require('../modules/logs/logger');
+const { alertGuildJoin } = require('../modules/admin/adminAlerts');
 
 async function detectInviter(guild) {
   try {
@@ -24,6 +25,7 @@ module.exports = {
   once: false,
   async execute(client, guild) {
     logger.info(`Bot added to guild: ${guild.name} (${guild.id})`);
+    await alertGuildJoin(guild).catch(() => {});
     try {
       const installed = isGuildInstalled(guild.id);
       const inviterId = await detectInviter(guild);

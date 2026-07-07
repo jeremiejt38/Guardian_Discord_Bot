@@ -19,15 +19,21 @@ const { findCategoryByName, findGuildTextChannelByName } = require('../modules/u
 const logger = require('../modules/logs/logger');
 const { version, prerelease } = require('../package.json');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { notifyBotAdminUpdate, getBotAdminId } = require('../modules/admin/botUpdater');
+const { notifyBotAdminUpdate, getBotAdminId, bootstrapAdminIfNeeded } = require('../modules/admin/botUpdater');
+const { initAlerts, alertGuildJoin, alertGuildLeave } = require('../modules/admin/adminAlerts');
+const { openOrRefreshPanel, pushPanelToBottom } = require('../modules/admin/adminPanel');
 
 module.exports = {
   name: 'clientReady',
   once: true,
   async execute(client) {
     logger.info(`Connected as ${client.user.tag}`);
+    initAlerts(client);
     if (!getBotAdminId()) {
-      logger.warn('BOT_ADMIN_ID non défini dans .env — notifications MAJ et mise à jour automatique désactivées');
+      logger.warn('BOT_ADMIN_ID non défini dans .env — tentative bootstrap automatique');
+      await bootstrapAdminIfNeeded(client, client.guilds.cache).catch(() => {});
+    } else {
+      await openOrRefreshPanel(client).catch(() => {});
     }
 
     for (const guild of client.guilds.cache.values()) {
@@ -134,6 +140,7 @@ module.exports = {
             await sendDmNotification(guild, 'bot_update', msg);
             logger.info(`Bot update (stable) notified for guild ${guild.id}: ${lastVersion} → ${version}`);
             await notifyBotAdminUpdate(client, lastVersion, version).catch(() => {});
+            await pushPanelToBottom(client).catch(() => {});
           }
         } else if (!lastVersion) {
           setGuildSetting(guild.id, 'bot', 'last_version', version);

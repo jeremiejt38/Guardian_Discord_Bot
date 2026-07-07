@@ -16,7 +16,8 @@ const { handleServerGamesInteraction } = require('../modules/games/serverGamesMa
 const { handleGameRequestInteraction } = require('../modules/games/gameRequests');
 const { handlePromotionInteraction, IDS: PROMOTION_IDS } = require('../modules/members/promotion');
 const { t } = require('../modules/i18n');
-const { performUpdate, isBotAdmin } = require('../modules/admin/botUpdater');
+const { performUpdate, isBotAdmin, setBotAdminId, getBotAdminId } = require('../modules/admin/botUpdater');
+const { handlePanelInteraction, openOrRefreshPanel } = require('../modules/admin/adminPanel');
 const {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_START_BUTTON_ID,
@@ -65,6 +66,34 @@ module.exports = {
       }
 
       await command.execute(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId?.startsWith('bot:admin:bootstrap:')) {
+      const action = interaction.customId.split(':')[3];
+      await interaction.deferUpdate().catch(() => {});
+      if (action === 'confirm') {
+        const userId = interaction.customId.split(':')[4];
+        setBotAdminId(userId);
+        await interaction.message?.edit({
+          content: [
+            '## ✅ Admin système configuré',
+            '',
+            'Tu es maintenant l\'administrateur système de Guardian.',
+            '> Tu recevras les alertes bot et pourras déclencher les mises à jour depuis ce DM.',
+            '> Tu peux aussi fixer ton ID dans `.env` : `BOT_ADMIN_ID=' + userId + '`',
+          ].join('\n'),
+          components: [],
+        }).catch(() => {});
+        await openOrRefreshPanel(client).catch(() => {});
+      } else {
+        await interaction.message?.edit({ content: '⏭️ Configuration admin ignorée.', components: [] }).catch(() => {});
+      }
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId?.startsWith('admin:panel:')) {
+      await handlePanelInteraction(interaction, client);
       return;
     }
 

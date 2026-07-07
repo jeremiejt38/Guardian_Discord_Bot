@@ -1,17 +1,68 @@
 const { execFile } = require('child_process');
 const path = require('path');
 const logger = require('../logs/logger');
+const { setConfig, getConfig } = require('../../database/db');
 
-const BOT_ADMIN_ID = process.env.BOT_ADMIN_ID ?? null;
+const GLOBAL = '__global__';
 const ROOT_DIR = path.resolve(__dirname, '../../');
 
 function getBotAdminId() {
-  return BOT_ADMIN_ID;
+  return process.env.BOT_ADMIN_ID || getConfig(GLOBAL, 'admin', 'bot_admin_id', null);
+}
+
+function setBotAdminId(id) {
+  setConfig(GLOBAL, 'admin', 'bot_admin_id', id);
 }
 
 function isBotAdmin(userId) {
-  if (!BOT_ADMIN_ID) return false;
-  return userId === BOT_ADMIN_ID;
+  const id = getBotAdminId();
+  if (!id) return false;
+  return userId === id;
+}
+
+async function bootstrapAdminIfNeeded(client, guilds) {
+  if (getBotAdminId()) return;
+  const sorted = [...guilds.values()].sort((a, b) => {
+    const aJoined = getConfig(a.id, 'setup', 'inviter_id', null) ? 0 : 1;
+    const bJoined = getConfig(b.id, 'setup', 'inviter_id', null) ? 0 : 1;
+    return aJoined - bJoined;
+  });
+  for (const guild of sorted) {
+    const inviterId = getConfig(guild.id, 'setup', 'inviter_id', null)
+      ?? getConfig(guild.id, 'setup', 'owner_id', null)
+      ?? guild.ownerId;
+    if (!inviterId) continue;
+    try {
+      const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+      const user = await client.users.fetch(inviterId).catch(() => null);
+      if (!user) continue;
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`bot:admin:bootstrap:confirm:${inviterId}`)
+          .setLabel('✅ Oui, je suis l\'admin bot')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('bot:admin:bootstrap:skip')
+          .setLabel('Non')
+          .setStyle(ButtonStyle.Secondary)
+      );
+      await user.send({
+        content: [
+          `## 🛡️ Guardian — Configuration Admin Système`,
+          ``,
+          `Tu es la première personne à avoir ajouté **Guardian**. Veux-tu être désigné comme **administrateur système** du bot ?`,
+          ``,
+          `> L'admin système reçoit les alertes bot (mises à jour, erreurs, serveurs) et peut déclencher les mises à jour depuis Discord.`,
+          `> Tu peux aussi définir \`BOT_ADMIN_ID\` manuellement dans le fichier \`.env\`.`,
+        ].join('\n'),
+        components: [row],
+      });
+      logger.info(`botUpdater: bootstrap DM envoyé à ${inviterId} (guild ${guild.id})`);
+      break;
+    } catch (err) {
+      logger.warn(`botUpdater: bootstrap DM échoué pour ${inviterId}`, err);
+    }
+  }
 }
 
 function isRunningUnderPM2() {
@@ -19,11 +70,12 @@ function isRunningUnderPM2() {
 }
 
 async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
-  if (!BOT_ADMIN_ID) return;
+  const adminId = getBotAdminId();
+  if (!adminId) return;
   try {
-    const adminUser = await client.users.fetch(BOT_ADMIN_ID).catch(() => null);
+    const adminUser = await client.users.fetch(adminId).catch(() => null);
     if (!adminUser) {
-      logger.warn(`botUpdater: BOT_ADMIN_ID=${BOT_ADMIN_ID} introuvable sur Discord`);
+      logger.warn(`botUpdater: BOT_ADMIN_ID=${adminId} introuvable sur Discord`);
       return;
     }
 
@@ -55,7 +107,7 @@ async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
     );
 
     await adminUser.send({ content: msg, components: [row] });
-    logger.info(`botUpdater: notification MAJ envoyée à BOT_ADMIN_ID=${BOT_ADMIN_ID}`);
+    logger.info(`botUpdater: notification MAJ envoyée à BOT_ADMIN_ID=${adminId}`);
   } catch (err) {
     logger.error('botUpdater: erreur notification admin', err);
   }
@@ -119,4 +171,4 @@ async function performUpdate(interaction) {
   });
 }
 
-module.exports = { getBotAdminId, isBotAdmin, isRunningUnderPM2, notifyBotAdminUpdate, performUpdate };
+module.exports = { getBotAdminId, setBotAdminId, isBotAdmin, isRunningUnderPM2, notifyBotAdminUpdate, performUpdate, bootstrapAdminIfNeeded };
