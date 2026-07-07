@@ -59,15 +59,22 @@ const ALIASES = {
 
 
 const GENERIC_CHANNEL_NAMES = new Set([
-  'general', 'general-vocal', 'general-text', 'annonces', 'announcements',
+  'general', 'general-vocal', 'general-text', 'general-chat', 'annonces', 'announcements',
   'news', 'info', 'infos', 'help', 'aide', 'bot', 'bots', 'log', 'logs',
   'media', 'medias', 'memes', 'off-topic', 'offtopic', 'blabla', 'discussion',
   'bienvenue', 'welcome', 'rules', 'regles', 'faq', 'support', 'tickets',
-  'suggestions', 'staff', 'admin', 'moderation', 'mod', 'recrutement',
-  'recruitment', 'partenariat', 'partnership', 'archive', 'archives',
+  'suggestions', 'staff', 'admin', 'moderation', 'mod', 'moderateur', 'moderateur-only',
+  'moderator', 'moderator-only', 'mod-only', 'admin-only', 'staff-only',
+  'recrutement', 'recruitment', 'partenariat', 'partnership', 'archive', 'archives',
   'presentation', 'introductions', 'sondages', 'polls', 'giveaways',
   'stream', 'clips', 'screenshots', 'fan-art', 'artwork', 'musique', 'music',
   'vocal', 'voice', 'lobby', 'waiting', 'afk', 'setup',
+  'general', 'generale', 'general-discussion', 'chat', 'tchat', 'salon', 'texte',
+  'serveur', 'server', 'communaute', 'community', 'evenements', 'events',
+  'buy-sell', 'commerce', 'marketplace', 'promotions', 'deals',
+  'spoilers', 'spoiler', 'important', 'urgent', 'alerte', 'alert',
+  'roles', 'role', 'verification', 'verify', 'captcha',
+  'gaming', 'jeux', 'jeu', 'games', 'game',
 ]);
 
 function normalize(str) {
@@ -171,4 +178,4 @@ function isNonSteamId(appId) {
   return s.length === NON_STEAM_TOTAL_LENGTH && s.startsWith(NON_STEAM_PREFIX);
 }
 
-module.exports = { matchGameFromChannelName, searchGames, GAMES_LIST, generateNonSteamId, isNonSteamId, NON_STEAM_PREFIX };
+module.exports = { matchGameFromChannelName, searchGames, GAMES_LIST, generateNonSteamId, isNonSteamId, NON_STEAM_PREFIX, GENERIC_CHANNEL_NAMES };

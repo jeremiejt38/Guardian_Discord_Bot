@@ -8,7 +8,7 @@ const {
   TextInputStyle
 } = require('discord.js');
 const { GRADE_NAMES, CHANNELS, CATEGORIES } = require('../../config');
-const { matchGameFromChannelName, generateNonSteamId, isNonSteamId } = require('../games/steamGamesList');
+const { matchGameFromChannelName, generateNonSteamId, isNonSteamId, GENERIC_CHANNEL_NAMES } = require('../games/steamGamesList');
 const { analyzeNonGuardianRoles, buildSecurityCheckContent, hasUnresolvedIssues } = require('./roleSecurityCheck');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
@@ -204,24 +204,25 @@ function buildNavRow(guildId, step) {
 }
 
 function buildRoleOptions(guild, selectedRoleId) {
-  const options = guild.roles.cache
+  const roleList = guild.roles.cache
     .filter((role) => role.id !== guild.id && !role.managed)
     .sort((a, b) => b.position - a.position)
-    .first(25)
+    .first(24)
     .map((role) => ({
       label: role.name.slice(0, 100),
       value: role.id,
-      default: role.id === selectedRoleId
+      default: false
     }));
 
-  if (selectedRoleId && !options.find((o) => o.value === selectedRoleId)) {
+  if (selectedRoleId && !roleList.find((o) => o.value === selectedRoleId)) {
     const selectedRole = guild.roles.cache.get(selectedRoleId);
     if (selectedRole) {
-      options.unshift({ label: selectedRole.name.slice(0, 100), value: selectedRole.id, default: true });
+      roleList.unshift({ label: selectedRole.name.slice(0, 100), value: selectedRole.id, default: false });
     }
   }
 
-  return options.slice(0, 25);
+  const clearOption = { label: '— Effacer la sélection', value: 'none', description: 'Désassigner ce grade', default: false };
+  return [clearOption, ...roleList].slice(0, 25);
 }
 
 function hasMapableRoles(guild) {
@@ -352,10 +353,15 @@ function buildStepOneComponents(guildId, guild) {
     ? roleOptions
     : [{ label: 'Aucun rôle disponible', value: 'none' }];
 
+  const currentRoleName = selectedRoleId ? guild.roles.cache.get(selectedRoleId)?.name : null;
+  const placeholder = currentRoleName
+    ? `${gradeLabel(currentGrade)} → ${currentRoleName} (changer ?)`
+    : t('setup.selectRolePlaceholder', { grade: gradeLabel(currentGrade) }, { guildId });
+
   const roleSelector = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`${CUSTOM_IDS.selectRolePrefix}:${currentGrade}`)
-      .setPlaceholder(t('setup.selectRolePlaceholder', { grade: gradeLabel(currentGrade) }, { guildId }))
+      .setPlaceholder(placeholder.slice(0, 150))
       .setMinValues(1).setMaxValues(1)
       .setDisabled(roleOptions.length === 0)
       .addOptions(effectiveOptions)
@@ -1193,6 +1199,7 @@ function detectExistingGameChannels(guild) {
   const resolved = [...gameMap.values()]
     .filter((g) => g.channels.length >= 1 && g.baseName.length >= 3)
     .filter((g) => !GUARDIAN_RESERVED_BASE_NAMES.has(g.baseName.toLowerCase()))
+    .filter((g) => !GENERIC_CHANNEL_NAMES.has(g.baseName.toLowerCase()))
     .map((g) => {
       const steamMatch = matchGameFromChannelName(g.baseName);
       return {
@@ -1864,6 +1871,13 @@ async function handleSetupInteraction(interaction) {
       return true;
     }
     const roleId = interaction.values[0];
+
+    if (roleId === 'none') {
+      setGradeRole(guildId, gradeName, null);
+      await renderStep(interaction, 1);
+      return true;
+    }
+
     setGradeRole(guildId, gradeName, roleId);
     const selectedRole = interaction.guild?.roles?.cache?.get(roleId);
     if (selectedRole) {
