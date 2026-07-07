@@ -1009,14 +1009,69 @@ async function postSetupSummary(guild) {
     return;
   }
 
-  const language = getGuildLanguage(guild.id);
-  const delayHours = Number(getGuildSetting(guild.id, 'members', 'promotion_delay_hours', 48));
+  const guildId = guild.id;
+  const delayHours = Number(getGuildSetting(guildId, 'members', 'promotion_delay_hours', 48));
 
-  await welcomeChannel.send(
-    tForLanguage(language, 'setup.summary', {
-      guild: guild.name,
-      delay: delayHours
+  const gradeMappings = getGradeMappings(guildId);
+  const gradeLines = Object.entries(gradeMappings)
+    .filter(([, roleId]) => roleId)
+    .map(([grade, roleId]) => {
+      const role = guild.roles.cache.get(roleId);
+      return role ? `  • **${grade}** → <@&${role.id}>` : null;
     })
+    .filter(Boolean);
+
+  const db = getDb();
+  const games = db.prepare('SELECT name, steam_app_id FROM games WHERE guild_id = ?').all(guildId);
+  const gameLines = games.map((g) => `  • **${g.name}**${g.steam_app_id ? ` (Steam \`#${g.steam_app_id}\`)` : ' *(non-Steam)*'}`);
+
+  const suggestionsEnabled = Boolean(getGuildSetting(guildId, 'channels', 'suggestions_enabled', true));
+  const serverListEnabled = Boolean(getGuildSetting(guildId, 'channels', 'server_list_enabled', false));
+  const changelogEnabled = Boolean(getGuildSetting(guildId, 'channels', 'game_updates_enabled', true));
+  const bioRequired = Boolean(getGuildSetting(guildId, 'members', 'bio_required', false));
+  const sponsorRequired = Boolean(getGuildSetting(guildId, 'members', 'sponsorship_required', false));
+
+  const modulesLines = [
+    `  • Suggestions : ${suggestionsEnabled ? '✅' : '❌'}`,
+    `  • Liste de serveurs : ${serverListEnabled ? '✅' : '❌'}`,
+    `  • Changelogs Steam : ${changelogEnabled ? '✅' : '❌'}`,
+    `  • Bio obligatoire : ${bioRequired ? '✅' : '❌'}`,
+    `  • Parrainage obligatoire : ${sponsorRequired ? '✅' : '❌'}`,
+  ];
+
+  const configChannel = guild.channels.cache.find((c) => c.name === CHANNELS.botConfig);
+  const configMention = configChannel ? `<#${configChannel.id}>` : `\`#${CHANNELS.botConfig}\``;
+
+  const lines = [
+    `# 🎉 Guardian est maintenant actif sur **${guild.name}** !`,
+    '',
+    `> Setup terminé — voici un récapitulatif de ta configuration.`,
+    '',
+    `## 👥 Grades configurés`,
+    gradeLines.length > 0 ? gradeLines.join('\n') : '  *(aucun grade mappé)*',
+    `> Les invités peuvent demander à devenir Membre après **${delayHours}h**.`,
+    '',
+  ];
+
+  if (gameLines.length > 0) {
+    lines.push(`## 🎮 Jeux enregistrés (${games.length})`, gameLines.join('\n'), '');
+  }
+
+  lines.push(
+    `## ⚙️ Modules`,
+    modulesLines.join('\n'),
+    '',
+    `## 📋 Prochaines étapes`,
+    `  1️⃣ Va dans \`#règles\` et personnalise le règlement du serveur`,
+    `  2️⃣ Va dans \`#faq\` et complète les questions fréquentes`,
+    `  3️⃣ Configure les permissions détaillées dans ${configMention}`,
+    `  4️⃣ Utilise \`/help\` pour découvrir toutes les commandes disponibles`,
+    '',
+    `*Pour modifier la configuration à tout moment, utilise ${configMention}.*`
+  );
+
+  await welcomeChannel.send({ content: lines.join('\n') }).catch((err) =>
+    logger.warn(`[postSetupSummary] Could not send to #bienvenue: ${err?.message}`)
   );
 }
 
