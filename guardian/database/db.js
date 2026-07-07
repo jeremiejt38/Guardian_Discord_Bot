@@ -261,6 +261,16 @@ const MIGRATIONS = [
     }
   },
   {
+    version: 7,
+    description: 'games: add rawg_id for non-Steam game metadata',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(games)').all().map((c) => c.name);
+      if (!cols.includes('rawg_id')) {
+        conn.exec('ALTER TABLE games ADD COLUMN rawg_id TEXT');
+      }
+    }
+  },
+  {
     version: 6,
     description: 'game_requests: table for member game addition requests',
     up(conn) {

@@ -58,6 +58,7 @@ function buildStatusEmbed(guild) {
     : '❌ Aucune';
 
   const steamKey = getGuildSetting(guildId, 'bot', 'steam_api_key', null);
+  const rawgKey = getGuildSetting(guildId, 'bot', 'rawg_api_key', null) ?? process.env.RAWG_API_KEY ?? null;
   const lang = getGuildLanguage(guildId) || 'fr';
 
   const nowSec = Math.floor(Date.now() / 1000);
@@ -74,6 +75,7 @@ function buildStatusEmbed(guild) {
       { name: '🎮 Jeux configurés', value: String(gameCount), inline: true },
       { name: '💾 Dernier backup', value: lastBackup, inline: true },
       { name: '🔑 Clé Steam', value: steamKey ? '✅ Configurée' : '❌ Non configurée', inline: true },
+      { name: '🎮 Clé RAWG', value: rawgKey ? '✅ Configurée' : '⚠️ Non configurée (fonctionnel sans)', inline: true },
       { name: '🔄 Actualisé', value: `<t:${nowSec}:R>`, inline: true },
       { name: '✅ Modules actifs', value: ACTIVE_MODULES.map((m) => `✅ ${m}`).join('\n') }
     )
@@ -84,6 +86,8 @@ function buildStatusEmbed(guild) {
 const IDS = Object.freeze({
   editSteamKey: 'bot:edit:steamkey',
   steamKeyModal: 'bot:modal:steamkey',
+  editRawgKey: 'bot:edit:rawgkey',
+  rawgKeyModal: 'bot:modal:rawgkey',
   editLanguage: 'bot:edit:language',
   languageModal: 'bot:modal:language'
 });
@@ -104,11 +108,14 @@ function hasManagerGrade(member, guildId) {
 function buildPanelContent(guildId) {
   const lang = getGuildLanguage(guildId) || 'fr';
   const steamKey = getGuildSetting(guildId, 'bot', 'steam_api_key', null);
+  const rawgKey = getGuildSetting(guildId, 'bot', 'rawg_api_key', null) ?? process.env.RAWG_API_KEY ?? null;
   const steamStatus = steamKey ? '✅ Configurée' : '❌ Non configurée';
+  const rawgStatus = rawgKey ? '✅ Configurée' : '⚠️ Non configurée (fonctionnel sans)';
   return [
     `**${t(guildId, 'config.bot.title')}**\n`,
     `• **${t(guildId, 'config.bot.language')}** : \`${lang}\``,
-    `• **${t(guildId, 'config.bot.steamKey')}** : ${steamStatus}`
+    `• **${t(guildId, 'config.bot.steamKey')}** : ${steamStatus}`,
+    `• **Clé RAWG** : ${rawgStatus}`
   ].join('\n');
 }
 
@@ -135,6 +142,10 @@ function buildRows(guildId) {
       new ButtonBuilder()
         .setCustomId(IDS.editSteamKey)
         .setLabel(t(guildId, 'config.bot.editSteamKey'))
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(IDS.editRawgKey)
+        .setLabel('🎮 Clé RAWG.io')
         .setStyle(ButtonStyle.Secondary)
     )
   ];
@@ -243,6 +254,35 @@ async function handleBotInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, 'bot.steam_api_key', old ? '***' : null, key ? '***' : null);
     await refreshBotPanel(interaction.guild);
     await replyEphemeral(interaction, t(guildId, key ? 'config.bot.steamKeySet' : 'config.bot.steamKeyCleared'));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.editRawgKey) {
+    const modal = new ModalBuilder()
+      .setCustomId(IDS.rawgKeyModal)
+      .setTitle('Clé API RAWG.io')
+      .addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('key')
+            .setLabel('Clé RAWG (rawg.io/apidocs — gratuite)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMaxLength(50)
+            .setPlaceholder('Laisser vide pour supprimer')
+        )
+      );
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId === IDS.rawgKeyModal) {
+    const key = interaction.fields.getTextInputValue('key').trim();
+    const old = getGuildSetting(guildId, 'bot', 'rawg_api_key', null);
+    setGuildSetting(guildId, 'bot', 'rawg_api_key', key || null);
+    await logConfigChange(interaction.guild, interaction.user.id, 'bot.rawg_api_key', old ? '***' : null, key ? '***' : null);
+    await refreshBotPanel(interaction.guild);
+    await replyEphemeral(interaction, key ? '✅ Clé RAWG enregistrée.' : '🗑️ Clé RAWG supprimée.');
     return true;
   }
 

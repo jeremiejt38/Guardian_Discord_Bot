@@ -98,13 +98,14 @@ function insertGame(guildId, payload) {
   const db = getDb();
   db.prepare(
     `INSERT INTO games (
-      guild_id, name, steam_app_id, role_id, channel_text_id, channel_galerie_id, channel_changelog_id, category_id,
+      guild_id, name, steam_app_id, rawg_id, role_id, channel_text_id, channel_galerie_id, channel_changelog_id, category_id,
       galerie_enabled, changelog_enabled
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     guildId,
     payload.name,
     payload.steamAppId,
+    payload.rawgId ?? null,
     payload.roleId,
     payload.channelTextId,
     payload.channelGalerieId,

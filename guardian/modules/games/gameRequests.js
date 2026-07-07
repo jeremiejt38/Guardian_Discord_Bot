@@ -14,6 +14,7 @@ const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { replyEphemeral } = require('../utils/interactions');
 const { memberHasAnyRole } = require('../utils/roles');
 const { searchGames, generateNonSteamId, isNonSteamId } = require('./steamGamesList');
+const { searchRawgGame, getRawgApiKey } = require('./rawgApi');
 const { insertGame } = require('./serverGamesManager');
 const logger = require('../logs/logger');
 
@@ -135,13 +136,20 @@ async function createGameChannelBetweenCategories(guild, gameName, gameRoleId) {
   return { category, textChannel };
 }
 
-async function postPendingRequestToJeux(guild, requestId, name, steamAppId, requesterId) {
+async function postPendingRequestToJeux(guild, requestId, name, steamAppId, requesterId, rawgInfo = null) {
   const jeuxChannel = guild.channels.cache.find(
     (c) => c.isTextBased?.() && !c.isVoiceBased?.() && c.name === CHANNELS.jeux
   );
   if (!jeuxChannel) return;
 
-  const steamInfo = steamAppId && !isNonSteamId(steamAppId) ? ` (Steam App ID: \`${steamAppId}\`)` : (isNonSteamId(steamAppId) ? ' *(non-Steam)*' : '');
+  let steamInfo;
+  if (steamAppId && !isNonSteamId(steamAppId)) {
+    steamInfo = ` (Steam App ID: \`${steamAppId}\`)`;
+  } else if (rawgInfo) {
+    steamInfo = ` *(non-Steam — RAWG: \`${rawgInfo.rawgId}\`)*`;
+  } else {
+    steamInfo = ' *(non-Steam)*';
+  }
   const content = [
     `## 🎮 Demande d'ajout de jeu`,
     `> **Jeu :** ${name}${steamInfo}`,
@@ -238,12 +246,23 @@ async function handleGameRequestInteraction(interaction) {
     const steamAppId = match ? String(match.appid) : generateNonSteamId();
     const isNonSteam = isNonSteamId(steamAppId);
 
-    const requestId = createRequest(guildId, interaction.user.id, resolvedName, steamAppId);
-    await postPendingRequestToJeux(interaction.guild, requestId, resolvedName, steamAppId, interaction.user.id);
+    let rawgInfo = null;
+    if (isNonSteam) {
+      rawgInfo = await searchRawgGame(resolvedName, getRawgApiKey(guildId)).catch(() => null);
+    }
 
-    const steamNote = !isNonSteam
-      ? `\n> 🔍 Jeu identifié sur Steam : **${resolvedName}** (App ID: \`${steamAppId}\`)`
-      : `\n> ℹ️ Jeu non trouvé sur Steam — un ID interne a été assigné. Les changelogs Steam ne seront pas disponibles.`;
+    const requestId = createRequest(guildId, interaction.user.id, resolvedName, steamAppId);
+    await postPendingRequestToJeux(interaction.guild, requestId, resolvedName, steamAppId, interaction.user.id, rawgInfo);
+
+    let steamNote;
+    if (!isNonSteam) {
+      steamNote = `\n> 🔍 Jeu identifié sur Steam : **${resolvedName}** (App ID: \`${steamAppId}\`)`;
+    } else if (rawgInfo) {
+      const genres = rawgInfo.genres.slice(0, 3).join(', ');
+      steamNote = `\n> 🎮 Jeu trouvé sur RAWG : **${rawgInfo.name}**${genres ? ` — ${genres}` : ''}\n> ℹ️ Les changelogs Steam ne seront pas disponibles.`;
+    } else {
+      steamNote = `\n> ℹ️ Jeu non trouvé sur Steam ni RAWG — les changelogs Steam ne seront pas disponibles.`;
+    }
 
     await replyEphemeral(interaction, `✅ Ta demande pour **${resolvedName}** a été soumise.${steamNote}`);
     return true;
@@ -283,9 +302,16 @@ async function handleGameRequestInteraction(interaction) {
         interaction.guild, request.name, role.id
       );
 
+      let rawgId = null;
+      if (isNonSteamId(request.steam_app_id)) {
+        const rawg = await searchRawgGame(request.name, getRawgApiKey(guildId)).catch(() => null);
+        rawgId = rawg?.rawgId ?? null;
+      }
+
       insertGame(guildId, {
         name: request.name,
         steamAppId: request.steam_app_id,
+        rawgId,
         roleId: role.id,
         channelTextId: textChannel.id,
         channelGalerieId: null,
