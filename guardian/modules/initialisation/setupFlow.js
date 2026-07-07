@@ -627,9 +627,16 @@ function buildStep3ChannelsComponents(guildId, guild) {
   const options = buildChannelOptions(guild, slot);
   const hasNone = options.length === 1 && options[0].value === 'none';
 
+  const currentChannelId = getGuildSetting(guildId, slot.settingSection, slot.settingKey, null);
+  const currentChannel3 = (currentChannelId && currentChannelId !== 'guardian:create' && guild)
+    ? guild.channels.cache.get(currentChannelId) : null;
+  const channelPlaceholder = currentChannel3
+    ? `#${currentChannel3.name} (changer ?)`.slice(0, 150)
+    : `Lier un ${slot.label} existant`;
+
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId(`${CUSTOM_IDS.channelSelectPrefix}:${slot.key}`)
-    .setPlaceholder(`Lier un ${slot.label} existant`)
+    .setPlaceholder(channelPlaceholder)
     .setDisabled(hasNone)
     .addOptions(options);
 
@@ -1468,10 +1475,16 @@ function buildGameLinkComponents(guildId, guild) {
       .slice(0, 25)
       .map(({ c }) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
     if (candidates.length > 0) {
+      const alreadyLinkedCh = game.channels.find((c) => c.type === activeType);
+      const alreadyLinkedId = alreadyLinkedCh?.linkedId;
+      const alreadyLinkedName = alreadyLinkedId ? guild.channels.cache.get(alreadyLinkedId)?.name : null;
+      const gameLinkPlaceholder = alreadyLinkedName
+        ? `#${alreadyLinkedName} (changer ?)`.slice(0, 150)
+        : `${GAMELINK_TYPE_LABELS[activeType].icon} Choisir le channel ${GAMELINK_TYPE_LABELS[activeType].label}`;
       rows.push(new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId(`${CUSTOM_IDS.gameLinkChannelPrefix}:${cursor}:${activeType}`)
-          .setPlaceholder(`${GAMELINK_TYPE_LABELS[activeType].icon} Choisir le channel ${GAMELINK_TYPE_LABELS[activeType].label}`)
+          .setPlaceholder(gameLinkPlaceholder)
           .addOptions(candidates)
       ));
     }

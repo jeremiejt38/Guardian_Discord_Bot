@@ -942,6 +942,9 @@ async function handleSetupIntegrateButton(interaction) {
       return;
     }
     autoMapRolesByName(interaction.guild);
+    setGuildSetting(guildId, 'setup', 'step', 1);
+    setGuildSetting(guildId, 'setup', 'grade_cursor', 0);
+    setGuildSetting(guildId, 'setup', 'roles_auto_created', false);
     const { startWizardInChannel } = require('./setupFlow');
     await startWizardInChannel(interaction);
   } catch (error) {
