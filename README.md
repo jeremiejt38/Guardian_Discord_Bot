@@ -266,8 +266,8 @@ Items livrés et en cours de validation avant release publique v1.0.0 :
 - [x] **Commande `/help`** — aide contextuelle 7 modules, embeds, i18n ✅ v0.10.4
 
 ### 🟠 Important
-- [ ] **Multi-langues** — ajouter ES, DE, PT, IT, NL, PL, RU, ZH, JA, KO (structure prête, fichiers JSON à créer)
-- [ ] **Résumé post-installation** — message `#bienvenue` avec checklist des prochaines actions admins
+- [x] **Multi-langues** — ES, PT, IT + DE livrés (FR+EN déjà présents) ✅ v0.19.5
+- [x] **Résumé post-installation** — message dynamique `#bienvenue` avec rôles, jeux, modules, prochaines étapes ✅ v0.19.7
 - [x] **Pagination liste de jeux** — 3 jeux par page, illimité ✅ v0.10.2
 - [x] **Validation step 3** — `#général` requis avant passage à l'étape suivante ✅ v0.10.2
 - [x] **Rate limiting** — debounce 4 niveaux 600ms→5s, `rateLimit.js`, cleanup auto ✅ v0.11.1
@@ -286,7 +286,7 @@ Items livrés et en cours de validation avant release publique v1.0.0 :
 - [x] `text_channel_enabled` désactivé par défaut, activable par jeu
 - [x] Polish UX complet (emojis, mise en page, descriptions claires)
 - [x] i18n FR + EN aligné sur toutes les clés
-- [x] Versioning sémantique complet (v0.1.0 → v0.14.0)
+- [x] Versioning sémantique complet (v0.1.0 → v0.19.8, 77 tags annotés)
 - [x] Notifications DM configurables — 8 catégories, panel `#guardian`
 - [x] Migrations DB + Discord versionnées
 - [x] Gestion erreurs Discord 50013 — crash silencieux éliminé
@@ -303,6 +303,10 @@ Items livrés et en cours de validation avant release publique v1.0.0 :
 - [x] DM owner reconnexion setup incomplet — lien direct `#setup` au démarrage
 - [x] Création des rôles un par un — label dynamique, transfert/recréation grade par grade
 - [x] Étape révision jeux détectés — supprimer/ajouter avant liaison channels
+- [x] Multi-langues ES/PT/IT/DE — fichiers locales complets, détection automatique depuis `guild.preferredLocale`
+- [x] Résumé post-installation dynamique — récap config réelle dans `#bienvenue` après finalize
+- [x] Setup "Intégrer" — force step=1, reset `roles_auto_created`, placeholders `(changer ?)` partout
+- [x] RAWG.io + jeux non-Steam — pseudo App ID `000XXXXXXX`, migration DB v7
 
 ---
 
