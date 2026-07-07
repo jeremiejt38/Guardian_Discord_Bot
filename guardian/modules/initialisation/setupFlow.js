@@ -2189,15 +2189,13 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId?.startsWith(`${CUSTOM_IDS.addGameConfirmModal}:`)) {
     const name = interaction.fields.getTextInputValue('name').trim();
     const steamId = interaction.fields.getTextInputValue('steam_id').trim() || null;
-    let deferredReply = false;
-    try { await interaction.deferReply({ ephemeral: true }); deferredReply = true; } catch {}
+    try { await interaction.deferUpdate(); } catch {}
     let game;
     try {
       game = addSetupGame(guildId, { name, steam_app_id: steamId, galerie_enabled: false, changelog_enabled: true });
       logger.info('Game added (non-Steam)', { guildId, name: game.name, steam_app_id: game.steam_app_id });
     } catch (err) {
       logger.error('addGameConfirmModal: addSetupGame failed', { error: err?.message });
-      if (deferredReply) await interaction.deleteReply().catch(() => {});
       return true;
     }
     const confirmMsg = [
@@ -2207,7 +2205,6 @@ async function handleSetupInteraction(interaction) {
       'Tu peux modifier ce jeu à tout moment avec le bouton ✏️.'
     ].join('\n');
     try { const sent = await interaction.channel.send({ content: confirmMsg }); if (sent?.deletable !== false) setTimeout(() => sent?.delete().catch(() => {}), 5000); } catch {}
-    if (deferredReply) await interaction.deleteReply().catch(() => {});
     const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
       .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
       .catch(() => null);
@@ -2257,8 +2254,7 @@ async function handleSetupInteraction(interaction) {
     } catch (err) {
       logger.error('updateSetupGame failed', { error: err?.message, guildId, gameId });
     }
-    let deferredReply = false;
-    try { await interaction.deferReply({ ephemeral: true }); deferredReply = true; } catch {}
+    try { await interaction.deferUpdate(); } catch {}
     const wizardMsg = await interaction.channel.messages.fetch({ limit: 20 })
       .then((msgs) => msgs.find((m) => m.author?.id === interaction.client?.user?.id && m.components?.length > 0))
       .catch(() => null);
@@ -2266,7 +2262,6 @@ async function handleSetupInteraction(interaction) {
       const fakeIx = { guildId, guild: interaction.guild, message: wizardMsg, channel: interaction.channel, deferUpdate: async () => {} };
       await renderStep(fakeIx, 6).catch((err) => logger.error('editGameModal: renderStep failed', { error: err?.message }));
     }
-    if (deferredReply) await interaction.deleteReply().catch(() => {});
     return true;
   }
 
