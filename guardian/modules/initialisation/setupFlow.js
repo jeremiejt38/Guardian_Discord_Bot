@@ -523,18 +523,38 @@ function getActiveSlotsForInstall(_guildId, guild) {
   return CHANNEL_SLOTS.filter((s) => !s.communityOnly);
 }
 
+function normalizeChannelName(name) {
+  return name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 function autoDetectGuardianChannels(guild) {
   const detected = {};
   for (const slot of CHANNEL_SLOTS) {
     const isVoice = slot.key.startsWith('voice');
     const rawName = CHANNELS[slot.key] || slot.label;
-    const targetName = rawName.toLowerCase().replace(/^#+/, '');
-    const match = [...guild.channels.cache.values()].find((c) => {
+    const targetNorm = normalizeChannelName(rawName);
+
+    const candidates = [...guild.channels.cache.values()].filter((c) => {
       if (isVoice && !(c.isVoiceBased && c.isVoiceBased())) return false;
       if (!isVoice && !(c.isTextBased && c.isTextBased() && !c.isVoiceBased())) return false;
-      return c.name.toLowerCase() === targetName;
+      return true;
     });
-    if (match) detected[slot.key] = match.id;
+
+    let best = null;
+    let bestScore = 0;
+    for (const c of candidates) {
+      const n = normalizeChannelName(c.name);
+      let score = 0;
+      if (n === targetNorm) score = 100;
+      else if (n.startsWith(targetNorm) || targetNorm.startsWith(n)) score = 80;
+      else if (n.includes(targetNorm) || targetNorm.includes(n)) score = 60;
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
+    if (best && bestScore >= 80) detected[slot.key] = best.id;
   }
   return detected;
 }
