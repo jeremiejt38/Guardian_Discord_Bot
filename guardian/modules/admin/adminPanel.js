@@ -61,10 +61,15 @@ function buildPanelButtons(activeView = null) {
       .setCustomId('admin:panel:notifs')
       .setLabel('🔔 Notifs')
       .setStyle(activeView === VIEWS.notifs ? ButtonStyle.Primary : ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('admin:panel:refresh')
-      .setLabel('🔄')
-      .setStyle(ButtonStyle.Secondary),
+    activeView
+      ? new ButtonBuilder()
+          .setCustomId('admin:panel:close')
+          .setLabel('✖ Fermer')
+          .setStyle(ButtonStyle.Danger)
+      : new ButtonBuilder()
+          .setCustomId('admin:panel:refresh')
+          .setLabel('🔄')
+          .setStyle(ButtonStyle.Secondary),
   );
 }
 
@@ -239,6 +244,13 @@ async function handlePanelInteraction(interaction, client) {
 
   const parts = interaction.customId.split(':');
   const section = parts[2];
+
+  if (section === 'close') {
+    await interaction.deferUpdate().catch(() => {});
+    cancelTimeout();
+    await interaction.message?.edit(buildClosedContent()).catch(() => {});
+    return true;
+  }
 
   if (section === 'refresh') {
     const currentView = detectCurrentView(interaction.message?.content);
