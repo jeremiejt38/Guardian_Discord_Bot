@@ -159,8 +159,17 @@ async function performUpdate(interaction) {
       logger.info(`botUpdater: npm install OK`);
 
       const done = pm2Running
-        ? `## ✅ Mise à jour appliquée — redémarrage PM2 dans 3s…`
-        : `## ✅ Mise à jour appliquée\n\n> Redémarre le bot manuellement pour appliquer les changements.`;
+        ? `## ✅ Mise à jour appliquée — redémarrage automatique dans 3s…`
+        : [
+            `## ✅ Mise à jour appliquée`,
+            ``,
+            `> Le nouveau code est en place, mais le bot tourne encore sur l'ancienne version en mémoire.`,
+            `> **Redémarre-le pour appliquer les changements :**`,
+            `> 1. Arrête le terminal avec \`Ctrl+C\``,
+            `> 2. Relance avec \`npm start\` (ou \`node index.js\`)`,
+            ``,
+            `> 💡 Pour éviter cette étape à l'avenir, utilise **PM2** : \`pm2 start index.js --name guardian\``,
+          ].join('\n');
 
       interaction.message?.edit({ content: done, components: [] }).catch(() => {});
 
