@@ -3,6 +3,7 @@ const { CHANNEL_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const { resolveTextChannel } = require('../utils/channels');
 const { createGuildRunTracker } = require('../utils/scheduling');
+const { isNonSteamId } = require('./steamGamesList');
 const logger = require('../logs/logger');
 
 const runTracker = createGuildRunTracker();
@@ -85,7 +86,7 @@ async function checkSteamChangelogs(client) {
       .prepare(
         `SELECT game_id, guild_id, steam_app_id, name, channel_changelog_id, changelog_enabled
          FROM games
-         WHERE steam_app_id IS NOT NULL AND steam_app_id != ''`
+         WHERE steam_app_id IS NOT NULL AND steam_app_id != '' AND steam_app_id NOT LIKE '000%'`
       )
       .all();
 

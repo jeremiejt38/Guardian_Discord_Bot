@@ -13,7 +13,7 @@ const { GRADE_NAMES, CATEGORIES, CHANNELS } = require('../../config');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { replyEphemeral } = require('../utils/interactions');
 const { memberHasAnyRole } = require('../utils/roles');
-const { searchGames } = require('./steamGamesList');
+const { searchGames, generateNonSteamId, isNonSteamId } = require('./steamGamesList');
 const { insertGame } = require('./serverGamesManager');
 const logger = require('../logs/logger');
 
@@ -141,7 +141,7 @@ async function postPendingRequestToJeux(guild, requestId, name, steamAppId, requ
   );
   if (!jeuxChannel) return;
 
-  const steamInfo = steamAppId ? ` (Steam App ID: \`${steamAppId}\`)` : '';
+  const steamInfo = steamAppId && !isNonSteamId(steamAppId) ? ` (Steam App ID: \`${steamAppId}\`)` : (isNonSteamId(steamAppId) ? ' *(non-Steam)*' : '');
   const content = [
     `## 🎮 Demande d'ajout de jeu`,
     `> **Jeu :** ${name}${steamInfo}`,
@@ -234,15 +234,16 @@ async function handleGameRequestInteraction(interaction) {
     }
 
     const match = searchGames(name, 1)[0];
-    const steamAppId = match ? String(match.appid) : null;
     const resolvedName = match ? match.name : name;
+    const steamAppId = match ? String(match.appid) : generateNonSteamId();
+    const isNonSteam = isNonSteamId(steamAppId);
 
     const requestId = createRequest(guildId, interaction.user.id, resolvedName, steamAppId);
     await postPendingRequestToJeux(interaction.guild, requestId, resolvedName, steamAppId, interaction.user.id);
 
-    const steamNote = steamAppId
-      ? `\n> 🔍 Jeu identifié : **${resolvedName}** (Steam App ID: \`${steamAppId}\`)`
-      : `\n> ℹ️ Jeu non trouvé dans la liste Steam — les mods pourront confirmer.`;
+    const steamNote = !isNonSteam
+      ? `\n> 🔍 Jeu identifié sur Steam : **${resolvedName}** (App ID: \`${steamAppId}\`)`
+      : `\n> ℹ️ Jeu non trouvé sur Steam — un ID interne a été assigné. Les changelogs Steam ne seront pas disponibles.`;
 
     await replyEphemeral(interaction, `✅ Ta demande pour **${resolvedName}** a été soumise.${steamNote}`);
     return true;

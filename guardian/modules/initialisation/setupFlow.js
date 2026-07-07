@@ -8,7 +8,7 @@ const {
   TextInputStyle
 } = require('discord.js');
 const { GRADE_NAMES, CHANNELS, CATEGORIES } = require('../../config');
-const { matchGameFromChannelName } = require('../games/steamGamesList');
+const { matchGameFromChannelName, generateNonSteamId, isNonSteamId } = require('../games/steamGamesList');
 const { analyzeNonGuardianRoles, buildSecurityCheckContent, hasUnresolvedIssues } = require('./roleSecurityCheck');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
@@ -1190,20 +1190,47 @@ function detectExistingGameChannels(guild) {
     if (!gameMap.has(baseName)) gameMap.set(baseName, { baseName, channels: [] });
     gameMap.get(baseName).channels.push({ id: ch.id, name: ch.name, type });
   }
-  return [...gameMap.values()]
+  const resolved = [...gameMap.values()]
     .filter((g) => g.channels.length >= 1 && g.baseName.length >= 3)
     .filter((g) => !GUARDIAN_RESERVED_BASE_NAMES.has(g.baseName.toLowerCase()))
     .map((g) => {
       const steamMatch = matchGameFromChannelName(g.baseName);
-      return { ...g, steamName: steamMatch?.name ?? null, steamAppId: steamMatch?.appid ?? null };
-    })
-    .filter((g) => g.steamName !== null && g.steamAppId != null);
+      return {
+        ...g,
+        steamName: steamMatch?.name ?? null,
+        steamAppId: steamMatch?.appid != null ? String(steamMatch.appid) : generateNonSteamId()
+      };
+    });
+
+  const seenAppIds = new Set();
+  return resolved.filter((g) => {
+    const key = String(g.steamAppId);
+    if (seenAppIds.has(key)) return false;
+    seenAppIds.add(key);
+    return true;
+  });
 }
 
 function getDetectedGames(guildId) {
   const raw = getGuildSetting(guildId, 'setup', 'detected_games', null);
   if (!raw) return [];
-  try { return JSON.parse(raw); } catch { return []; }
+  try {
+    const games = JSON.parse(raw);
+    const seenAppIds = new Set();
+    const seenNames = new Set();
+    return games.filter((g) => {
+      const appKey = g.steamAppId ? String(g.steamAppId) : null;
+      const nameKey = (g.steamName || g.baseName || '').toLowerCase();
+      if (appKey) {
+        if (seenAppIds.has(appKey)) return false;
+        seenAppIds.add(appKey);
+      } else {
+        if (seenNames.has(nameKey)) return false;
+        seenNames.add(nameKey);
+      }
+      return true;
+    });
+  } catch { return []; }
 }
 
 function setDetectedGames(guildId, games) {
@@ -1283,7 +1310,7 @@ function buildGameReviewContent(guildId) {
     lines.push(`**${games.length} jeu(x) dans ta liste :**`, '');
     for (const g of games) {
       const displayName = g.steamName || g.baseName;
-      const steamLabel = g.steamAppId ? ` \`#${g.steamAppId}\`` : '';
+      const steamLabel = g.steamAppId && !isNonSteamId(g.steamAppId) ? ` \`#${g.steamAppId}\`` : ' *(non-Steam)*';
       const chCount = g.channels?.length ?? 0;
       lines.push(`> 🎮 **${displayName}**${steamLabel}${chCount > 0 ? ` — ${chCount} salon(s) détecté(s)` : ''}`);
     }

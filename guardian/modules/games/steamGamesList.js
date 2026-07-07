@@ -145,4 +145,30 @@ function searchGames(query, limit = 10) {
     .map(({ game }) => game);
 }
 
-module.exports = { matchGameFromChannelName, searchGames, GAMES_LIST };
+const NON_STEAM_PREFIX = '000';
+const NON_STEAM_TOTAL_LENGTH = 10;
+
+let _nonSteamCounter = 1;
+
+/**
+ * Generates a pseudo App ID for non-Steam games.
+ * Format: 000XXXXXXX (10 digits, prefix 000 — impossible for real Steam App IDs).
+ * Uses a random suffix to avoid collisions across bot restarts.
+ */
+function generateNonSteamId() {
+  const suffix = String(Date.now()).slice(-7) + String(_nonSteamCounter++ % 10);
+  const digits = (suffix).slice(-7).padStart(7, '0');
+  return NON_STEAM_PREFIX + digits;
+}
+
+/**
+ * Returns true if the given App ID is a Guardian non-Steam pseudo ID.
+ * @param {string|number|null|undefined} appId
+ */
+function isNonSteamId(appId) {
+  if (!appId) return false;
+  const s = String(appId);
+  return s.length === NON_STEAM_TOTAL_LENGTH && s.startsWith(NON_STEAM_PREFIX);
+}
+
+module.exports = { matchGameFromChannelName, searchGames, GAMES_LIST, generateNonSteamId, isNonSteamId, NON_STEAM_PREFIX };

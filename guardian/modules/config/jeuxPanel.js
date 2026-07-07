@@ -8,6 +8,7 @@ const {
   TextInputStyle
 } = require('discord.js');
 const { CHANNELS, GRADE_NAMES } = require('../../config');
+const { isNonSteamId } = require('../games/steamGamesList');
 const { t } = require('../i18n');
 const { replyEphemeral } = require('../utils/interactions');
 const { findTextChannelByName } = require('../utils/channels');
@@ -62,7 +63,7 @@ function buildPanelContent(guildId) {
   } else {
     for (const g of games) {
       lines.push(
-        `• **${g.name}** — Galerie: ${g.galerie_enabled ? '✅' : '❌'} | Changelog: ${g.changelog_enabled ? '✅' : '❌'} | Steam: \`${g.steam_app_id || 'N/A'}\``
+        `• **${g.name}** — Galerie: ${g.galerie_enabled ? '✅' : '❌'} | Changelog: ${g.changelog_enabled ? '✅' : '❌'} | Steam: ${g.steam_app_id && !isNonSteamId(g.steam_app_id) ? `\`${g.steam_app_id}\`` : '*(non-Steam)*'}`
       );
     }
   }
