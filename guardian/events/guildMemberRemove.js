@@ -1,8 +1,8 @@
-const logger = require('../modules/logs/logger');
+const { logToChannel } = require('../modules/config/configLogger');
 
 module.exports = {
   name: 'guildMemberRemove',
   async execute(client, member) {
-    await logger.logToDiscord(member.guild, `Départ du serveur: <@${member.id}>`);
+    logToChannel(member.guild, 'member', `<@${member.id}> (**${member.user?.tag ?? member.id}**) a quitté le serveur`).catch(() => {});
   }
 };

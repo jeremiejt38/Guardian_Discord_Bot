@@ -1,9 +1,12 @@
 const { getGuildSetting } = require('../config/settings');
+const { logToChannel } = require('../config/configLogger');
 const logger = require('../logs/logger');
 
 async function sendModLog(guild, content) {
   if (!guild) return;
   const guildId = guild.id;
+
+  logToChannel(guild, 'sanction', content).catch(() => {});
 
   const enabled = Boolean(getGuildSetting(guildId, 'modules', 'mod_logs_enabled', false));
   if (!enabled) return;

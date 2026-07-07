@@ -272,7 +272,9 @@
       "invalidPort": "Invalid port (1-65535).",
       "added": "Server **{{name}}** added.",
       "removed": "Server **{{name}}** removed.",
-      "notFound": "Server not found."
+      "notFound": "Server not found.",
+      "passwordLabel": "Password (optional)",
+      "passwordPlaceholder": "Leave empty if no password"
     },
     "roles": {
       "title": "Guardian Roles",

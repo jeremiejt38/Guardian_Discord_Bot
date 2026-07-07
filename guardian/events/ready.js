@@ -8,6 +8,7 @@ const { ensureMemberGameInterfaces } = require('../modules/config/settings');
 const { runPassiveScoreRegen } = require('../modules/moderation/behavior');
 const { seedGuildMessages } = require('../modules/initialisation/seeds');
 const { ensureRequestsPanelHasGameButton } = require('../modules/games/gameRequests');
+const { upsertStatusEmbed } = require('../modules/config/botPanel');
 const { sendDmNotification } = require('../modules/notifications/dmNotifier');
 const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
 const { runChannelMigrations } = require('../modules/migrations/channelMigrations');
@@ -141,6 +142,12 @@ module.exports = {
         logger.error(`Failed ready setup check for guild ${guild.id}`, error);
       }
     }
+
+    setInterval(() => {
+      for (const guild of client.guilds.cache.values()) {
+        upsertStatusEmbed(guild).catch(() => {});
+      }
+    }, 5 * 60 * 1000);
 
     startInviteExpulsionJob(client);
     startChangelogTimer();

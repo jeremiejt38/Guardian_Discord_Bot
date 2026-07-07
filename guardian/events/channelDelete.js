@@ -1,6 +1,7 @@
 const { CHANNELS } = require('../config');
 const { saveConfigBackup } = require('../modules/config/configBackup');
 const { sendDmNotification } = require('../modules/notifications/dmNotifier');
+const { logToChannel } = require('../modules/config/configLogger');
 const logger = require('../modules/logs/logger');
 
 module.exports = {
@@ -30,6 +31,7 @@ module.exports = {
     }
 
     await saveConfigBackup(guild);
+    logToChannel(guild, 'backup', `⚠️ \`#${CHANNELS.guardianBackup}\` a été supprimé et recréé automatiquement. Alerte DM envoyée à l'owner.`).catch(() => {});
     logger.info(`Guild ${guild.id}: #guardian-backup recréé après suppression`);
   }
 };

@@ -140,7 +140,9 @@
       "invalidPort": "Port invalide (1-65535).",
       "added": "Serveur **{{name}}** ajoute.",
       "removed": "Serveur **{{name}}** retire.",
-      "notFound": "Serveur introuvable."
+      "notFound": "Serveur introuvable.",
+      "passwordLabel": "Mot de passe (optionnel)",
+      "passwordPlaceholder": "Laisser vide si pas de mot de passe"
     },
     "roles": {
       "title": "Roles Guardian",

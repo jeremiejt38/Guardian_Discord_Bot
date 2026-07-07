@@ -286,4 +286,4 @@ function applySnapshot(guildId, snapshot) {
   }
 }
 
-module.exports = { saveConfigBackup, restoreConfigFromBackup, buildSnapshot, encodeSnapshot, decodeSnapshot };
+module.exports = { saveConfigBackup, restoreConfigFromBackup, buildSnapshot, encodeSnapshot, decodeSnapshot, BACKUP_MARKER, BACKUP_CHANNEL_NAME };

@@ -15,6 +15,7 @@ const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { getAvailableLanguages, getGuildLanguage, setGuildLanguage } = require('../i18n');
 const { logConfigChange } = require('./configLogger');
+const { getDb } = require('../../database/db');
 const { version } = require('../../package.json');
 
 const botStartTime = Date.now();
@@ -41,15 +42,42 @@ const ACTIVE_MODULES = [
 
 function buildStatusEmbed(guild) {
   const guildId = guild.id;
+
+  let dbOk = true;
+  let memberCount = 0;
+  let gameCount = 0;
+  try {
+    const db = getDb();
+    memberCount = db.prepare('SELECT COUNT(*) as c FROM members WHERE guild_id = ?').get(guildId)?.c ?? 0;
+    gameCount = db.prepare('SELECT COUNT(*) as c FROM games WHERE guild_id = ?').get(guildId)?.c ?? 0;
+  } catch { dbOk = false; }
+
+  const lastBackupTs = getGuildSetting(guildId, 'bot', 'last_backup_ts', null);
+  const lastBackup = lastBackupTs
+    ? `<t:${Math.floor(new Date(lastBackupTs).getTime() / 1000)}:R>`
+    : '❌ Aucune';
+
+  const steamKey = getGuildSetting(guildId, 'bot', 'steam_api_key', null);
+  const lang = getGuildLanguage(guildId) || 'fr';
+
+  const nowSec = Math.floor(Date.now() / 1000);
+
   return new EmbedBuilder()
-    .setTitle(t(guildId, 'config.statusBot.title'))
-    .setColor(0x5865f2)
+    .setTitle('🤖 Guardian — Diagnostic')
+    .setColor(dbOk ? 0x2ecc71 : 0xe74c3c)
     .addFields(
-      { name: t(guildId, 'config.statusBot.version'), value: `v${version}`, inline: true },
-      { name: t(guildId, 'config.statusBot.uptime'), value: formatUptime(), inline: true },
-      { name: t(guildId, 'config.statusBot.modules'), value: ACTIVE_MODULES.map((m) => `✅ ${m}`).join('\n') },
-      { name: t(guildId, 'config.statusBot.lastUpdate'), value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
+      { name: '📦 Version', value: `v${version}`, inline: true },
+      { name: '⏱️ Uptime', value: formatUptime(), inline: true },
+      { name: '🌐 Langue', value: `\`${lang}\``, inline: true },
+      { name: '🗄️ Base de données', value: dbOk ? '✅ Opérationnelle' : '❌ Erreur', inline: true },
+      { name: '👥 Membres enregistrés', value: String(memberCount), inline: true },
+      { name: '🎮 Jeux configurés', value: String(gameCount), inline: true },
+      { name: '💾 Dernier backup', value: lastBackup, inline: true },
+      { name: '🔑 Clé Steam', value: steamKey ? '✅ Configurée' : '❌ Non configurée', inline: true },
+      { name: '🔄 Actualisé', value: `<t:${nowSec}:R>`, inline: true },
+      { name: '✅ Modules actifs', value: ACTIVE_MODULES.map((m) => `✅ ${m}`).join('\n') }
     )
+    .setFooter({ text: 'Actualisé toutes les 5 minutes — si ce message n\'est plus à jour, le bot est hors ligne.' })
     .setTimestamp();
 }
 
@@ -221,4 +249,4 @@ async function handleBotInteraction(interaction) {
   return false;
 }
 
-module.exports = { seedBotPanel, refreshBotPanel, handleBotInteraction };
+module.exports = { seedBotPanel, refreshBotPanel, upsertStatusEmbed, handleBotInteraction };

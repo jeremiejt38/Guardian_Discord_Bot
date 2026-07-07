@@ -64,13 +64,18 @@ async function logToDiscord(guild, content) {
 
   if (!channel) {
     write('warn', 'Discord log channel not found', { guildId: guild.id, channelName });
-    return;
+  } else {
+    try {
+      await channel.send({ content });
+    } catch (error) {
+      write('error', 'Failed to send Discord log message', error);
+    }
   }
 
-  try {
-    await channel.send({ content });
-  } catch (error) {
-    write('error', 'Failed to send Discord log message', error);
+  const configLogsChannel = findTextChannelByName(guild, CHANNELS.configLogs);
+  if (configLogsChannel) {
+    const ts = `<t:${Math.floor(Date.now() / 1000)}:T>`;
+    await configLogsChannel.send(`👤 ${ts} ${content}`).catch(() => {});
   }
 }
 

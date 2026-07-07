@@ -121,7 +121,8 @@ async function refreshServerListPanel(guild) {
   } else {
     for (const s of servers) {
       const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : '🟡';
-      lines.push(`${emoji} **${s.name}** (${s.game}) — \`${s.ip}:${s.port}\``);
+      const passwordLine = s.password ? ` — 🔑 ||${s.password}||` : '';
+      lines.push(`${emoji} **${s.name}** (${s.game}) — \`${s.ip}:${s.port}\`${passwordLine}`);
     }
   }
   const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
@@ -159,6 +160,9 @@ async function handleServeursJeuInteraction(interaction) {
         ),
         new ActionRowBuilder().addComponents(
           new TextInputBuilder().setCustomId('port').setLabel(t(guildId, 'config.serveursJeu.portLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(6).setPlaceholder('Ex: 25565')
+        ),
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('password').setLabel(t(guildId, 'config.serveursJeu.passwordLabel')).setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(100).setPlaceholder(t(guildId, 'config.serveursJeu.passwordPlaceholder'))
         )
       );
     await interaction.showModal(modal);
@@ -172,6 +176,7 @@ async function handleServeursJeuInteraction(interaction) {
     const name = interaction.fields.getTextInputValue('name').trim();
     const ip = interaction.fields.getTextInputValue('ip').trim();
     const portRaw = interaction.fields.getTextInputValue('port').trim();
+    const password = interaction.fields.getTextInputValue('password').trim() || null;
     const port = Number.parseInt(portRaw, 10);
 
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -180,11 +185,12 @@ async function handleServeursJeuInteraction(interaction) {
     }
 
     getDb().prepare(
-      'INSERT INTO servers_jeu (guild_id, name, game, ip, port, approved) VALUES (?, ?, ?, ?, ?, 1)'
-    ).run(guildId, name, gameName, ip, port);
+      'INSERT INTO servers_jeu (guild_id, name, game, ip, port, password, approved) VALUES (?, ?, ?, ?, ?, ?, 1)'
+    ).run(guildId, name, gameName, ip, port, password);
 
-    await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.add', null, { name, game: gameName, ip, port });
+    await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.add', null, { name, game: gameName, ip, port, hasPassword: !!password });
     await refreshServeursJeuPanel(interaction.guild);
+    await refreshServerListPanel(interaction.guild);
     await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.added', { name }));
     return true;
   }
