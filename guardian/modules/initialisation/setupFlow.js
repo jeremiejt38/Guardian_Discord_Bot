@@ -338,7 +338,7 @@ function buildStepOneComponents(guildId, guild) {
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.toggleInviteGrade)
         .setStyle(inviteEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-        .setLabel(`Grade Invité : ${onOffDot(inviteEnabled)}`)
+        .setLabel('Grade Invité')
     );
     return [autoRow, toggleInviteRowFresh, buildNavRow(guildId, 1)];
   }
@@ -385,7 +385,7 @@ function buildStepOneComponents(guildId, guild) {
     new ButtonBuilder()
       .setCustomId(CUSTOM_IDS.toggleInviteGrade)
       .setStyle(inviteEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel(`Grade Invité : ${onOffDot(inviteEnabled)}`)
+      .setLabel('Grade Invité')
   );
 
   const cursor2 = getGradeCursor(guildId);
@@ -448,18 +448,18 @@ function buildStep2Content(guildId) {
 function buildStep2Components(guildId) {
   const c = getStep2Config(guildId);
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSuggestions).setStyle(ButtonStyle.Secondary)
-      .setLabel(`💡 Suggestions: ${onOffDot(c.suggestionsEnabled)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleServerList).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🖥️ Serveurs: ${onOffDot(c.serverListEnabled)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleStatusBot).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🤖 Statut: ${onOffDot(c.statusBotEnabled)}`)
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSuggestions).setStyle(c.suggestionsEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('💡 Suggestions'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleServerList).setStyle(c.serverListEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('🖥️ Serveurs'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleStatusBot).setStyle(c.statusBotEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('🤖 Statut')
   );
   const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleAfk).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🔇 AFK: ${onOffDot(c.afkEnabled)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameUpdates).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🎮 Game Updates: ${onOffDot(c.gameUpdatesEnabled)}`)
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleAfk).setStyle(c.afkEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('🔇 AFK'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameUpdates).setStyle(c.gameUpdatesEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('🎮 Game Updates')
   );
   return [row, row2, buildNavRow(guildId, 2)];
 }
@@ -728,10 +728,10 @@ function buildStep4Content(guildId) {
 function buildStep4Components(guildId) {
   const c = getStep4Config(guildId);
   const toggles = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBioRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`📝 Bio: ${onOffDot(c.bioRequired)}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSponsorshipRequired).setStyle(ButtonStyle.Secondary)
-      .setLabel(`👥 Parrainage: ${onOffDot(c.sponsorshipRequired)}`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBioRequired).setStyle(c.bioRequired ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('📝 Bio'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleSponsorshipRequired).setStyle(c.sponsorshipRequired ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('👥 Parrainage'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cyclePromotionReviewerGrade).setStyle(ButtonStyle.Secondary)
       .setLabel(`🔍 Réviseur: ${gradeLabel(c.reviewerGrade)}`)
   );
@@ -740,8 +740,8 @@ function buildStep4Components(guildId) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ +12h')
   );
   const expulsion = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteExpulsion).setStyle(ButtonStyle.Secondary)
-      .setLabel(`🚪 Expulsion: ${onOffDot(c.inviteExpulsionEnabled)}`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteExpulsion).setStyle(c.inviteExpulsionEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('🚪 Expulsion'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 -1j'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.increaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 +1j')
   );
@@ -811,7 +811,7 @@ function buildStep5VocalComponents(guildId) {
       .setLabel(`🏷️ Préfixe: ${prefixDisplay} →`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleVocalSuffix)
       .setStyle(suffixEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel(`🏷️ Suffixe: ${onOffDot(suffixEnabled)}`)
+      .setLabel('🏷️ Suffixe')
   );
   const limitRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseVocalLimit).setStyle(ButtonStyle.Secondary).setLabel('👤 -1')
@@ -928,15 +928,15 @@ function buildStep6Components_Games(guildId) {
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.toggleGameGallery}:${game.game_id}`)
         .setStyle(game.galerie_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-        .setLabel(`🖼️ ${onOffDot(Boolean(game.galerie_enabled))}`),
+        .setLabel('🖼️ Galerie'),
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.toggleGameChangelog}:${game.game_id}`)
         .setStyle(game.changelog_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-        .setLabel(`📢 ${onOffDot(Boolean(game.changelog_enabled))}`),
+        .setLabel('📢 Changelog'),
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.toggleGameText}:${game.game_id}`)
         .setStyle(game.text_channel_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-        .setLabel(`💬 ${onOffDot(Boolean(game.text_channel_enabled))}`),
+        .setLabel('💬 Texte'),
       new ButtonBuilder()
         .setCustomId(`${CUSTOM_IDS.deleteGamePrefix}:${game.game_id}`)
         .setStyle(ButtonStyle.Danger)
@@ -1007,8 +1007,8 @@ function buildStep7Content(guildId) {
 function buildStep7Components(guildId) {
   const c = getStep7Config(guildId);
   const scoreRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(ButtonStyle.Secondary)
-      .setLabel(`⚖️ Score: ${onOffDot(c.behaviorScoreEnabled)}`),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(c.behaviorScoreEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('⚖️ Score comport.'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBlacklistWarn).setStyle(ButtonStyle.Secondary)
       .setLabel(`🚫 Blacklist: ${c.blacklistWarn ? 'Warn' : 'Silent'}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleLogsLevel).setStyle(ButtonStyle.Secondary)
