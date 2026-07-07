@@ -4,7 +4,7 @@
 
 **Bot Discord communautaire tout-en-un pour serveurs de gaming**
 
-[![Version](https://img.shields.io/badge/version-v0.19.13-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.20.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -109,11 +109,16 @@ Les **tests E2E** (`tests/e2e.test.js`) couvrent 6 flows d'intégration complets
 
 ## Changelog
 
-### v0.19.x — RAWG.io & Jeux non-Steam ← *actuel*
+### v0.20.x — Auto-update & Admin bot ← *actuel*
 | Version | Date | Contenu |
 |---------|------|---------|
-| **v0.19.13** | 2026-07-07 | Fix: boutons toggle — pastilles 🟢/🔴 supprimées, couleur du bouton (vert/gris) indique l'état ← *actuel* |
-| v0.19.12 | 2026-07-07 | Fix: step 3 — boutons adaptatifs selon l'état du slot : "Suivant ▶" si déjà configuré, "Guardian crée / Ignorer" si non configuré ← *actuel* |
+| **v0.20.0** | 2026-07-07 | Feat: `BOT_ADMIN_ID` dans `.env` — mise à jour automatique via bouton DM (`git pull` + `npm install` + redémarrage PM2) ← *actuel* |
+
+### v0.19.x — RAWG.io & Jeux non-Steam
+| Version | Date | Contenu |
+|---------|------|---------|
+| **v0.19.13** | 2026-07-07 | Fix: boutons toggle — pastilles 🟢/🔴 supprimées, couleur du bouton (vert/gris) indique l'état |
+| v0.19.12 | 2026-07-07 | Fix: step 3 — boutons adaptatifs selon l'état du slot : "Suivant ▶" si déjà configuré, "Guardian crée / Ignorer" si non configuré |
 | v0.19.11 | 2026-07-07 | Fix: step 3 — espacement entre icône statut et curseur ▶ |
 | v0.19.10 | 2026-07-07 | Fix: step 3 — icône ✅/❌ conservée sur le slot actif + curseur ▶ affiché après l'icône |
 | v0.19.9 | 2026-07-07 | Fix: boutons "Créer le rôle" et "Laisser Guardian créer" désactivés si rôle/channel déjà configuré (anti-doublon) |

@@ -16,6 +16,7 @@ const { handleServerGamesInteraction } = require('../modules/games/serverGamesMa
 const { handleGameRequestInteraction } = require('../modules/games/gameRequests');
 const { handlePromotionInteraction, IDS: PROMOTION_IDS } = require('../modules/members/promotion');
 const { t } = require('../modules/i18n');
+const { performUpdate, isBotAdmin } = require('../modules/admin/botUpdater');
 const {
   SETUP_INSTALL_BUTTON_ID,
   SETUP_START_BUTTON_ID,
@@ -64,6 +65,21 @@ module.exports = {
       }
 
       await command.execute(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId?.startsWith('bot:admin:update:')) {
+      const action = interaction.customId.split(':').pop();
+      if (action === 'confirm') {
+        await performUpdate(interaction);
+      } else if (action === 'skip') {
+        if (!isBotAdmin(interaction.user.id)) {
+          await interaction.reply({ content: '❌ Tu n\'es pas autorisé.', ephemeral: true }).catch(() => {});
+          return;
+        }
+        await interaction.deferUpdate().catch(() => {});
+        await interaction.message?.edit({ content: '⏭️ Mise à jour ignorée.', components: [] }).catch(() => {});
+      }
       return;
     }
 
