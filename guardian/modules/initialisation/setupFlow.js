@@ -645,15 +645,32 @@ function buildStep3ChannelsComponents(guildId, guild) {
     .addOptions(options);
 
   const isRequired = slot.key === 'general' || slot.key === 'voiceGeneral';
+  const isLastSlot = cursor >= slots.length - 1;
+  const ignoredSlots = getIgnoredChannelSlots(guildId);
+  const isConfigured = Boolean(currentChannel3)
+    || currentChannelId === 'guardian:create'
+    || ignoredSlots.includes(slot.key);
+
   const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-  const navRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
-      .setLabel('◀ Préc.').setDisabled(cursor === 0),
-    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
-      .setLabel('🤖 Laisser Guardian créer').setDisabled(Boolean(currentChannel3)),
-    new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:ignore`).setStyle(ButtonStyle.Secondary)
-      .setLabel('⏭️ Ignorer ce channel').setDisabled(isRequired)
-  );
+
+  let navRow;
+  if (isConfigured) {
+    navRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
+        .setLabel('◀ Préc.').setDisabled(cursor === 0),
+      new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
+        .setLabel(isLastSlot ? '✅ Continuer' : 'Suivant ▶'),
+    );
+  } else {
+    navRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:prev`).setStyle(ButtonStyle.Secondary)
+        .setLabel('◀ Préc.').setDisabled(cursor === 0),
+      new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:next`).setStyle(ButtonStyle.Primary)
+        .setLabel('🤖 Laisser Guardian créer'),
+      new ButtonBuilder().setCustomId(`${CUSTOM_IDS.channelSkip}:ignore`).setStyle(ButtonStyle.Secondary)
+        .setLabel('⏭️ Ignorer ce channel').setDisabled(isRequired)
+    );
+  }
 
   return [selectRow, navRow, buildNavRow(guildId, 3)];
 }
