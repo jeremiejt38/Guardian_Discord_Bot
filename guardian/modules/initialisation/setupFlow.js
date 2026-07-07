@@ -1321,9 +1321,10 @@ function buildGameReviewComponents(guildId) {
 const GAMELINK_TYPE_LABELS = Object.freeze({
   text:      { icon: '💬', label: 'Chat texte' },
   changelog: { icon: '📢', label: 'Annonces/Updates' },
-  forum:     { icon: '🗂️', label: 'Forum' }
+  forum:     { icon: '🗂️', label: 'Forum' },
+  galerie:   { icon: '🖼️', label: 'Galerie' }
 });
-const GAMELINK_LINKABLE_TYPES = ['text', 'changelog', 'forum'];
+const GAMELINK_LINKABLE_TYPES = ['text', 'changelog', 'forum', 'galerie'];
 
 function getGameLinkActiveType(guildId) {
   return getGuildSetting(guildId, 'setup', 'gamelink_active_type', null);
@@ -1383,11 +1384,11 @@ function buildGameLinkComponents(guildId, guild) {
   rows.push(new ActionRowBuilder().addComponents(...typeButtons));
 
   if (activeType) {
-    const allowedDiscordTypes = activeType === 'forum' ? [15] : [0, 5];
     const slug = normalizeGameSlug(game.baseName);
-    const TYPE_SUFFIXES = { text: ['texte', 'chat', 'discussion', 'general'], changelog: ['changelogs', 'updates', 'annonces', 'news'], forum: ['forum', 'discussion'] };
+    const allowedDiscordTypesForType = activeType === 'forum' ? [15] : [0, 5];
+    const TYPE_SUFFIXES = { text: ['texte', 'chat', 'discussion', 'general'], changelog: ['changelogs', 'updates', 'annonces', 'news'], forum: ['forum', 'discussion'], galerie: ['galerie', 'gallery', 'screenshots', 'photos'] };
     const suffixes = TYPE_SUFFIXES[activeType] || [];
-    const allCompatible = [...guild.channels.cache.values()].filter((c) => allowedDiscordTypes.includes(c.type));
+    const allCompatible = [...guild.channels.cache.values()].filter((c) => allowedDiscordTypesForType.includes(c.type));
     const scored = allCompatible.map((c) => {
       const n = c.name.toLowerCase();
       let score = 0;
