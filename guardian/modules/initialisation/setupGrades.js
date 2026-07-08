@@ -199,6 +199,20 @@ function detectDuplicateGradeRoles(guild) {
   return dupes;
 }
 
+// ─── autoPositionChannelCursor ────────────────────────────────────────────────
+
+function autoPositionChannelCursor(guildId, guild) {
+  const _steps = require('./setupSteps');
+  const { CHANNEL_SLOTS } = _steps;
+  const isCommunityGuild = _steps.isCommunityGuild;
+  const slots = _steps.getActiveSlotsForInstall(guildId, guild, CHANNEL_SLOTS, isCommunityGuild);
+  const ignored = _steps.getIgnoredChannelSlots(guildId);
+  const firstUnconfigured = slots.findIndex(
+    (s) => !ignored.includes(s.key) && !getGuildSetting(guildId, s.settingSection, s.settingKey, null)
+  );
+  if (firstUnconfigured !== -1) _steps.setChannelCursor(guildId, firstUnconfigured);
+}
+
 module.exports = {
   GRADE_LABELS,
   ROLE_COLORS,
@@ -219,4 +233,5 @@ module.exports = {
   repositionBotRole,
   createRolesAutoHelper,
   detectDuplicateGradeRoles,
+  autoPositionChannelCursor,
 };
