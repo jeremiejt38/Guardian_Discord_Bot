@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.23.12-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.23.13-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-Proprietary-orange?style=flat-square)](LICENSE)
 
@@ -167,6 +167,8 @@ npm start
 
 | Version | Description |
 |---------|-------------|
+| **v0.23** | **release**: add detailed commit body on private repo + patch list on free repo commit · **updater**: point changelog/releases links to public free repo instead of private repo |
+| | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.12...v0.23.13) |
 | **v0.23** | **release**: don't retag free repo — GitHub API already creates the tag |
 | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.11...v0.23.12) |
 | **v0.23** | **release**: push full stripped source bundle to free repo via git instead of file-by-file API · **build**: exclude node_modules/data from free bundle, generate .gitignore · add complete workflow schema (branches, release, free bundle, issues, PRs) · add architecture, database schema, premium model, dev-setup, testing, deploy-hetzner · bump version to 0.23.10 · clean root — move docs to docs/, remove aider artifacts |
