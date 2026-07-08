@@ -127,6 +127,45 @@ L'export est **versionné** (`schema_version` inclus) pour gérer les migrations
 
 ---
 
+### Plans d'hébergement
+
+| `plan` | Description | Features | Expiration | Départ automatique |
+|---|---|---|---|---|
+| `premium` | Abonnement payant Stripe | Toutes | `expires_at` | Oui (7j grâce) |
+| `trial` | Essai gratuit temporaire | Toutes | `expires_at` | Oui (7j grâce) |
+| `free_hosted` | Hébergé par Jérémie, gratuit, choix manuel | Free seulement 🔒 | Aucune | Non |
+| `lifetime` | Serveur de Jérémie (`OWNER_GUILD_ID`) | Toutes | Aucune | Non |
+
+**Règles `getLicense(guildId)` :**
+
+```js
+// Bypass lifetime — serveur propriétaire
+if (guildId === process.env.OWNER_GUILD_ID)
+  return { active: true, plan: 'lifetime', premium: true };
+
+const license = db.getLicense(guildId);
+
+if (!license || !license.active)
+  return { active: false, premium: false };           // → grâce puis départ
+
+if (license.plan === 'free_hosted')
+  return { active: true, plan: 'free_hosted', premium: false }; // → hébergé, features free
+
+if (['premium', 'trial'].includes(license.plan)) {
+  const expired = license.expires_at && new Date(license.expires_at) < new Date();
+  if (expired) return { active: false, premium: false, grace: true }; // → grâce puis départ
+  return { active: true, plan: license.plan, premium: true };
+}
+```
+
+**Gestion manuelle des `free_hosted` et `trial` :**
+- Générés manuellement en BDD (pas via Stripe)
+- Pour un trial : `plan='trial'`, `expires_at = now + N jours`
+- Pour un free_hosted : `plan='free_hosted'`, `expires_at = NULL`, `active = 1`
+- Révocation : `UPDATE licenses SET active = 0 WHERE guild_id = ?`
+
+---
+
 ### Table `licenses` (à créer sur Hetzner)
 
 ```sql
@@ -135,7 +174,8 @@ CREATE TABLE licenses (
   guild_id            TEXT UNIQUE,
   stripe_customer_id  TEXT,
   stripe_sub_id       TEXT,
-  plan                TEXT NOT NULL DEFAULT 'premium',
+  plan                TEXT NOT NULL DEFAULT 'premium'
+                      CHECK (plan IN ('premium', 'trial', 'free_hosted', 'lifetime')),
   active              INTEGER NOT NULL DEFAULT 1,
   activated_at        TEXT,
   expires_at          TEXT,
@@ -143,21 +183,25 @@ CREATE TABLE licenses (
   invite_token        TEXT,
   token_used          INTEGER NOT NULL DEFAULT 0,
   token_expires_at    TEXT,
+  notes               TEXT,
   created_at          TEXT NOT NULL
 );
 ```
+
+> `notes` : champ libre pour documenter pourquoi un `free_hosted` a été accordé.
 
 ---
 
 ### Composants à développer (dans l'ordre)
 
 1. **Table `licenses`** + migration BDD
-2. **`getLicense(guildId)`** dans le bot — check BDD + bypass OWNER_GUILD_ID
-3. **Feature flags** dans le code (`if (license.active) { ... }`) sur les features premium
-4. **API Express** sur Hetzner : `/invite`, `/callback`, `/webhook/stripe`
-5. **Export automatique** à l'expiration + envoi DM owner
+2. **`getLicense(guildId)`** dans le bot — logique plans + bypass OWNER_GUILD_ID
+3. **Feature flags** dans le code (`if (license.premium) { ... }`) sur les features premium
+4. **Check périodique** des expirations (cron toutes les heures) — déclenche grâce + export + départ
+5. **Export automatique** à l'expiration + envoi DM owner du serveur
 6. **Import** dans le setup wizard (free et premium)
-7. **Site web** + intégration Stripe
+7. **API Express** sur Hetzner : `/invite`, `/callback`, `/webhook/stripe`
+8. **Site web** + intégration Stripe
 
 ---
 
