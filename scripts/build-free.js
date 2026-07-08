@@ -80,6 +80,7 @@ function processDir(srcDir, outDir) {
     const outPath = path.join(outDir, entry.name);
 
     if (entry.isDirectory()) {
+      if (['node_modules', 'data', '.git'].includes(entry.name)) continue;
       if (!DRY_RUN) fs.mkdirSync(outPath, { recursive: true });
       processDir(srcPath, outPath);
       continue;
@@ -139,9 +140,16 @@ const repoRoot = path.resolve(__dirname, '..');
 for (const f of ROOT_FILES) {
   const src = path.join(repoRoot, f);
   if (fs.existsSync(src)) {
-    if (!DRY_RUN) fs.copyFileSync(src, path.join(OUT_DIR, '..', f));
+    if (!DRY_RUN) fs.copyFileSync(src, path.join(OUT_DIR, f));
     console.log(`  [COPY]    ${f}`);
   }
+}
+
+// Générer un .gitignore dans le bundle
+if (!DRY_RUN) {
+  fs.writeFileSync(path.join(OUT_DIR, '.gitignore'),
+    'node_modules/\ndata/\n.env\n.env.*\n!.env.example\n*.db\n*.db-shm\n*.db-wal\n');
+  console.log('  [GEN]     .gitignore');
 }
 
 console.log(`\n✅ Build terminé`);
