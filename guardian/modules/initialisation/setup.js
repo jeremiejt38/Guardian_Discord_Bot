@@ -315,19 +315,18 @@ function buildViewOnlyPermissions(guild, roleMap, ownerId, viewMinimumGrade) {
 }
 
 function buildRequestsPermissions(guild, roleMap) {
-  const gradeRoleIds = [
-    roleMap[GRADE_NAMES.invite],
-    roleMap[GRADE_NAMES.membre],
-    roleMap[GRADE_NAMES.moderateur],
-    roleMap[GRADE_NAMES.manager],
-    roleMap[GRADE_NAMES.owner]
-  ].filter(Boolean);
+  const memberPlusGrades = [
+    GRADE_NAMES.membre,
+    GRADE_NAMES.moderateur,
+    GRADE_NAMES.manager,
+    GRADE_NAMES.owner
+  ];
+  const gradeRoleIds = memberPlusGrades.map((g) => roleMap[g]).filter(Boolean);
 
   const base = [
     {
       id: guild.roles.everyone.id,
-      allow: [PermissionFlagsBits.ViewChannel],
-      deny: [PermissionFlagsBits.SendMessages]
+      deny: [PermissionFlagsBits.ViewChannel]
     }
   ];
 
@@ -504,9 +503,15 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
 
   const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
   if (suggestionsEnabled) {
-    const suggestionsForum = await ensureForumChannel(guild, communauteCategory.id, CHANNELS.suggestions, [
-      { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
-    ], { topic: t('init.topics.suggestions', {}, { guildId: guild.id }) });
+    const memberPlusForSuggestions = [GRADE_NAMES.membre, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner];
+    const suggestionRoleIds = memberPlusForSuggestions.map((g) => roleMap[g]).filter(Boolean);
+    const suggestionsPerms = [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      ...suggestionRoleIds.map((id) => ({ id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }))
+    ];
+    const suggestionsForum = await ensureForumChannel(guild, communauteCategory.id, CHANNELS.suggestions,
+      suggestionRoleIds.length > 0 ? suggestionsPerms : [{ id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }],
+      { topic: t('init.topics.suggestions', {}, { guildId: guild.id }) });
     await ensureForumPost(
       suggestionsForum,
       tForLanguage(getGuildLanguage(guild.id), 'init.suggestionsPostTitle'),
