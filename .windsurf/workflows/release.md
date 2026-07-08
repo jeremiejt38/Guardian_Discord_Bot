@@ -5,21 +5,45 @@ description: Release a new version of Guardian (bump version, generate changelog
 ## Branch strategy
 
 ```
-dev   → développement actif (local + serveur test Discord)
-beta  → early access premium (Hetzner, abonnés premium)
-main  → stable, déclenche la release free publique
+feature/xxx  → développement d'une feature (créée depuis dev, mergée dans dev)
+dev          → intégration continue (local + serveur test Discord)
+beta         → early access premium (Hetzner, abonnés premium)
+main         → stable, déclenche la release free publique
 ```
 
-**Règle** : ne jamais pusher directement sur `main`. Toujours passer par `dev → beta → main`.
+**Règles** :
+- Ne jamais travailler directement sur `dev`, `beta` ou `main`
+- Toujours créer une branche `feature/nom-court` depuis `dev`
+- Merger dans `dev` via PR ou merge local quand la feature est prête + tests passants
+- Flux de montée : `feature/xxx → dev → beta → main`
 
-## Daily development flow
+## Feature branch flow (standard)
 
 ```bash
-# Travailler sur dev
-git checkout dev
-# ... code ...
+# 1. Partir de dev à jour
+git checkout dev && git pull origin dev
+
+# 2. Créer une branche feature
+git checkout -b feature/nom-de-la-feature
+
+# 3. Développer + commits atomiques
+git add ... && git commit -m "feat(scope): description"
+
+# 4. Pousser la branche
+git push origin feature/nom-de-la-feature
+
+# 5. Merger dans dev quand prêt (tests passants)
+git checkout dev && git merge feature/nom-de-la-feature --no-ff
 git push origin dev
 
+# 6. Supprimer la branche feature
+git branch -d feature/nom-de-la-feature
+git push origin --delete feature/nom-de-la-feature
+```
+
+## Promotion vers beta / main
+
+```bash
 # Passer en beta (early access premium sur Hetzner)
 git checkout beta && git merge dev && git push origin beta
 
