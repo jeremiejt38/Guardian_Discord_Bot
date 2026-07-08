@@ -1,0 +1,16 @@
+# .freeignore — Fichiers exclus du bundle free
+# Même syntaxe que .gitignore (globs supportés)
+
+# Docs internes — ne pas exposer aux utilisateurs free
+docs/premium.md
+docs/deploy-hetzner.md
+docs/specification.md
+docs/initialisation-setup-specs.md
+docs/roadmap-historique.md
+
+# Données sensibles
+data/
+guardian.db
+*.db
+*.db-shm
+*.db-wal
