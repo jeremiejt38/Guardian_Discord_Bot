@@ -268,7 +268,7 @@ function buildFreeZip(version) {
   const zipName = `guardian-free-v${version}.zip`;
   const zipPath = path.resolve(__dirname, '../dist', zipName);
   fs.mkdirSync(path.resolve(__dirname, '../dist'), { recursive: true });
-  run(`zip -r "${zipPath}" . -x "*.DS_Store"`, { cwd: FREE_OUT_DIR });
+  run(`zip -r "${zipPath}" . -x "*.DS_Store" -x ".env" -x "node_modules/*" -x "data/*"`, { cwd: FREE_OUT_DIR });
   console.log(`✅ Free bundle zipped: ${zipPath}`);
   return zipPath;
 }
