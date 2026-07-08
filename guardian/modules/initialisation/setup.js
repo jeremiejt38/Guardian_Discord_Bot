@@ -33,6 +33,8 @@ const {
 const { replyEphemeral } = require('../utils/interactions');
 const { safeDiscordAction } = require('../utils/discordErrors');
 const { getGradeMappings } = require('./gradeMapping');
+const { seedJoinServerChannel } = require('../members/joinServerChannel');
+const { seedBecomeMemberChannel } = require('../members/becomeMemberChannel');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
@@ -476,12 +478,16 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   await ensureTextChannel(guild, communauteCategory.id, CHANNELS.serverList, memberReadPermissions, { topic: t('init.topics.serverList', {}, { guildId: guildIdC }) });
 
   const inviteRoleId = roleMap[GRADE_NAMES.invite];
-  const becomeMemberPerms = [
+  const inviteOnlyPerms = [
     { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
     ...(inviteRoleId ? [{ id: inviteRoleId, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] }] : []),
     { id: ownerId, allow: [PermissionFlagsBits.ViewChannel] }
   ];
-  await ensureTextChannel(guild, communauteCategory.id, CHANNELS.becomeMember, becomeMemberPerms, { topic: t('init.topics.becomeMember', {}, { guildId: guildIdC }) });
+  const becomeMemberChannel = await ensureTextChannel(guild, communauteCategory.id, CHANNELS.becomeMember, inviteOnlyPerms, { topic: t('init.topics.becomeMember', {}, { guildId: guildIdC }) });
+  await seedBecomeMemberChannel(becomeMemberChannel, guild).catch(() => {});
+
+  const joinServerChannel = await ensureTextChannel(guild, communauteCategory.id, CHANNELS.joinServer, inviteOnlyPerms, { topic: t('init.topics.joinServer', {}, { guildId: guildIdC }) });
+  await seedJoinServerChannel(joinServerChannel, guild).catch(() => {});
 
   const suggestionsEnabled = getGuildSetting(guild.id, 'channels', 'suggestions_enabled', true);
   if (suggestionsEnabled) {
