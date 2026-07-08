@@ -2,10 +2,37 @@
 description: Release a new version of Guardian (bump version, generate changelog, update README, push tag, create GitHub release)
 ---
 
+## Branch strategy
+
+```
+dev   → développement actif (local + serveur test Discord)
+beta  → early access premium (Hetzner, abonnés premium)
+main  → stable, déclenche la release free publique
+```
+
+**Règle** : ne jamais pusher directement sur `main`. Toujours passer par `dev → beta → main`.
+
+## Daily development flow
+
+```bash
+# Travailler sur dev
+git checkout dev
+# ... code ...
+git push origin dev
+
+# Passer en beta (early access premium sur Hetzner)
+git checkout beta && git merge dev && git push origin beta
+
+# Release stable (merge beta → main + publication)
+git checkout main && git merge beta
+```
+
 ## Prerequisites
-- Working tree must be clean (all changes committed and pushed)
+- Être sur la branche `main` avec le working tree propre
 - `GITHUB_TOKEN` must be set in `guardian/.env`
   - Generate at: https://github.com/settings/tokens → Fine-grained → repo Contents: write + Metadata: read
+- `GITHUB_FREE_RELEASE_TOKEN` set in `guardian/.env` pour publier la version free
+  - Fine-grained token, Contents: write sur `Guardian_Discord_Bot_Free` uniquement
 
 ## Steps
 
@@ -26,7 +53,16 @@ The script does the following automatically:
 - Generates a categorized changelog from git commits since the last tag (feat / fix / refactor / perf / docs / chore)
 - Commits `package.json` + `README.md` together
 - Creates and pushes an annotated git tag
-- Creates a GitHub release with the full categorized changelog notes
+- Creates a GitHub release on the private repo (premium)
+- **Builds the free bundle** (strips `@premium-start/end` blocks + excludes `discordSettings.js`)
+- **Publishes a GitHub Release on `Guardian_Discord_Bot_Free`** with the zip as downloadable asset
+
+## Beta / prerelease flow (early access)
+
+Pour publier une feature en early access sans déclencher la release free :
+1. Mettre `"prerelease": true` dans `guardian/package.json`
+2. Merger `dev → beta` et déployer Hetzner depuis `beta`
+3. Quand stable : `"prerelease": false`, merger `beta → main`, `npm run release`
 
 ## README — source de vérité
 
