@@ -114,25 +114,13 @@ function categorizeCommits(rawLog) {
   return sections.join('\n').trim();
 }
 
-function buildChangelogSummary(changelog, newTag, lastTag) {
-  const commitRange = lastTag
-    ? `[Full diff](https://github.com/${GITHUB_REPO}/compare/${lastTag}...${newTag})`
-    : `[Full history](https://github.com/${GITHUB_REPO}/releases)`;
-
-  // Collapse multi-line changelog into a single-line summary for the table
+function buildCommitSummary(changelog) {
   const lines = (changelog || '').split('\n').filter((l) => l.trim() && !l.startsWith('###'));
-  const summary = lines
+  return lines
     .map((l) => l.replace(/^[-*]\s*/, '').trim())
     .filter(Boolean)
     .slice(0, 6)
     .join(' · ');
-
-  const minor = newTag.replace(/^v/, '').split('.').slice(0, 2).join('.');
-
-  return [
-    `| **v${minor}** | ${summary || '*See full changelog*'} |`,
-    `| | ${commitRange} |`
-  ].join('\n');
 }
 
 function updateReadme(newVersion, newTag, lastTag, changelog) {
@@ -149,11 +137,41 @@ function updateReadme(newVersion, newTag, lastTag, changelog) {
     `version-${newTag}-blue`
   );
 
-  // 2. Insert new changelog entry after the table header
+  // 2. Update changelog table — group by minor version
+  const minor = newVersion.split('.').slice(0, 2).join('.');
+  const minorLabel = `**v${minor}**`;
+  const commitRange = lastTag
+    ? `[Full diff](https://github.com/${GITHUB_REPO}/compare/${lastTag}...${newTag})`
+    : `[Full history](https://github.com/${GITHUB_REPO}/releases)`;
+  const summary = buildCommitSummary(changelog);
+
   const tableHeaderRe = /(\| Version \| Description \|\n\|[-| ]+\|\n)/;
-  const newRow = buildChangelogSummary(changelog, newTag, lastTag);
-  if (tableHeaderRe.test(content)) {
+
+  // Check if an entry for this minor version already exists in the table
+  // Pattern: | **v0.23** | ... |\n| | ... |
+  const existingMinorRe = new RegExp(
+    `(\\| ${minorLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\| )([^\\n]*)( \\|\\n\\| \\| )([^\\n]*)( \\|)`,
+    ''
+  );
+
+  if (existingMinorRe.test(content)) {
+    // Merge: append new summary items to description, prepend new diff link to commits line
+    content = content.replace(existingMinorRe, (_, p1, oldDesc, p3, oldCommits, p5) => {
+      const newDesc = summary
+        ? (oldDesc === '*See full changelog*' ? summary : `${summary} · ${oldDesc}`)
+        : oldDesc;
+      const newCommits = `${commitRange} ${oldCommits}`;
+      return `${p1}${newDesc}${p3}${newCommits}${p5}`;
+    });
+    console.log(`✅ README changelog: merged into existing ${minorLabel} entry`);
+  } else if (tableHeaderRe.test(content)) {
+    // Create new minor entry
+    const newRow = [
+      `| ${minorLabel} | ${summary || '*See full changelog*'} |`,
+      `| | ${commitRange} |`
+    ].join('\n');
     content = content.replace(tableHeaderRe, `$1${newRow}\n`);
+    console.log(`✅ README changelog: created new ${minorLabel} entry`);
   } else {
     console.warn('⚠️  Could not find changelog table in README.md — skipping changelog insertion.');
   }
