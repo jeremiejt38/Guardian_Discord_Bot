@@ -520,6 +520,22 @@ async function main() {
     console.warn('   Définis GITHUB_FREE_RELEASE_TOKEN dans guardian/.env pour activer la publication free.\n');
   }
 
+  // 10. Backport bump commit to beta and dev
+  console.log('\n🔄 Backporting version bump to beta and dev...');
+  for (const branch of ['beta', 'dev']) {
+    try {
+      run(`git checkout ${branch}`);
+      run(`git merge main --no-edit -m "chore: sync ${branch} with main after release ${newTag}"`);
+      run(`git push origin ${branch}`);
+      console.log(`✅ ${branch} synced`);
+    } catch (err) {
+      console.warn(`⚠️  Could not sync ${branch}: ${err.message}`);
+      console.warn(`   Run manually: git checkout ${branch} && git merge main && git push origin ${branch}`);
+    } finally {
+      run(`git checkout main`);
+    }
+  }
+
   console.log(`\n🎉 Release ${newTag} complete!\n`);
 }
 
