@@ -38,7 +38,7 @@ const {
   syncFromDiscord, getAfkConfig, cycleAfkTimeout, applyAfkSettings,
   getSystemChannelConfig, applySystemChannel, getLocaleConfig, syncLocaleToDiscord,
   applyRulesChannel, applyPublicUpdatesChannel, applyDescription,
-  getAutoModConfig, applyAutoModRule, fetchOnboardingState, addOnboardingDefaultChannels,
+  getAutoModConfig, applyAutoModRule, disableAutoModRule, fetchOnboardingState, addOnboardingDefaultChannels,
 } = require('../discordSettings');
 // @premium-end
 
@@ -50,8 +50,7 @@ async function _handleStep8(guildId, interaction) {
     const cfg = automod[ruleKey];
     if (!cfg) { await renderStep(interaction, 8); return true; }
     if (cfg.enabled) {
-      const { disableAutoModRule: _dis } = require('./discordSettings');
-      await _dis(interaction.guild, ruleKey);
+      await disableAutoModRule(interaction.guild, ruleKey);
     } else {
       const words = (() => { const w = getGuildSetting(guildId, 'automod', 'blacklist_words', []); return Array.isArray(w) ? w : []; })();
       await applyAutoModRule(interaction.guild, ruleKey, words);
