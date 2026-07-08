@@ -6,7 +6,7 @@
 
 [![Version](https://img.shields.io/badge/version-v0.23.5-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-Proprietary-orange?style=flat-square)](LICENSE)
 
 *Member management, games, temporary voice channels, moderation and configuration — all from an interactive Discord wizard.*
 
@@ -18,18 +18,30 @@
 
 | Module | Description |
 | --- | --- |
-| 🧙 **Setup wizard** | Guided 8-step configuration directly inside Discord |
+| 🧙 **Setup wizard** | Guided 9-step configuration directly inside Discord |
 | 👥 **Members** | Invite → Member onboarding (3 modes: Classic / Strict / Direct), sponsorship, behavior score, rules acceptance |
-| 🎮 **Games** | Per-game opt-in, dedicated channels (chat / gallery / updates), Steam & RAWG.io integration |
-| 🔊 **Temporary voice** | On-demand creation, auto-deletion, prefix/suffix/limit |
-| 🛡️ **Moderation** | Anti-spam, blacklist, logs, behavior score, auto-expulsion, Discord AutoMod integration |
+| 🎮 **Games** | Per-game opt-in (up to 15), dedicated channels (chat / gallery / updates), Steam & RAWG.io integration |
+| 🔊 **Temporary voice** | On-demand creation, auto-deletion |
+| 🛡️ **Moderation** | Anti-spam, blacklist, slow mode, logs, behavior score, auto-expulsion |
 | 🖥️ **Game servers** | Proposal, approval and tracking of community game servers |
 | ⚙️ **Config panels** | Persistent admin panels per module (channels, roles, games…) |
 | 🔔 **DM notifications** | Per-category private alerts (bot updates, errors, moderation, promotions…) |
 | 🔄 **Migrations** | Versioned DB & Discord migrations — zero data loss on upgrades |
 | 📚 **Server guides** | Auto-generated read-only guide channels (getting started, promotion, games, commands) |
 | 🌐 **i18n** | French, English, Spanish, Portuguese, Italian, German support |
+| 🔒 **Discord native settings** | AFK, system notifications, language sync, Community channels, AutoMod, Onboarding |
+| 🔒 **Unlimited games** | More than 15 games per server |
+| 🔒 **Steam changelogs** | Automatic Steam patch notes in a dedicated channel |
+| 🔒 **Custom welcome** | Personalized welcome DM with variables (name, server, delay…) |
+| 🔒 **Voice customization** | Custom prefix / suffix / member limit per room |
+| 🔒 **Suggestions forum** | Structured suggestion system with statuses |
+| 🔒 **Game server list** | Community-approved server listing channel |
 
+
+---
+
+> 🔒 **Features marked with a lock are part of Guardian Premium** — a hosted version with advanced features.
+> Premium is coming soon. [Stay tuned.](#)
 
 ---
 
