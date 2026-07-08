@@ -155,12 +155,18 @@ function updateReadme(newVersion, newTag, lastTag, changelog) {
   );
 
   if (existingMinorRe.test(content)) {
-    // Merge: append new summary items to description, prepend new diff link to commits line
+    // Merge: prepend new patch summary to description, update the Full diff link end tag
     content = content.replace(existingMinorRe, (_, p1, oldDesc, p3, oldCommits, p5) => {
-      const newDesc = summary
+      // Update description: prepend new items (skip if empty or already present)
+      const newDesc = summary && summary !== oldDesc
         ? (oldDesc === '*See full changelog*' ? summary : `${summary} · ${oldDesc}`)
         : oldDesc;
-      const newCommits = `${commitRange} ${oldCommits}`;
+      // Update the diff link: replace the end tag in the existing Full diff link
+      // e.g. compare/v0.22.1...v0.23.16 → compare/v0.22.1...v0.23.17
+      const newCommits = oldCommits.replace(
+        /(\[Full diff\]\(https:\/\/github\.com\/[^)]+\/compare\/[^.]+\.[^.]+\.[^.]+\.\.\.)v[\d.]+(\))/,
+        `$1${newTag}$2`
+      );
       return `${p1}${newDesc}${p3}${newCommits}${p5}`;
     });
     console.log(`✅ README changelog: merged into existing ${minorLabel} entry`);
