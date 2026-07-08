@@ -56,8 +56,8 @@ test('channelsPanel buildRows — retourne boutons actifs pour suggestions et se
   assert.ok(suggBtn, 'Bouton actif suggestions attendu');
   assert.ok(!suggBtn.label.includes('🔒'), 'Le bouton suggestions ne doit pas avoir le cadenas');
 
-  const srvBtn = allButtons.find((b) => b.custom_id === 'channels:toggle:serveurs');
-  assert.ok(srvBtn, 'Bouton actif serveurs attendu');
+  const srvBtn = allButtons.find((b) => b.custom_id === 'channels:toggle:serverlist');
+  assert.ok(srvBtn, 'Bouton actif server_list attendu');
   assert.ok(!srvBtn.label.includes('🔒'));
 
   try { fs.unlinkSync(tempDbPath); } catch {}
