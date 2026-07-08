@@ -1034,6 +1034,14 @@ function finalizeInstall(guild) {
   markGuildInstalled(guild.id, guild.ownerId);
 }
 
+async function cleanupSetupAreaIfInstalled(guild) {
+  try {
+    await cleanupSetupArea(guild);
+  } catch (err) {
+    logger.warn(`cleanupSetupAreaIfInstalled failed for guild ${guild.id}: ${err.message}`);
+  }
+}
+
 async function cleanupSetupArea(guild) {
   const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
   if (!setupCategory) {
@@ -1354,6 +1362,7 @@ module.exports = {
   SETUP_CLEAN_MODAL_ID,
   createSetupArea,
   ensureSetupInstallPrompt,
+  cleanupSetupAreaIfInstalled,
   finalizeInstall,
   completeGuildSetup,
   handleSetupLanguageSelection,
