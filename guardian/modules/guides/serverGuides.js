@@ -223,6 +223,36 @@ async function createForumGuides(guild) {
   const guildId = guild.id;
   const category = await ensureGuideCategory(guild);
   const readOnlyPerms = READ_ONLY_PERMS.map((p) => ({ ...p, id: guild.roles.everyone.id }));
+  const isCommunity = guild.features?.includes('COMMUNITY') ?? false;
+
+  if (!isCommunity) {
+    const createdChannels = [];
+    for (const def of GUIDE_DEFINITIONS) {
+      let ch = guild.channels.cache.find(
+        (c) => c.parentId === category.id && c.name === def.name && c.type === ChannelType.GuildText
+      );
+      if (!ch) {
+        ch = await guild.channels.create({
+          name: def.name,
+          type: ChannelType.GuildText,
+          parent: category.id,
+          permissionOverwrites: readOnlyPerms,
+          topic: `${def.emoji} ${def.title} — Guardian Guide`
+        }).catch((err) => {
+          logger.warn(`serverGuides: failed to create #${def.name} — ${err.message}`);
+          return null;
+        });
+      } else {
+        await ch.permissionOverwrites.set(readOnlyPerms).catch(() => {});
+      }
+      if (ch) {
+        const content = def.buildContent(guild, guildId);
+        await seedGuideMessage(ch, content);
+        createdChannels.push(ch);
+      }
+    }
+    return createdChannels;
+  }
 
   for (const def of GUIDE_DEFINITIONS) {
     let forum = guild.channels.cache.find(

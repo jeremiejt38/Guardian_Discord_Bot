@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { getDb } = require('../../database/db');
+const { setGuildSetting } = require('../config/settings');
 
 function buildGuildHash(guildId) {
   return crypto.createHash('sha256').update(String(guildId)).digest('hex');
@@ -26,6 +27,7 @@ function markGuildInstalled(guildId, ownerId) {
      ON CONFLICT(guild_id)
      DO UPDATE SET setup_done = 1, setup_hash = excluded.setup_hash, owner_id = excluded.owner_id`
   ).run(guildId, setupHash, ownerId || null);
+  setGuildSetting(guildId, 'setup', 'fresh_install', false);
 }
 
 module.exports = {

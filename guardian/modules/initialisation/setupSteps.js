@@ -949,6 +949,8 @@ async function buildStep8DiscordContent(guildId, guild, { TOTAL_STEPS }) {
     const state = await fetchOnboardingState(guild).catch(() => null);
     if (state) {
       onboardingInfo = `\n\n### 🎟️ Onboarding Discord\n> **Prompts configurés** : ${state.promptCount} | **Canaux par défaut** : ${state.defaultChannelIds.length} | **Mode** : ${state.mode === 1 ? 'Avancé' : 'Simplifié'}\n> Guardian peut ajouter tes channels (#général, #règles, #devenir-membre) comme canaux affichés à l\'arrivée sur le serveur.`;
+    } else {
+      onboardingInfo = `\n\n### ⚠️ Serveur Communautaire — Configuration incomplète\n> Le mode Communautaire est activé sur ce serveur, mais son **configuration Discord n'est pas terminée** (onboarding inaccessible).\n> Pour finaliser : **Paramètres du serveur → Communauté → Onboarding** et complète les étapes requises.\n> *Guardian continuera sans configurer l'onboarding. Tu pourras le faire manuellement ensuite.*`;
     }
   }
 
@@ -965,7 +967,7 @@ async function buildStep8DiscordContent(guildId, guild, { TOTAL_STEPS }) {
   return lines.filter((l) => l !== undefined).join('\n');
 }
 
-function buildStep8DiscordComponents(guildId, guild, { CUSTOM_IDS, buildNavRow }) {
+async function buildStep8DiscordComponents(guildId, guild, { CUSTOM_IDS, buildNavRow }) {
   const automod = getAutoModConfig(guildId);
   const isCommunity = guild?.features?.includes('COMMUNITY') ?? false;
   const rows = [];
@@ -986,10 +988,13 @@ function buildStep8DiscordComponents(guildId, guild, { CUSTOM_IDS, buildNavRow }
   );
 
   if (isCommunity) {
-    actionRow.addComponents(
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.applyOnboardingChannels)
-        .setStyle(ButtonStyle.Primary).setLabel('🎟️ Ajouter channels à l\'onboarding')
-    );
+    const _state = await fetchOnboardingState(guild).catch(() => null);
+    if (_state) {
+      actionRow.addComponents(
+        new ButtonBuilder().setCustomId(CUSTOM_IDS.applyOnboardingChannels)
+          .setStyle(ButtonStyle.Primary).setLabel('🎟️ Ajouter channels à l\'onboarding')
+      );
+    }
   }
   rows.push(actionRow);
   rows.push(buildNavRow(guildId, 8));

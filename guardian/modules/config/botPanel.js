@@ -13,6 +13,8 @@ const { replyEphemeral } = require('../utils/interactions');
 const { findTextChannelByName } = require('../utils/channels');
 const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
+const { isGuildInstalled } = require('../initialisation/checkInstall');
+const { getCurrentStep } = require('../initialisation/setupGrades');
 const { getAvailableLanguages, getGuildLanguage, setGuildLanguage } = require('../i18n');
 const { logConfigChange } = require('./configLogger');
 const { getDb } = require('../../database/db');
@@ -89,7 +91,8 @@ const IDS = Object.freeze({
   editRawgKey: 'bot:edit:rawgkey',
   rawgKeyModal: 'bot:modal:rawgkey',
   editLanguage: 'bot:edit:language',
-  languageModal: 'bot:modal:language'
+  languageModal: 'bot:modal:language',
+  resumeSetup: 'bot:setup:resume'
 });
 
 function hasOwnerGrade(member, guildId) {
@@ -120,7 +123,7 @@ function buildPanelContent(guildId) {
 }
 
 async function upsertStatusEmbed(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  const channel = findTextChannelByName(guild, CHANNELS.guardianConfig);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const existing = msgs?.find((m) => m.author.id === guild.client.user.id && m.embeds.length > 0);
@@ -133,26 +136,36 @@ async function upsertStatusEmbed(guild) {
 }
 
 function buildRows(guildId) {
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(IDS.editLanguage)
-        .setLabel(t(guildId, 'config.bot.editLanguage'))
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId(IDS.editSteamKey)
-        .setLabel(t(guildId, 'config.bot.editSteamKey'))
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(IDS.editRawgKey)
-        .setLabel('🎮 Clé RAWG.io')
-        .setStyle(ButtonStyle.Secondary)
-    )
-  ];
+  const row1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(IDS.editLanguage)
+      .setLabel(t(guildId, 'config.bot.editLanguage'))
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(IDS.editSteamKey)
+      .setLabel(t(guildId, 'config.bot.editSteamKey'))
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(IDS.editRawgKey)
+      .setLabel('🎮 Clé RAWG.io')
+      .setStyle(ButtonStyle.Secondary)
+  );
+  const rows = [row1];
+  if (!isGuildInstalled(guildId) || getCurrentStep(guildId) < 9) {
+    rows.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(IDS.resumeSetup)
+          .setLabel('🔧 Reprendre l\'installation')
+          .setStyle(ButtonStyle.Danger)
+      )
+    );
+  }
+  return rows;
 }
 
 async function seedBotPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  const channel = findTextChannelByName(guild, CHANNELS.guardianConfig);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
@@ -164,7 +177,7 @@ async function seedBotPanel(guild) {
 }
 
 async function refreshBotPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  const channel = findTextChannelByName(guild, CHANNELS.guardianConfig);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
@@ -283,6 +296,19 @@ async function handleBotInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, 'bot.rawg_api_key', old ? '***' : null, key ? '***' : null);
     await refreshBotPanel(interaction.guild);
     await replyEphemeral(interaction, key ? '✅ Clé RAWG enregistrée.' : '🗑️ Clé RAWG supprimée.');
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.resumeSetup) {
+    const { getCurrentStep } = require('../initialisation/setupGrades');
+    const { buildStepPayload } = require('../initialisation/setupFlow');
+    const step = getCurrentStep(guildId);
+    if (step >= 9) {
+      await replyEphemeral(interaction, '✅ La configuration est déjà terminée. Utilise `/status` pour voir l\'état.');
+      return true;
+    }
+    const payload = buildStepPayload(guildId, interaction.guild, step);
+    await interaction.reply({ embeds: payload.embeds, components: payload.components, ephemeral: true }).catch(() => {});
     return true;
   }
 

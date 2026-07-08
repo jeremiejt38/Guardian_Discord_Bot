@@ -313,8 +313,21 @@ const MIGRATIONS = [
         )
       `);
     }
-  }
+  },
   // @premium-end
+  {
+    version: 10,
+    description: 'games: add forum_enabled and channel_forum_id',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(games)').all().map((c) => c.name);
+      if (!cols.includes('forum_enabled')) {
+        conn.exec('ALTER TABLE games ADD COLUMN forum_enabled INTEGER NOT NULL DEFAULT 0');
+      }
+      if (!cols.includes('channel_forum_id')) {
+        conn.exec('ALTER TABLE games ADD COLUMN channel_forum_id TEXT');
+      }
+    }
+  }
 ];
 
 function migrateDatabase() {

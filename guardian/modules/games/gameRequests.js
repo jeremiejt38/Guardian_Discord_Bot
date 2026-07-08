@@ -138,7 +138,7 @@ async function createGameChannelBetweenCategories(guild, gameName, gameRoleId) {
 
 async function postPendingRequestToJeux(guild, requestId, name, steamAppId, requesterId, rawgInfo = null) {
   const jeuxChannel = guild.channels.cache.find(
-    (c) => c.isTextBased?.() && !c.isVoiceBased?.() && c.name === CHANNELS.jeux
+    (c) => c.isTextBased?.() && !c.isVoiceBased?.() && c.name === CHANNELS.reports
   );
   if (!jeuxChannel) return;
 
@@ -169,7 +169,7 @@ async function postPendingRequestToJeux(guild, requestId, name, steamAppId, requ
   );
 
   await jeuxChannel.send({ content, components: [row] }).catch((err) =>
-    logger.error(`[gameRequests] Failed to post request to #jeux: ${err?.message}`)
+    logger.error(`[gameRequests] Failed to post request to #signalements: ${err?.message}`)
   );
 }
 

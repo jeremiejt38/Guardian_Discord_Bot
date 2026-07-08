@@ -149,7 +149,7 @@
       "hint": "Modifiez le nom ou la couleur des roles de chaque grade.",
       "editButton": "Modifier {{grade}}",
       "modalTitle": "Modifier le role {{grade}}",
-      "nameLabel": "Nouveau nom (laisser vide pour ne pas changer)",
+      "nameLabel": "Nouveau nom (vide = inchangé)",
       "colorLabel": "Couleur hex (#RRGGBB, optionnel)",
       "notMapped": "Le grade {{grade}} n'est pas associe a un role.",
       "roleNotFound": "Role introuvable sur le serveur.",
