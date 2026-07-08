@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.23.14-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.23.15-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-Proprietary-orange?style=flat-square)](LICENSE)
 
@@ -167,6 +167,8 @@ npm start
 
 | Version | Description |
 |---------|-------------|
+| **v0.23** | **build**: add .freeignore support, copy public docs to bundle, add anti-leak premium check · **premium**: add hosting plans (premium/trial/free_hosted/lifetime), getLicense logic, updated SQL schema · **premium**: document complete SaaS license architecture (activation, expiration, bidirectional migration) |
+| | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.14...v0.23.15) |
 | **v0.23** | *See full changelog* |
 | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.13...v0.23.14) |
 | **v0.23** | **release**: add detailed commit body on private repo + patch list on free repo commit · **updater**: point changelog/releases links to public free repo instead of private repo |
