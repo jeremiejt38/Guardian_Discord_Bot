@@ -28,7 +28,7 @@ async function alertUpdate(fromVersion, toVersion) {
   await sendAdminAlert('update', [
     `## 🔄 Mise à jour disponible — v${fromVersion} → **v${toVersion}**`,
     `> Une nouvelle version de Guardian est prête.`,
-    `📋 https://github.com/jeremiejt38/Guardian_Discord_Bot/releases`
+    `📋 https://github.com/${process.env.GITHUB_FREE_REPO ?? 'jeremiejt38/Guardian_Discord_Bot_Free'}/releases`
   ].join('\n'));
 }
 

@@ -69,7 +69,7 @@ function isRunningUnderPM2() {
   return Boolean(process.env.PM2_HOME || process.env.pm_id !== undefined);
 }
 
-const GITHUB_REPO = 'jeremiejt38/Guardian_Discord_Bot';
+const GITHUB_REPO = process.env.GITHUB_FREE_REPO ?? 'jeremiejt38/Guardian_Discord_Bot_Free';
 
 async function fetchReleaseNotes(version) {
   try {
@@ -180,7 +180,7 @@ async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
         ? `> ✅ PM2 detected — the bot will restart automatically after the update.`
         : `> ⚠️ PM2 not detected — you will need to restart the bot manually.`,
       ``,
-      `📋 Full changelog : https://github.com/jeremiejt38/Guardian_Discord_Bot/releases/tag/v${toVersion}`
+      `📋 Full changelog : https://github.com/${GITHUB_REPO}/releases/tag/v${toVersion}`
     );
 
     const msg = lines.join('\n');
