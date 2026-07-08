@@ -7,7 +7,6 @@
 [![Version](https://img.shields.io/badge/version-v0.23.5-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
 
 *Member management, games, temporary voice channels, moderation and configuration — all from an interactive Discord wizard.*
 
@@ -148,47 +147,6 @@ npm start
 | `node:os` / `node:fs` *(built-in)* | System info (RAM, uptime, DB size) for the admin panel |
 
 > Guardian uses **no heavy dependencies**: no Express, no ORM, no Redis. The only external requirement is discord.js.
-
-
----
-
-## 🗂️ Project structure
-
-```
-Guardian_Discord_Bot/
-├── guardian/
-│   ├── commands/          # Slash commands (/ban, /config-games, /admin…)
-│   ├── database/          # SQLite schema + migrations
-│   ├── events/            # Discord event handlers (ready, guildCreate, interactionCreate…)
-│   ├── locales/           # Translation files (fr.json, en.json, es.json…)
-│   ├── modules/
-│   │   ├── admin/         # Bot system admin panel, alerts, auto-update
-│   │   ├── config/        # Admin configuration panels
-│   │   ├── games/         # Game management, opt-in, Steam/RAWG changelogs
-│   │   ├── guides/        # Auto-generated server guide channels
-│   │   ├── initialisation/# Setup wizard, channel/role creation, seeds
-│   │   ├── members/       # Promotions, sponsorship, behavior score, rules acceptance
-│   │   ├── migrations/    # Versioned Discord migrations (channels, roles, new options)
-│   │   ├── moderation/    # Anti-spam, blacklist, moderation logs, AutoMod integration
-│   │   ├── notifications/ # Per-guild configurable DM notifications
-│   │   ├── servers/       # Game server monitor
-│   │   └── utils/         # Shared utilities (discordErrors, channels…)
-│   └── tests/             # Unit + E2E test suite
-├── scripts/               # Release, README generation, roadmap management
-└── .windsurf/workflows/   # Developer workflow shortcuts
-```
-
-
----
-
-## 🧪 Tests
-
-```bash
-cd guardian && npm test
-```
-
-Tests run on an in-memory SQLite database and cover the setup wizard, config panels, games and moderation.
-**E2E tests (`tests/e2e.test.js`) cover 6 complete integration flows: setup, games, members, moderation, migrations, notifications.**
 
 
 ---
