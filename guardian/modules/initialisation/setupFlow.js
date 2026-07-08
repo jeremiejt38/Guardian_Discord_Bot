@@ -480,7 +480,7 @@ function buildStep2Content(guildId, guild) {
   const c = getStep2Config(guildId);
   const dot = (v) => v ? '🟢 Actif' : '🔴 Inactif';
 
-  // Discord native settings (read live from guild if available)
+  // @premium-start
   const afkCfg = getAfkConfig(guildId, guild);
   const afkTimeoutLabel = AFK_TIMEOUT_LABELS[afkCfg.timeout] ?? `${afkCfg.timeout}s`;
   const afkChannelMention = afkCfg.channelId && guild?.channels?.cache?.get(afkCfg.channelId)
@@ -496,6 +496,7 @@ function buildStep2Content(guildId, guild) {
   const localeStatus = locale.inSync
     ? `✅ En accord avec Discord (${locale.discordLocale})`
     : `⚠️ Discord : \`${locale.discordLocale}\` ≠ Guardian : \`${locale.guardianLang}\``;
+  // @premium-end
 
   return [
     `## ${t('setup.step2Title', {}, { guildId })} (2/${TOTAL_STEPS})`,
@@ -821,13 +822,14 @@ function buildStep4Content(guildId, guild) {
   const welcomePreview = c.welcomeText ? `"${c.welcomeText.slice(0, 60)}${c.welcomeText.length > 60 ? '…' : ''}"` : '*non défini*';
   const isCommunity = guild?.features?.includes('COMMUNITY') ?? false;
 
-  // Community-specific Discord settings
+  // @premium-start
   const rulesChId = getGuildSetting(guildId, 'discord', 'rules_channel_id', guild?.rulesChannelId ?? null);
   const rulesChMention = rulesChId && guild?.channels?.cache?.get(rulesChId) ? `<#${rulesChId}>` : '*non défini*';
   const pubUpdId = getGuildSetting(guildId, 'discord', 'public_updates_channel_id', guild?.publicUpdatesChannelId ?? null);
   const pubUpdMention = pubUpdId && guild?.channels?.cache?.get(pubUpdId) ? `<#${pubUpdId}>` : '*non défini*';
   const description = getGuildSetting(guildId, 'discord', 'description', guild?.description ?? null);
   const descPreview = description ? `"${String(description).slice(0, 80)}${String(description).length > 80 ? '…' : ''}"` : '*non définie*';
+  // @premium-end
 
   return [
     `## ${t('setup.step4Title', {}, { guildId })} (4/${TOTAL_STEPS})`,
@@ -1748,7 +1750,9 @@ function buildStepPayload(guildId, guild, step) {
     case 5: return { content: pad(buildStep5VocalContent(guildId)), components: buildStep5VocalComponents(guildId) };
     case 6: return { content: pad(buildStep6Content_Games(guildId)), components: buildStep6Components_Games(guildId) };
     case 7: return { content: pad(buildStep7Content(guildId)), components: buildStep7Components(guildId) };
+    // @premium-start
     case 8: return { content: pad('## 🔧 Paramètres Discord avancés (8/9)\n*Chargement...*'), components: buildStep8DiscordComponents(guildId, guild) };
+    // @premium-end
     default: return { content: pad(buildStep9Summary(guildId)), components: buildStep9Components(guildId) };
   }
 }
