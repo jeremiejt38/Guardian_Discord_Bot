@@ -37,7 +37,7 @@ function buildStepPayload(guildId, guild, step, ctx) {
     case 6: return { content: pad(s.buildStep6Content_Games(guildId, ctx)), components: s.buildStep6Components_Games(guildId, ctx) };
     case 7: return { content: pad(s.buildStep7Content(guildId, ctx)), components: s.buildStep7Components(guildId, ctx) };
     // @premium-start
-    case 8: return { content: pad('## \ud83d\udd27 Param\u00e8tres Discord avanc\u00e9s (8/9)\n*Chargement...*'), components: s.buildStep8DiscordComponents(guildId, guild, ctx) };
+    case 8: return { content: pad('## \ud83d\udd27 Param\u00e8tres Discord avanc\u00e9s (8/9)\n*Chargement...*'), components: [] };
     // @premium-end
     default: return { content: pad(s.buildStep9Summary(guildId, ctx)), components: s.buildStep9Components(guildId, ctx) };
   }
@@ -54,7 +54,7 @@ async function renderStep(interaction, step, ctx) {
       await interaction.deferUpdate().catch(() => {});
       const s = require('./setupSteps');
       const content = await s.buildStep8DiscordContent(guildId, guild, ctx);
-      const components = s.buildStep8DiscordComponents(guildId, guild, ctx);
+      const components = await s.buildStep8DiscordComponents(guildId, guild, ctx);
       await interaction.message.edit({ content: content + '\n\u200b', components }).catch(async () => {
         await interaction.channel?.send({ content: content + '\n\u200b', components }).catch(() => {});
       });

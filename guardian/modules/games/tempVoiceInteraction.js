@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectMenuBuilder } = require('discord.js');
 const { getDb } = require('../../database/db');
-const { CHANNEL_NAMES, GRADE_NAMES } = require('../../config');
+const { CHANNEL_NAMES, GRADE_NAMES, CATEGORIES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { findTextChannelByName } = require('../utils/channels');
@@ -175,7 +175,7 @@ async function handleTempVoiceInteraction(interaction) {
     const suffix = isChat ? '' : getGuildSetting(interaction.guildId, 'vocaux', 'name_suffix', 'Partie');
     const userLimit = Math.max(0, Number(getGuildSetting(interaction.guildId, 'vocaux', 'max_members', 0)));
     const category = interaction.guild.channels.cache.find(
-      (channel) => channel.type === ChannelType.GuildCategory && channel.name.toLowerCase() === 'vocaux'
+      (channel) => channel.type === ChannelType.GuildCategory && channel.name === CATEGORIES.vocaux
     );
 
     const channelName = isChat
@@ -190,10 +190,7 @@ async function handleTempVoiceInteraction(interaction) {
       await requester.voice.setChannel(created).catch(() => undefined);
     }
 
-    await interaction.update({
-      content: t('tempVoice.created', { channel: `<#${created.id}>` }, { guildId: interaction.guildId }),
-      components: []
-    });
+    await interaction.update({ content: '\u200b', components: [] }).catch(() => {});
     return true;
   }
 

@@ -47,6 +47,9 @@ function findGuildForumChannelByName(guild, name, parentId) {
   ) ?? null;
 }
 
+/**
+ * Resolves a text channel by ID or fallback name
+ */
 async function resolveTextChannel(guild, preferredId, fallbackName, onFallback) {
   if (preferredId) {
     const byId = await guild.channels.fetch(preferredId).catch(() => null);

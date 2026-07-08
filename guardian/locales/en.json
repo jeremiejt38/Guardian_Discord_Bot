@@ -82,7 +82,7 @@
     "step5NotReady": "You must complete all steps before finalizing.",
     "finalizeNotReady": "You must complete all steps before finalizing.",
     "finalized": "Installation complete! Guardian is now active.",
-    "summary": "\ud83c\udf89 **SETUP COMPLETE \u2014 Guardian is now active on {{guild}}!**\n\n\ud83d\udc65 **Grades & Access**\nGuests can request to become Member after **{{delay}}h**.\n\n\u2699\ufe0f **Next steps for admins**\n1\ufe0f\u20e3 Go to `#rules` and customize the server rules\n2\ufe0f\u20e3 Go to `#faq` and fill in frequently asked questions\n3\ufe0f\u20e3 Go to `#configuration` \u2192 `#channels` to fine-tune permissions\n4\ufe0f\u20e3 Add your games and configure voice channels in `#configuration`\n\n\ud83d\udcda **Resources**\n\u2022 `#faq` \u2014 Frequently asked questions\n\u2022 `#statut-bot` \u2014 Bot status and logs\n\u2022 `/help` \u2014 Guardian command help\n\nGood luck! \ud83d\ude80"
+    "summary": "🎉 **SETUP COMPLETE — Guardian is now active on {{guild}}!**\n\n👥 **Grades & Access**\nGuests can request to become Member after **{{delay}}h**.\n\n⚙️ **Next steps for admins**\n1️⃣ Go to `#rules` and customize the server rules\n2️⃣ Go to `#faq` and fill in frequently asked questions\n3️⃣ Go to `#configuration` → `#channels` to fine-tune permissions\n4️⃣ Add your games and configure voice channels in `#configuration`\n\n📚 **Resources**\n• `#faq` — Frequently asked questions\n• `#statut-bot` — Bot status and logs\n• `/help` — Guardian command help\n\nGood luck! 🚀"
   },
   "interaction": {
     "unsupported": "Unsupported interaction.",
@@ -188,7 +188,7 @@
     "addModalSanction": "Sanction (warn/mute/kick/ban)",
     "invalidScore": "Invalid score. Must be a positive integer.",
     "invalidSanction": "Invalid sanction. Accepted values: {{valid}}",
-    "thresholdAdded": "Threshold added: score {{score}} \u2192 {{sanction}}.",
+    "thresholdAdded": "Threshold added: score {{score}} → {{sanction}}.",
     "thresholdRemoved": "Threshold @{{score}} removed.",
     "scoreListTitle": "Member behavior scores",
     "scoreListEmpty": "No members with a recorded score.",
@@ -344,7 +344,8 @@
       "configLogs": "Guardian config logs — history of all configuration changes.",
       "roles": "Guardian role configuration — grade mapping Invite/Member/Moderator/Manager/Owner.",
       "guardian": "Guardian main control panel — owner access only.",
-      "serverManagement": "Server management — reserved for the future Pterodactyl control system."
+      "serverManagement": "Server management — reserved for the future Pterodactyl control system.",
+      "setup": "Guardian configuration channel — reserved for server administration."
     }
   },
   "commands": {

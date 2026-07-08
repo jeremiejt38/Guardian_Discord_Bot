@@ -79,7 +79,11 @@
     "finalized": "Instalação concluída! Guardian está agora ativo.",
     "summary": "🎉 **INSTALAÇÃO CONCLUÍDA — Guardian está agora ativo em {{guild}}!**\n\n👥 **Graus & Acesso**\nOs convidados podem pedir para ser Membro após **{{delay}}h**.\n\n⚙️ **Próximos passos**\n1️⃣ Vai a `#regras` e personaliza o regulamento\n2️⃣ Vai a `#faq` e completa as perguntas frequentes\n3️⃣ Vai a `#configuração` para ajustar as permissões\n4️⃣ Adiciona jogos e configura os canais de voz\n\nBoa sorte! 🚀"
   },
-  "interaction": { "unsupported": "Interação não suportada.", "internalError": "Ocorreu um erro interno.", "forbidden": "Não tens permissão para realizar esta ação." },
+  "interaction": {
+    "unsupported": "Interação não suportada.",
+    "internalError": "Ocorreu um erro interno.",
+    "forbidden": "Não tens permissão para realizar esta ação."
+  },
   "messageCreate": {
     "slowDown": "{{user}}, por favor mais devagar.",
     "forbiddenWord": "{{user}}, esta mensagem contém uma palavra proibida."
@@ -124,11 +128,35 @@
     "replySent": "Mensagem enviada a {{user}}."
   },
   "commands": {
-    "ban": { "description": "Banir um membro", "memberOption": "Membro", "reasonOption": "Motivo", "success": "{{memberTag}} foi banido." },
-    "kick": { "description": "Expulsar um membro", "memberOption": "Membro", "reasonOption": "Motivo", "success": "{{member}} foi expulso." },
-    "warn": { "description": "Advertir um membro", "memberOption": "Membro", "reasonOption": "Motivo", "success": "Advertência registada para {{member}}." },
-    "langue": { "description": "Mudar o idioma do bot", "optionCode": "Código de idioma", "updated": "Idioma atualizado: {{language}}." },
-    "langues": { "description": "Listar os idiomas disponíveis", "title": "Idiomas disponíveis", "current": "Idioma atual: {{language}} ({{code}}).", "item": "- {{language}} ({{code}})" }
+    "ban": {
+      "description": "Banir um membro",
+      "memberOption": "Membro",
+      "reasonOption": "Motivo",
+      "success": "{{memberTag}} foi banido."
+    },
+    "kick": {
+      "description": "Expulsar um membro",
+      "memberOption": "Membro",
+      "reasonOption": "Motivo",
+      "success": "{{member}} foi expulso."
+    },
+    "warn": {
+      "description": "Advertir um membro",
+      "memberOption": "Membro",
+      "reasonOption": "Motivo",
+      "success": "Advertência registada para {{member}}."
+    },
+    "langue": {
+      "description": "Mudar o idioma do bot",
+      "optionCode": "Código de idioma",
+      "updated": "Idioma atualizado: {{language}}."
+    },
+    "langues": {
+      "description": "Listar os idiomas disponíveis",
+      "title": "Idiomas disponíveis",
+      "current": "Idioma atual: {{language}} ({{code}}).",
+      "item": "- {{language}} ({{code}})"
+    }
   },
   "roleSecurity": {
     "title": "## 🔐 Verificação de segurança de cargos",
@@ -176,5 +204,40 @@
     "dmLinkFallback": "➡️ Procura o canal **#setup** no teu servidor para começar.",
     "dmFooter1": "> O canal de configuração só é visível para ti e para o proprietário do servidor.",
     "dmFooter2": "> A configuração demora cerca de 5 minutos."
+  },
+  "init": {
+    "topics": {
+      "general": "Canal de discussão geral da comunidade.",
+      "requests": "Pedidos — envie as suas candidaturas e pedidos à equipa.",
+      "serverList": "Lista de servidores de jogo comunitários — atualizada automaticamente pelo Guardian.",
+      "suggestions": "Sugestões — partilhe as suas ideias com a equipa através deste fórum.",
+      "welcome": "Bem-vindo — o Guardian recebe aqui os novos membros.",
+      "rules": "Regulamento do servidor — leia e respeite as regras antes de participar.",
+      "annonces": "Anúncios oficiais — notícias e atualizações da equipa.",
+      "faq": "Perguntas frequentes — encontre respostas às perguntas mais comuns.",
+      "voiceCreate": "Crie o seu canal de voz temporário clicando no botão abaixo.",
+      "voiceGeneral": "Canal de voz principal — junte-se para conversar com a comunidade.",
+      "voiceAfk": "Canal AFK — os membros inativos são movidos automaticamente para aqui.",
+      "becomeMember": "Como se tornar Membro — regras do servidor, como fazer um pedido e manter-se ativo.",
+      "joinServer": "Porquê juntar-se ao nosso servidor — descubra a comunidade e as vantagens de ser Membro.",
+      "reports": "Relatórios de membros — o Guardian regista aqui os relatórios enviados via /signaler.",
+      "autoModeration": "Logs de auto-moderação — o Guardian regista as infrações detetadas automaticamente (spam, lista negra…).",
+      "behavior": "Pontuação comportamental — o Guardian mostra aqui o histórico de avisos e sanções.",
+      "moderationLogs": "Logs de moderação Guardian — sanções, promoções, ações da equipa.",
+      "securityUpdates": "Atualizações de segurança Discord — visível apenas para Manager e Owner.",
+      "gameChannels": "Os meus canais de jogo — cada membro pode gerir aqui os seus opt-ins de canais de jogo.",
+      "gameList": "A minha lista de jogos — mostra os jogos em que o membro participa.",
+      "serveurs": "Servidores comunitários — propostas e lista de servidores de jogo da comunidade.",
+      "botConfig": "Configuração do bot — estado, módulos ativos e parâmetros gerais do Guardian.",
+      "membres": "Gestão de membros — configuração de regras de acesso, patrocínio e promoções.",
+      "channelsConfig": "Configuração de canais — gestão de permissões e estrutura dos canais.",
+      "vocauxConfig": "Configuração de voz — prefixo, sufixo, limite e atraso dos canais de voz temporários.",
+      "jeux": "Configuração de jogos — adicionar, editar e remover jogos do servidor.",
+      "configLogs": "Logs de configuração Guardian — histórico de todas as alterações de configuração.",
+      "roles": "Configuração de funções Guardian — mapeamento de graus Convidado/Membro/Moderador/Manager/Owner.",
+      "guardian": "Painel de controlo principal Guardian — acesso apenas para Owner.",
+      "serverManagement": "Gestão de servidores — reservado para o futuro sistema de controlo Pterodactyl.",
+      "setup": "Canal de configuração Guardian — reservado para a administração do servidor."
+    }
   }
 }

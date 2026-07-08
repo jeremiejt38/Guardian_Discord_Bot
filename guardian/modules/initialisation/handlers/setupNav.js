@@ -451,10 +451,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
     await interaction.deferUpdate().catch(() => {});
     try {
-      const { completeGuildSetup } = require('./setup');
-      const { recordInstallVersion } = require('../migrations/channelMigrations');
-      const { saveConfigBackup } = require('../config/configBackup');
-      const { version } = require('../../package.json');
+      const { completeGuildSetup } = require('../setup');
+      const { recordInstallVersion } = require('../../migrations/channelMigrations');
+      const { saveConfigBackup } = require('../../config/configBackup');
+      const { version } = require('../../../package.json');
       await completeGuildSetup(interaction.guild);
       recordInstallVersion(guildId, version);
       await saveConfigBackup(interaction.guild);
@@ -484,10 +484,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
         logger.info(`Guild ${guildId}: install notify DMs sent to ${sent} members`);
       }
     }
-    const { completeGuildSetup } = require('./setup');
-    const { recordInstallVersion } = require('../migrations/channelMigrations');
-    const { saveConfigBackup } = require('../config/configBackup');
-    const { version } = require('../../package.json');
+    const { completeGuildSetup } = require('../setup');
+    const { recordInstallVersion } = require('../../migrations/channelMigrations');
+    const { saveConfigBackup } = require('../../config/configBackup');
+    const { version } = require('../../../package.json');
     try {
       await completeGuildSetup(interaction.guild);
       recordInstallVersion(guildId, version);
@@ -503,7 +503,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
   if (interaction.customId === CUSTOM_IDS.prereleaseConfirm) {
     await interaction.deferUpdate().catch(() => {});
-    const { version, prerelease } = require('../../package.json');
+    const { version, prerelease } = require('../../../package.json');
     setGuildSetting(guildId, 'bot', 'last_version', version);
     setGuildSetting(guildId, 'bot', 'prerelease_pending', null);
     const confirmed = [
@@ -518,7 +518,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
   if (interaction.customId === CUSTOM_IDS.prereleaseSkip) {
     await interaction.deferUpdate().catch(() => {});
-    const { version } = require('../../package.json');
+    const { version } = require('../../../package.json');
     setGuildSetting(guildId, 'bot', 'prerelease_skipped', version);
     const skipped = [
       `## ⏭️ Mise à jour ignorée — v${version} *(test)*`,

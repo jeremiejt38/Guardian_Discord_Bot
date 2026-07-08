@@ -79,7 +79,9 @@
     "finalized": "Installation abgeschlossen! Guardian ist jetzt aktiv.",
     "summary": "🎉 **SETUP ABGESCHLOSSEN — Guardian ist jetzt auf {{guild}} aktiv!**\n\n👥 **Grade & Zugang**\nGäste können nach **{{delay}}h** Mitglied werden.\n\n⚙️ **Nächste Schritte**\n1️⃣ `#regeln` anpassen\n2️⃣ `#faq` ausfüllen\n3️⃣ `#konfiguration` → Berechtigungen anpassen\n4️⃣ Spiele & Sprachkanäle konfigurieren\n\nViel Erfolg! 🚀"
   },
-  "interaction": { "unsupported": "Nicht unterstützte Interaktion." },
+  "interaction": {
+    "unsupported": "Nicht unterstützte Interaktion."
+  },
   "messageCreate": {
     "slowDown": "{{user}}, bitte langsamer.",
     "forbiddenWord": "{{user}}, diese Nachricht enthält ein verbotenes Wort."
@@ -124,11 +126,35 @@
     "replySent": "Nachricht an {{user}} gesendet."
   },
   "commands": {
-    "ban": { "description": "Mitglied bannen", "memberOption": "Mitglied", "reasonOption": "Grund", "success": "{{memberTag}} wurde gebannt." },
-    "kick": { "description": "Mitglied kicken", "memberOption": "Mitglied", "reasonOption": "Grund", "success": "{{member}} wurde gekickt." },
-    "warn": { "description": "Mitglied verwarnen", "memberOption": "Mitglied", "reasonOption": "Grund", "success": "Verwarnung für {{member}} gespeichert." },
-    "langue": { "description": "Bot-Sprache ändern", "optionCode": "Sprachcode", "updated": "Sprache aktualisiert: {{language}}." },
-    "langues": { "description": "Verfügbare Sprachen auflisten", "title": "Verfügbare Sprachen", "current": "Aktuelle Sprache: {{language}} ({{code}}).", "item": "- {{language}} ({{code}})" }
+    "ban": {
+      "description": "Mitglied bannen",
+      "memberOption": "Mitglied",
+      "reasonOption": "Grund",
+      "success": "{{memberTag}} wurde gebannt."
+    },
+    "kick": {
+      "description": "Mitglied kicken",
+      "memberOption": "Mitglied",
+      "reasonOption": "Grund",
+      "success": "{{member}} wurde gekickt."
+    },
+    "warn": {
+      "description": "Mitglied verwarnen",
+      "memberOption": "Mitglied",
+      "reasonOption": "Grund",
+      "success": "Verwarnung für {{member}} gespeichert."
+    },
+    "langue": {
+      "description": "Bot-Sprache ändern",
+      "optionCode": "Sprachcode",
+      "updated": "Sprache aktualisiert: {{language}}."
+    },
+    "langues": {
+      "description": "Verfügbare Sprachen auflisten",
+      "title": "Verfügbare Sprachen",
+      "current": "Aktuelle Sprache: {{language}} ({{code}}).",
+      "item": "- {{language}} ({{code}})"
+    }
   },
   "roleSecurity": {
     "title": "## 🔐 Rollen-Sicherheitsprüfung",
@@ -176,5 +202,40 @@
     "dmLinkFallback": "➡️ Suche den **#setup**-Kanal auf deinem Server, um loszulegen.",
     "dmFooter1": "> Der Setup-Kanal ist nur für dich und den Serverbesitzer sichtbar.",
     "dmFooter2": "> Die Konfiguration dauert etwa 5 Minuten."
+  },
+  "init": {
+    "topics": {
+      "general": "Allgemeiner Diskussionskanal der Gemeinschaft.",
+      "requests": "Anfragen — reiche deine Bewerbungen und Anfragen beim Team ein.",
+      "serverList": "Community-Spielserverliste — automatisch von Guardian aktualisiert.",
+      "suggestions": "Vorschläge — teile deine Ideen mit dem Team über dieses Forum.",
+      "welcome": "Willkommen — Guardian begrüßt neue Mitglieder hier.",
+      "rules": "Serverregeln — lies und befolge die Regeln, bevor du teilnimmst.",
+      "annonces": "Offizielle Ankündigungen — Neuigkeiten und Updates vom Team.",
+      "faq": "Häufig gestellte Fragen — finde Antworten auf häufige Fragen.",
+      "voiceCreate": "Erstelle deinen temporären Sprachkanal durch Klicken auf die Schaltfläche unten.",
+      "voiceGeneral": "Haupt-Sprachkanal — tritt bei, um mit der Community zu chatten.",
+      "voiceAfk": "AFK-Kanal — inaktive Mitglieder werden automatisch hierher verschoben.",
+      "becomeMember": "Wie man Mitglied wird — Serverregeln, wie man sich bewirbt und aktiv bleibt.",
+      "joinServer": "Warum unserem Server beitreten — entdecke die Community und die Vorteile eines Mitglieds.",
+      "reports": "Mitgliederberichte — Guardian protokolliert hier über /signaler eingereichte Berichte.",
+      "autoModeration": "Automatische Moderationsprotokolle — Guardian erfasst automatisch erkannte Verstöße (Spam, Blacklist…).",
+      "behavior": "Verhaltens-Score — Guardian zeigt hier den Verlauf von Warnungen und Sanktionen.",
+      "moderationLogs": "Guardian-Moderationsprotokolle — Sanktionen, Beförderungen, Teamaktionen.",
+      "securityUpdates": "Discord-Sicherheitsupdates — nur für Manager und Owner sichtbar.",
+      "gameChannels": "Meine Spielkanäle — jedes Mitglied kann hier seine Spielkanal-Opt-ins verwalten.",
+      "gameList": "Meine Spielliste — zeigt die Spiele an, an denen das Mitglied teilnimmt.",
+      "serveurs": "Community-Server — Vorschläge und Liste der Community-Spielserver.",
+      "botConfig": "Bot-Konfiguration — Status, aktive Module und allgemeine Guardian-Einstellungen.",
+      "membres": "Mitgliederverwaltung — Konfiguration von Zugriffsregeln, Sponsoring und Beförderungen.",
+      "channelsConfig": "Kanal-Konfiguration — Verwaltung von Berechtigungen und Kanalstruktur.",
+      "vocauxConfig": "Sprach-Konfiguration — Präfix, Suffix, Limit und Verzögerung temporärer Sprachkanäle.",
+      "jeux": "Spiel-Konfiguration — Spiele hinzufügen, bearbeiten und entfernen.",
+      "configLogs": "Guardian-Konfigurationsprotokolle — Verlauf aller Konfigurationsänderungen.",
+      "roles": "Guardian-Rollenkonfiguration — Grad-Mapping Eingeladen/Mitglied/Moderator/Manager/Owner.",
+      "guardian": "Guardian-Hauptsteuerfeld — nur Owner-Zugang.",
+      "serverManagement": "Serververwaltung — reserviert für das zukünftige Pterodactyl-Kontrollsystem.",
+      "setup": "Guardian-Konfigurationskanal — nur für die Serveradministration."
+    }
   }
 }

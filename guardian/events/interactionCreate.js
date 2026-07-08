@@ -14,6 +14,7 @@ const { handleOpenGameList, handleGameListSelection } = require('../modules/game
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
 const { handleServerGamesInteraction } = require('../modules/games/serverGamesManager');
 const { handleGameRequestInteraction } = require('../modules/games/gameRequests');
+const { handleMemberRequestInteraction } = require('../modules/members/memberRequests');
 const { handlePromotionInteraction, IDS: PROMOTION_IDS } = require('../modules/members/promotion');
 const { handleBecomeMemberInteraction } = require('../modules/members/becomeMemberChannel');
 const { handleRulesInteraction } = require('../modules/members/rulesAcceptance');
@@ -322,6 +323,9 @@ module.exports = {
       const gameRequestHandled = await handleGameRequestInteraction(interaction);
       if (gameRequestHandled) return;
     }
+
+    const memberRequestHandled = await handleMemberRequestInteraction(interaction);
+    if (memberRequestHandled) return;
 
     if (interaction.isButton() && interaction.customId === SETUP_INSTALL_BUTTON_ID) {
       await handleSetupInstallButton(interaction);
