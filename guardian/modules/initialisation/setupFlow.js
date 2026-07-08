@@ -57,6 +57,7 @@ const CUSTOM_IDS = Object.freeze({
   toggleStatusBot: 'setup:modules:status-bot:toggle',
   toggleAfk: 'setup:modules:afk:toggle',
   toggleGameUpdates: 'setup:modules:game-updates:toggle',
+  toggleGuides: 'setup:modules:guides:toggle',
   toggleBioRequired: 'setup:members:bio:toggle',
   toggleSponsorshipRequired: 'setup:members:sponsorship:toggle',
   decreasePromotionDelay: 'setup:members:delay:dec',
@@ -412,7 +413,8 @@ function getStep2Config(guildId) {
     serverListEnabled: Boolean(getGuildSetting(guildId, 'channels', 'server_list_enabled', false)),
     statusBotEnabled: Boolean(getGuildSetting(guildId, 'channels', 'status_bot_enabled', true)),
     afkEnabled: Boolean(getGuildSetting(guildId, 'channels', 'afk_enabled', true)),
-    gameUpdatesEnabled: Boolean(getGuildSetting(guildId, 'channels', 'game_updates_enabled', true))
+    gameUpdatesEnabled: Boolean(getGuildSetting(guildId, 'channels', 'game_updates_enabled', true)),
+    guidesEnabled: Boolean(getGuildSetting(guildId, 'guides', 'enabled', true))
   };
 }
 
@@ -422,6 +424,7 @@ function setStep2Config(guildId, config) {
   setGuildSetting(guildId, 'channels', 'status_bot_enabled', config.statusBotEnabled);
   setGuildSetting(guildId, 'channels', 'afk_enabled', config.afkEnabled);
   setGuildSetting(guildId, 'channels', 'game_updates_enabled', config.gameUpdatesEnabled);
+  setGuildSetting(guildId, 'guides', 'enabled', config.guidesEnabled);
 }
 
 function buildStep2Content(guildId) {
@@ -444,7 +447,10 @@ function buildStep2Content(guildId) {
     '> Salon où Discord déplace automatiquement les membres inactifs.',
     '',
     `📢 **Game Updates** — ${dot(c.gameUpdatesEnabled)}`,
-    '> Publie les changelogs Steam des jeux configurés dans un channel dédié.'
+    '> Publie les changelogs Steam des jeux configurés dans un channel dédié.',
+    '',
+    `📚 **Guides** — ${dot(c.guidesEnabled)}`,
+    '> Génère une catégorie de guides de serveur (démarrage, promotion, parrainage, jeux, commandes).'
   ].join('\n');
 }
 
@@ -462,7 +468,9 @@ function buildStep2Components(guildId) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleAfk).setStyle(c.afkEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
       .setLabel('🔇 AFK'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGameUpdates).setStyle(c.gameUpdatesEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel('🎮 Game Updates')
+      .setLabel('🎮 Game Updates'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGuides).setStyle(c.guidesEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setLabel('📚 Guides')
   );
   return [row, row2, buildNavRow(guildId, 2)];
 }
@@ -2008,6 +2016,10 @@ async function handleSetupInteraction(interaction) {
   }
   if (interaction.customId === CUSTOM_IDS.toggleGameUpdates) {
     const c = getStep2Config(guildId); c.gameUpdatesEnabled = !c.gameUpdatesEnabled; setStep2Config(guildId, c);
+    await renderStep(interaction, 2); return true;
+  }
+  if (interaction.customId === CUSTOM_IDS.toggleGuides) {
+    const c = getStep2Config(guildId); c.guidesEnabled = !c.guidesEnabled; setStep2Config(guildId, c);
     await renderStep(interaction, 2); return true;
   }
 
