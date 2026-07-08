@@ -119,7 +119,7 @@ function buildChangelogSummary(changelog, newTag, lastTag) {
     : `[Full history](https://github.com/${GITHUB_REPO}/releases)`;
 
   // Collapse multi-line changelog into a single-line summary for the table
-  const lines = changelog.split('\n').filter((l) => l.trim() && !l.startsWith('###'));
+  const lines = (changelog || '').split('\n').filter((l) => l.trim() && !l.startsWith('###'));
   const summary = lines
     .map((l) => l.replace(/^[-*]\s*/, '').trim())
     .filter(Boolean)
