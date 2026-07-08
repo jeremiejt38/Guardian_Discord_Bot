@@ -298,7 +298,23 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  // @premium-start
+  {
+    version: 9,
+    description: 'guild_tier: premium tier per guild with optional expiry',
+    up(conn) {
+      conn.exec(`
+        CREATE TABLE IF NOT EXISTS guild_tier (
+          guild_id   TEXT PRIMARY KEY,
+          tier       TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'premium')),
+          expires_at INTEGER,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+    }
   }
+  // @premium-end
 ];
 
 function migrateDatabase() {
@@ -385,6 +401,48 @@ function getModerationRoleIds(guildId) {
   return rows.map((row) => row.role_id).filter(Boolean);
 }
 
+// @premium-start
+/**
+ * Retourne le tier actuel d'un guild ('free' | 'premium').
+ * Si expires_at est dépassé, on retourne 'free' et on purge la ligne.
+ * @param {string} guildId
+ * @returns {'free'|'premium'}
+ */
+function getGuildTier(guildId) {
+  try {
+    const conn = getDb();
+    const row = conn.prepare('SELECT tier, expires_at FROM guild_tier WHERE guild_id = ?').get(guildId);
+    if (!row) return 'free';
+    if (row.expires_at && Date.now() > row.expires_at) {
+      conn.prepare('DELETE FROM guild_tier WHERE guild_id = ?').run(guildId);
+      return 'free';
+    }
+    return row.tier === 'premium' ? 'premium' : 'free';
+  } catch {
+    return 'free';
+  }
+}
+
+/**
+ * Définit le tier d'un guild.
+ * @param {string} guildId
+ * @param {'free'|'premium'} tier
+ * @param {number|null} expiresAt - timestamp ms Unix (null = pas d'expiration)
+ */
+function setGuildTier(guildId, tier, expiresAt = null) {
+  const conn = getDb();
+  const safeTier = tier === 'premium' ? 'premium' : 'free';
+  conn.prepare(`
+    INSERT INTO guild_tier (guild_id, tier, expires_at, updated_at)
+    VALUES (?, ?, ?, datetime('now'))
+    ON CONFLICT(guild_id) DO UPDATE SET
+      tier = excluded.tier,
+      expires_at = excluded.expires_at,
+      updated_at = datetime('now')
+  `).run(guildId, safeTier, expiresAt ?? null);
+}
+// @premium-end
+
 module.exports = {
   initDatabase,
   migrateDatabase,
@@ -393,5 +451,9 @@ module.exports = {
   getConfig,
   setGrade,
   getGrade,
-  getModerationRoleIds
+  getModerationRoleIds,
+  // @premium-start
+  getGuildTier,
+  setGuildTier,
+  // @premium-end
 };
