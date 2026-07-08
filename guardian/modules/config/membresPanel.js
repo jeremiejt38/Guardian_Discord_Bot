@@ -2,6 +2,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  EmbedBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle
@@ -38,25 +39,30 @@ function hasManagerGrade(member, guildId) {
          (ownerRoleId && member.roles.cache.has(ownerRoleId));
 }
 
-function buildPanelContent(guildId) {
+function buildPanelEmbed(guildId) {
   const delay = getGuildSetting(guildId, 'members', 'promotion_delay_hours', 48);
   const bio = getGuildSetting(guildId, 'members', 'bio_required', false);
   const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
   const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
   const expulsionDays = getGuildSetting(guildId, 'members', 'expulsion_delay_days', 30);
   const joinPresentation = getGuildSetting(guildId, 'joinserver', 'presentation', null);
-  const joinPreview = joinPresentation ? `"${String(joinPresentation).slice(0, 60)}${String(joinPresentation).length > 60 ? '…' : ''}"` : '*non défini*';
+  const joinPreview = joinPresentation
+    ? `"${String(joinPresentation).slice(0, 80)}${String(joinPresentation).length > 80 ? '…' : ''}"`
+    : '*non défini*';
   const strictMode = Boolean(getGuildSetting(guildId, 'members', 'invite_strict_mode', false));
 
-  return [
-    `**${t(guildId, 'config.membres.title')}**\n`,
-    `• **${t(guildId, 'config.membres.delay')}** : ${delay}h`,
-    `• **${t(guildId, 'config.membres.bioRequired')}** : ${bio ? '✅' : '❌'}`,
-    `• **${t(guildId, 'config.membres.sponsorRequired')}** : ${sponsor ? '✅' : '❌'}`,
-    `• **${t(guildId, 'config.membres.expulsion')}** : ${expulsion ? `✅ (${expulsionDays}j)` : '❌'}`,
-    `• **🌟 Présentation #rejoindre** : ${joinPreview}`,
-    `• **🔒 Mode strict invité** : ${strictMode ? '✅ actif (vocal + #general réservés aux Membres)' : '❌ désactivé'}`
-  ].join('\n');
+  return new EmbedBuilder()
+    .setColor(0x5865F2)
+    .setTitle(t(guildId, 'config.membres.title'))
+    .addFields(
+      { name: '⏱️ Délai de promotion', value: `${delay}h`, inline: true },
+      { name: '📝 Bio obligatoire', value: bio ? '✅ Oui' : '❌ Non', inline: true },
+      { name: '🤝 Parrainage', value: sponsor ? '✅ Oui' : '❌ Non', inline: true },
+      { name: '🚨 Expulsion auto', value: expulsion ? `✅ ${expulsionDays}j` : '❌ Non', inline: true },
+      { name: '🔒 Mode strict invité', value: strictMode ? '✅ Actif' : '❌ Inactif', inline: true },
+      { name: '🌟 Présentation #rejoindre', value: joinPreview, inline: false }
+    )
+    .setTimestamp();
 }
 
 function buildRows(guildId) {
@@ -88,7 +94,7 @@ async function seedMembresPanel(guild) {
   const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
   if (hasPanel) return;
   const guildId = guild.id;
-  await channel.send({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+  await channel.send({ content: '', embeds: [buildPanelEmbed(guildId)], components: buildRows(guildId) }).catch(() => undefined);
 }
 
 async function refreshMembresPanel(guild) {
@@ -98,7 +104,7 @@ async function refreshMembresPanel(guild) {
   const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
   if (!panel) return;
   const guildId = guild.id;
-  await panel.edit({ content: buildPanelContent(guildId), components: buildRows(guildId) }).catch(() => undefined);
+  await panel.edit({ content: '', embeds: [buildPanelEmbed(guildId)], components: buildRows(guildId) }).catch(() => undefined);
 }
 
 async function handleMembresInteraction(interaction) {

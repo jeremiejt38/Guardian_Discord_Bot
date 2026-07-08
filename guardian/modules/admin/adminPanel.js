@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { setConfig, getConfig } = require('../../database/db');
 const { isBotAdmin, getBotAdminId, isRunningUnderPM2 } = require('./botUpdater');
 const logger = require('../logs/logger');
@@ -73,9 +73,17 @@ function buildPanelButtons(activeView = null) {
   );
 }
 
+function baseEmbed() {
+  return new EmbedBuilder()
+    .setColor(0x5865F2)
+    .setTitle('🛡️ Guardian — Admin Panel')
+    .setTimestamp();
+}
+
 function buildClosedContent() {
   return {
-    content: '🛡️ **Guardian — Admin Panel**\n─────────────────────────',
+    content: '',
+    embeds: [baseEmbed().setDescription('*Cliquez sur un onglet pour afficher les informations.*')],
     components: [buildPanelButtons()],
   };
 }
@@ -83,34 +91,29 @@ function buildClosedContent() {
 function buildStatutContent(client) {
   const mem = process.memoryUsage();
   const ping = client?.ws?.ping ?? -1;
-  const lines = [
-    '🛡️ **Guardian — Admin Panel**',
-    '─────────────────────────',
-    '**🤖 Statut bot**',
-    `• Version : \`v${version}\``,
-    `• Uptime : ${formatUptime()}`,
-    `• RAM : ${formatBytes(mem.rss)}`,
-    `• Ping Discord : ${ping >= 0 ? `${ping}ms` : 'N/A'}`,
-    `• PM2 : ${isRunningUnderPM2() ? '✅' : '❌'}`,
-    `• Node : ${process.version}`,
-    `• OS : ${os.type()} ${os.release()}`,
-    '─────────────────────────',
-  ];
-  return { content: lines.join('\n'), components: [buildPanelButtons(VIEWS.statut)] };
+  const embed = baseEmbed()
+    .setDescription('🤖 **Statut du bot**')
+    .addFields(
+      { name: 'Version', value: `\`v${version}\``, inline: true },
+      { name: 'Uptime', value: formatUptime(), inline: true },
+      { name: 'Ping', value: ping >= 0 ? `${ping}ms` : 'N/A', inline: true },
+      { name: 'RAM', value: formatBytes(mem.rss), inline: true },
+      { name: 'PM2', value: isRunningUnderPM2() ? '✅ actif' : '❌ inactif', inline: true },
+      { name: 'Node.js', value: process.version, inline: true },
+      { name: 'OS', value: `${os.type()} ${os.release()}`, inline: false }
+    );
+  return { content: '', embeds: [embed], components: [buildPanelButtons(VIEWS.statut)] };
 }
 
 function buildServeursContent(client) {
   const guilds = client?.guilds?.cache ?? new Map();
-  const lines = [
-    '🛡️ **Guardian — Admin Panel**',
-    '─────────────────────────',
-    `**🌐 Serveurs connectés — ${guilds.size}**`,
-  ];
+  const embed = baseEmbed()
+    .setDescription(`🌐 **${guilds.size} serveur${guilds.size > 1 ? 's' : ''} connecté${guilds.size > 1 ? 's' : ''}**`);
   for (const g of guilds.values()) {
-    lines.push(`• **${g.name}** — ${g.memberCount} membres`);
+    embed.addFields({ name: g.name, value: `${g.memberCount} membres`, inline: true });
   }
-  lines.push('─────────────────────────');
-  return { content: lines.join('\n'), components: [buildPanelButtons(VIEWS.serveurs)] };
+  if (guilds.size === 0) embed.addFields({ name: 'Aucun serveur', value: '*Guardian n\'est sur aucun serveur.*', inline: false });
+  return { content: '', embeds: [embed], components: [buildPanelButtons(VIEWS.serveurs)] };
 }
 
 function buildBddContent() {
@@ -123,28 +126,21 @@ function buildBddContent() {
     const stat = fs.statSync(absPath);
     sizeStr = formatBytes(stat.size);
   } catch {}
-  const lines = [
-    '🛡️ **Guardian — Admin Panel**',
-    '─────────────────────────',
-    '**🗄️ Base de données**',
-    `• Fichier : \`${absPath}\``,
-    `• Taille : ${sizeStr}`,
-    '─────────────────────────',
-  ];
-  return { content: lines.join('\n'), components: [buildPanelButtons(VIEWS.bdd)] };
+  const embed = baseEmbed()
+    .setDescription('🗄️ **Base de données**')
+    .addFields(
+      { name: 'Fichier', value: `\`${absPath}\``, inline: false },
+      { name: 'Taille', value: sizeStr, inline: true }
+    );
+  return { content: '', embeds: [embed], components: [buildPanelButtons(VIEWS.bdd)] };
 }
 
 function buildNotifsContent() {
-  const lines = [
-    '🛡️ **Guardian — Admin Panel**',
-    '─────────────────────────',
-    '**🔔 Notifications système**',
-  ];
+  const embed = baseEmbed()
+    .setDescription('🔔 **Notifications système**');
   for (const n of NOTIF_KEYS) {
-    const on = getNotifPref(n.key);
-    lines.push(`${on ? '✅' : '❌'} ${n.label}`);
+    embed.addFields({ name: n.label, value: getNotifPref(n.key) ? '🟢 Actif' : '🔴 Inactif', inline: true });
   }
-  lines.push('─────────────────────────');
 
   const toggleRows = [];
   const chunks = [];
@@ -159,7 +155,7 @@ function buildNotifsContent() {
     ));
   }
 
-  return { content: lines.join('\n'), components: [...toggleRows, buildPanelButtons(VIEWS.notifs)] };
+  return { content: '', embeds: [embed], components: [...toggleRows, buildPanelButtons(VIEWS.notifs)] };
 }
 
 function buildViewContent(view, client) {
