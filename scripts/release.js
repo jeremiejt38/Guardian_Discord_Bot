@@ -37,8 +37,12 @@ if (fs.existsSync(envPath)) {
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = 'jeremiejt38/Guardian_Discord_Bot';
+const GITHUB_FREE_TOKEN = process.env.GITHUB_FREE_RELEASE_TOKEN;
+const GITHUB_FREE_REPO = process.env.GITHUB_FREE_REPO ?? 'jeremiejt38/Guardian_Discord_Bot_Free';
 const PKG_PATH = path.resolve(__dirname, '../guardian/package.json');
 const README_PATH = path.resolve(__dirname, '../README.md');
+const FREE_BUILD_SCRIPT = path.resolve(__dirname, 'build-free.js');
+const FREE_OUT_DIR = path.resolve(__dirname, '../dist/guardian-free');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -253,6 +257,74 @@ function roadmapPostDone(feature) {
   console.log(`✅ Marked as done in post-v1 roadmap: ${feature}`);
 }
 
+// ── Free bundle helpers ───────────────────────────────────────────────────────
+
+/**
+ * Génère un zip du dossier FREE_OUT_DIR.
+ * Retourne le chemin du zip généré.
+ */
+function buildFreeZip(version) {
+  const zipName = `guardian-free-v${version}.zip`;
+  const zipPath = path.resolve(__dirname, '../dist', zipName);
+  fs.mkdirSync(path.resolve(__dirname, '../dist'), { recursive: true });
+  run(`zip -r "${zipPath}" . -x "*.DS_Store"`, { cwd: FREE_OUT_DIR });
+  console.log(`✅ Free bundle zipped: ${zipPath}`);
+  return zipPath;
+}
+
+/**
+ * Crée une GitHub Release sur le repo Free et uploade le zip en asset.
+ */
+async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false) {
+  if (!GITHUB_FREE_TOKEN) {
+    console.warn('⚠️  GITHUB_FREE_RELEASE_TOKEN non défini — publication free ignorée.');
+    return null;
+  }
+
+  const zipName = path.basename(zipPath);
+  const zipData = fs.readFileSync(zipPath);
+
+  const releaseRes = await fetch(`https://api.github.com/repos/${GITHUB_FREE_REPO}/releases`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${GITHUB_FREE_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'guardian-release-script'
+    },
+    body: JSON.stringify({ tag_name: tag, name: `Guardian Free ${tag}`, body: releaseBody, draft: false, prerelease })
+  });
+
+  if (!releaseRes.ok) {
+    const err = await releaseRes.text();
+    console.error(`❌ GitHub Free release creation failed: ${releaseRes.status} ${err}`);
+    return null;
+  }
+
+  const release = await releaseRes.json();
+  console.log(`✅ Free release created: ${release.html_url}`);
+
+  const uploadUrl = release.upload_url.replace('{?name,label}', '');
+  const uploadRes = await fetch(`${uploadUrl}?name=${encodeURIComponent(zipName)}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${GITHUB_FREE_TOKEN}`,
+      'Content-Type': 'application/zip',
+      'User-Agent': 'guardian-release-script'
+    },
+    body: zipData
+  });
+
+  if (!uploadRes.ok) {
+    const err = await uploadRes.text();
+    console.error(`❌ Asset upload failed: ${uploadRes.status} ${err}`);
+    return release;
+  }
+
+  const asset = await uploadRes.json();
+  console.log(`✅ Asset uploaded: ${asset.browser_download_url}`);
+  return release;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -358,6 +430,35 @@ async function main() {
   const release = await createGithubRelease(newTag, releaseBody, pkg.prerelease ?? false);
   if (release) {
     console.log(`✅ GitHub release created: ${release.html_url}`);
+  }
+
+  // 8. Build free bundle
+  if (GITHUB_FREE_TOKEN) {
+    console.log('\n📦 Building free bundle...');
+    run(`node "${FREE_BUILD_SCRIPT}" --out "${FREE_OUT_DIR}"`);
+
+    // 9. Zip + publish on free repo
+    console.log('🚀 Publishing free release...');
+    const freeReleaseBody = [
+      `## Guardian Free ${newTag}`,
+      '',
+      '> Version auto-hébergée — sans les features Premium.',
+      '',
+      changelog || '*No changes documented.*',
+      '',
+      `**Diff complet** : https://github.com/${GITHUB_REPO}/compare/${lastTag ?? 'HEAD'}...${newTag}`,
+      '',
+      '### Installation',
+      '1. Télécharge le `.zip` ci-dessous',
+      '2. Décompresse et configure ton `.env` (voir `.env.example`)',
+      '3. `npm install && npm start`'
+    ].join('\n');
+
+    const zipPath = buildFreeZip(newVersion);
+    await publishFreeRelease(newTag, freeReleaseBody, zipPath, pkg.prerelease ?? false);
+  } else {
+    console.warn('\n⚠️  GITHUB_FREE_RELEASE_TOKEN absent — étape free ignorée.');
+    console.warn('   Définis GITHUB_FREE_RELEASE_TOKEN dans guardian/.env pour activer la publication free.\n');
   }
 
   console.log(`\n🎉 Release ${newTag} complete!\n`);
