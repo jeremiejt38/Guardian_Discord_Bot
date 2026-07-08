@@ -14,6 +14,7 @@ const { findTextChannelByName } = require('../utils/channels');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
 const { getDb } = require('../../database/db');
+const logger = require('../logs/logger');
 
 const IDS = Object.freeze({
   gameSelect:    'serveurs-jeu:game-select',
@@ -127,7 +128,10 @@ async function refreshServeursJeuPanel(guild) {
 
 async function refreshServerListPanel(guild) {
   const channel = findTextChannelByName(guild, CHANNELS.serverList);
-  if (!channel) return;
+  if (!channel) {
+    logger.warn(`Guild ${guild.id}: channel '${CHANNELS.serverList}' introuvable — refreshServerListPanel annulé`);
+    return;
+  }
   const guildId = guild.id;
   const servers = getServers(guildId).filter((s) => s.approved);
 
@@ -136,28 +140,30 @@ async function refreshServerListPanel(guild) {
   for (const m of botMsgs.values()) await m.delete().catch(() => {});
 
   if (servers.length === 0) {
-    await channel.send({ content: '**🖥️ Serveurs de jeu disponibles**\n_Aucun serveur configuré pour le moment._' }).catch(() => {});
+    await channel.send({ content: '**🖥️ Serveurs de jeu disponibles**\n_Aucun serveur configuré pour le moment._' }).catch((e) => logger.warn(`Guild ${guildId}: liste-serveurs send failed: ${e.message}`));
     return;
   }
 
   await channel.send({ content: '**🖥️ Serveurs de jeu disponibles**' }).catch(() => {});
 
   for (const s of servers) {
-    const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : s.last_status === 'starting' ? '�' : '�🟡';
+    const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : '⚪';
     const passwordLine = s.password ? `\n> 🔑 Mot de passe : ||${s.password}||` : '';
     const content = `${emoji} **${s.name}** — ${s.game}\n> IP : \`${s.ip}:${s.port}\`${passwordLine}`;
+    const connectBtn = new ButtonBuilder()
+      .setURL(`https://connectto.game/?ip=${s.ip}&port=${s.port}`)
+      .setLabel('� Se connecter')
+      .setStyle(ButtonStyle.Link);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`server:copy:${s.server_id}`)
-        .setLabel('📋 Copier IP')
+        .setLabel('� Copier IP')
         .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setURL(`steam://connect/${s.ip}:${s.port}`)
-        .setLabel('🔗 Se connecter')
-        .setStyle(ButtonStyle.Link)
+      connectBtn
     );
-    await channel.send({ content, components: [row] }).catch(() => {});
+    await channel.send({ content, components: [row] }).catch((e) => logger.warn(`Guild ${guildId}: liste-serveurs entry failed: ${e.message}`));
   }
+  logger.info(`Guild ${guildId}: liste-serveurs refreshed — ${servers.length} serveur(s)`);
 }
 
 async function handleServeursJeuInteraction(interaction) {
