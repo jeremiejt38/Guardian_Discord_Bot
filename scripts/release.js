@@ -352,8 +352,7 @@ async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false)
   run(`git config user.name "Guardian Release Bot"`, { cwd: tmpDir });
   run(`git add -A`, { cwd: tmpDir });
   run(`git commit -m "release: ${tag}" --allow-empty`, { cwd: tmpDir });
-  run(`git tag -a ${tag} HEAD -m "release ${tag}"`, { cwd: tmpDir });
-  run(`git push origin main --tags`, { cwd: tmpDir });
+  run(`git push origin main`, { cwd: tmpDir });
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
   console.log(`✅ Source bundle pushed to free repo`);
