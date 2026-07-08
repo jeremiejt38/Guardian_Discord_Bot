@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.24.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.25.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-Proprietary-orange?style=flat-square)](LICENSE)
 
@@ -167,6 +167,7 @@ npm start
 
 | Version | Description |
 |---------|-------------|
+| **v0.25** | **UX config & setup** — `/status` command (server config overview: grades, modules, channels, members, games, tier) · `#demandes` unified panel (game/server/report requests with modals + approve/reject flow) · `#liste-serveurs` refactored (one message per server, copy IP + Steam connect buttons) · `#config-roles` revamped (role descriptions, 2-step edit: name modal + color select menu with 10 presets) · Setup: orphan category cleanup, repositionHiddenChannels post-install, startup resume · Guides fallback to GuildText on non-community servers · Channel topics (all languages) | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.24.0...v0.25.0) |
 | **v0.24** | **docs+tests**: AXE 4 — ARCHITECTURE.md, 20 tests premium (total 148), fix isPremiumGateClick null-safety, export buildRows · **premium**: AXE 3.4 — Server list gate premium (fix getDb, cadenas UI serveurs+suggestions dans channelsPanel) · **premium**: AXE 3.3 — Forum suggestions avec statuts (threadCreate, UI boutons, gate premium, 10 tests) · **premium**: AXE 3.2 — Welcome DM custom (template {name}/{server}/{delay}/{grade}, gate UI cadenas, 14 tests) · **premium**: AXE 3.1 — sanctions auto comportementales gatées premium (isPremium guard + UI cadenas) · **premium**: AXE 1 — tier system (guild_tier BDD, isPremium, premiumGate, /admin setpremium, 21 tests) |
 | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.16...v0.24.0) |
 | **v0.23** | **Community onboarding & premium infrastructure** — 3 invite modes (Classic / Strict / Direct), `#devenir-membre` ephemeral flow, `#rejoindre-notre-serveur`, Discord native settings (AFK, AutoMod, Onboarding), Discord AutoMod→behavior score integration, server guides, premium tier system (`guild_tier`, `isPremium()`, lock buttons 🔒), `/admin setpremium`, premium-gated features (auto sanctions, custom welcome DM, suggestions forum with statuses, server list), release pipeline (free bundle, README generator, changelog grouping by minor, backport), proprietary license + CONTRIBUTING CLA |
