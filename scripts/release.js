@@ -324,35 +324,39 @@ async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false)
   const asset = await uploadRes.json();
   console.log(`✅ Asset uploaded: ${asset.browser_download_url}`);
 
-  // Push static files to free repo (README, LICENSE, CONTRIBUTING, SECURITY)
+  // Push full source bundle to free repo via git
   const repoRoot = path.resolve(__dirname, '..');
-  const filesToPush = [
-    { src: path.join(FREE_OUT_DIR, '..', 'README.md'),       dest: 'README.md',       msg: `docs: update README for ${tag}` },
-    { src: path.join(repoRoot, 'LICENSE'),                    dest: 'LICENSE',          msg: `docs: update LICENSE for ${tag}` },
-    { src: path.join(repoRoot, 'CONTRIBUTING.md'),            dest: 'CONTRIBUTING.md',  msg: `docs: update CONTRIBUTING for ${tag}` },
-    { src: path.join(repoRoot, 'SECURITY.md'),                dest: 'SECURITY.md',      msg: `docs: update SECURITY for ${tag}` },
-  ];
+  const tmpDir = path.resolve(__dirname, '../dist/free-repo-tmp');
+  const freeRepoUrl = `https://${GITHUB_FREE_TOKEN}@github.com/${GITHUB_FREE_REPO}.git`;
 
-  const freeHeaders = {
-    Authorization: `Bearer ${GITHUB_FREE_TOKEN}`,
-    'Content-Type': 'application/json',
-    'User-Agent': 'guardian-release-script'
-  };
+  console.log('\n📤 Pushing source bundle to free repo...');
 
-  for (const { src, dest, msg } of filesToPush) {
-    if (!fs.existsSync(src)) continue;
-    const content = Buffer.from(fs.readFileSync(src, 'utf8')).toString('base64');
-    const shaRes = await fetch(`https://api.github.com/repos/${GITHUB_FREE_REPO}/contents/${dest}`, { headers: freeHeaders });
-    const shaData = shaRes.ok ? await shaRes.json() : null;
-    const sha = shaData?.sha;
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_FREE_REPO}/contents/${dest}`, {
-      method: 'PUT',
-      headers: freeHeaders,
-      body: JSON.stringify({ message: msg, content, ...(sha ? { sha } : {}) })
-    });
-    if (res.ok) console.log(`✅ ${dest} updated on free repo`);
-    else console.warn(`⚠️  ${dest} update failed: ${await res.text()}`);
+  // Copy legal files into bundle before push
+  for (const f of ['LICENSE', 'CONTRIBUTING.md', 'SECURITY.md']) {
+    const src = path.join(repoRoot, f);
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(FREE_OUT_DIR, f));
   }
+
+  // Clone free repo, overwrite with bundle, commit, push
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  run(`git clone --depth=1 "${freeRepoUrl}" "${tmpDir}"`);
+
+  // Remove all tracked files except .git
+  run(`git rm -rf --ignore-unmatch .`, { cwd: tmpDir });
+
+  // Copy bundle content into cloned repo
+  run(`cp -r "${FREE_OUT_DIR}/." "${tmpDir}/"`);
+
+  // Commit and push
+  run(`git config user.email "release-bot@guardian"`, { cwd: tmpDir });
+  run(`git config user.name "Guardian Release Bot"`, { cwd: tmpDir });
+  run(`git add -A`, { cwd: tmpDir });
+  run(`git commit -m "release: ${tag}" --allow-empty`, { cwd: tmpDir });
+  run(`git tag -a ${tag} HEAD -m "release ${tag}"`, { cwd: tmpDir });
+  run(`git push origin main --tags`, { cwd: tmpDir });
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  console.log(`✅ Source bundle pushed to free repo`);
 
   return release;
 }
