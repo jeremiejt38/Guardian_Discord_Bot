@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.21.3-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.21.5-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -193,8 +193,8 @@ Tests run on an in-memory SQLite database and cover the setup wizard, config pan
 
 | Version | Description |
 |---------|-------------|
-| **v0.21** | **Admin Panel DM** — interactive system admin panel in DM, 4 views (Status/Servers/DB/Notifications), per-category alert toggles, 15min inactivity timeout, auto-bootstrap of `BOT_ADMIN_ID`, `/admin` command, guild join/leave alerts, contextual Close button, GitHub release notes fetched and translated on update notification, precise restart instructions without PM2 |
-| | [390af8c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/390af8c) [c5e7f3b](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c5e7f3b) [0d4383e](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0d4383e) [19eb775](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/19eb775) [7bcf9d6](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/7bcf9d6) |
+| **v0.21** | **Admin Panel DM** — interactive system admin panel in DM, 4 views (Status/Servers/DB/Notifications), per-category alert toggles, 15min inactivity timeout, auto-bootstrap of `BOT_ADMIN_ID`, `/admin` command, guild join/leave alerts, contextual Close button, GitHub release notes fetched and auto-translated (Google Translate unofficial API, fallback to English), precise restart instructions without PM2, README changelog grouped by minor version with commit links |
+| | [4d466bc](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/4d466bc) [390af8c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/390af8c) [c5e7f3b](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c5e7f3b) [0d4383e](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0d4383e) [19eb775](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/19eb775) [7bcf9d6](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/7bcf9d6) |
 | **v0.20** | **Auto-update & Bot admin** — `BOT_ADMIN_ID` in `.env`, automatic update via DM button (`git pull` + `npm install` + PM2 restart) |
 | | [6f5be4a](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/6f5be4a) |
 | **v0.19** | **RAWG.io & non-Steam games** — RAWG.io integration, non-Steam pseudo App ID `000XXXXXXX`, DB migration v7, toggle button style fixes, adaptive step 3 navigation, multi-language ES/PT/IT, dynamic post-setup summary |
