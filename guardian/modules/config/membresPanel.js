@@ -291,4 +291,4 @@ async function handleMembresInteraction(interaction) {
   return false;
 }
 
-module.exports = { seedMembresPanel, handleMembresInteraction };
+module.exports = { seedMembresPanel, handleMembresInteraction, buildRows };

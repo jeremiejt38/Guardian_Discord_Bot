@@ -96,4 +96,4 @@ async function handleChannelsInteraction(interaction) {
   return true;
 }
 
-module.exports = { seedChannelsPanel, handleChannelsInteraction };
+module.exports = { seedChannelsPanel, handleChannelsInteraction, buildRows, buildPanelContent };

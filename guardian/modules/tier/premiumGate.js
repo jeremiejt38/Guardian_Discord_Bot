@@ -38,7 +38,7 @@ const PREMIUM_FEATURE_LABELS = Object.freeze({
  * @returns {boolean}
  */
 function isPremiumGateClick(interaction) {
-  return interaction.isButton() && interaction.customId.startsWith(GATE_PREFIX);
+  return interaction.isButton() && typeof interaction.customId === 'string' && interaction.customId.startsWith(GATE_PREFIX);
 }
 
 /**
