@@ -233,10 +233,12 @@ Delivered items validated before the public v1.0.0 release:
 - [x] **Rate limiting** — 4-level debounce 600ms→5s, `rateLimit.js`, auto-cleanup ✅ v0.11.1
 - [x] **Bot system admin panel** — DM panel, alert toggles, auto-update, bootstrap ✅ v0.21.0
 
-### 🟡 Nice-to-have
-- [ ] **Web dashboard** — lightweight interface to view stats without opening Discord
-- [ ] **Steam notifications** — direct webhook from Steam API instead of polling
-- [ ] **Config export** — save/restore a server configuration as JSON
+### 🟡 Nice-to-have (pre-V1)
+- [ ] **`/ping`** — check bot responsiveness and display latency
+- [ ] **Slash command cooldown** — global rate limiting on slash commands (buttons already protected)
+- [ ] **Permission check on startup** — warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing
+- [ ] **`/status`** — display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.
+- [ ] **Bot admin panel — Recap tab** — 5th tab in admin DM panel showing aggregated anonymous stats for the past 30 days across all guilds (new members, active games, moderation incidents count). On-demand only, no automatic DM spam.
 - [ ] **`/setup resume`** — resume the wizard from anywhere via slash command
 - [ ] **Discord forum support** — use Forum Channels for suggestions and reports
 
@@ -244,37 +246,41 @@ Delivered items validated before the public v1.0.0 release:
 
 ## 🚀 Post-v1.0.0 Roadmap
 
-### v1.1 — UX & Commands
+### v1.1 — Moderation (guild-level)
+> ⚠️ All moderation features target **guild admins only** via their configured channels/DM. The bot system admin (BOT_ADMIN_ID) has no visibility into per-guild users, bans or sanctions.
+
 | Feature | Description |
 |---------|-------------|
-| `/setup resume` | Resume wizard from anywhere via slash command |
-| Web dashboard | Lightweight stats and log viewer without opening Discord |
+| Temporary sanctions | Mute/ban with automatic expiration — stored in DB, lifted automatically |
+| `/warn` with thresholds | Auto-escalation per guild config: warn → mute → kick → ban |
+| Moderation log export | Export `#guardian-logs` entries as CSV |
+| Anti-raid | Mass join detection and temporary channel lockdown |
 
-### v1.2 — Extended i18n
+### v1.2 — UX & Commands
 | Feature | Description |
 |---------|-------------|
-| More languages | NL, PL, RU, ZH, JA, KO — structure ready, JSON files to create |
+| `/setup resume` | Resume the wizard from any step via slash command |
+| `/status` (guild) | Display current server config state without opening the wizard |
+| Error watchdog counter | Track `uncaughtException` count in bot admin panel Status view |
 
-### v1.3 — Advanced moderation
-| Feature | Description |
-|---------|-------------|
-| Temporary sanctions | Mute/ban with automatic expiration |
-| `/warn` with thresholds | Auto-escalation (warn → mute → kick → ban) |
-| Log export | Export moderation logs as CSV |
-| Anti-raid | Mass join detection and temporary lockdown |
-
-### v1.4 — Games & Community
+### v1.3 — Games & Community
 | Feature | Description |
 |---------|-------------|
 | Steam notifications | Direct Steam API webhook instead of polling |
 | Forum Channels support | Forum Channels for suggestions and reports |
-| Behavior leaderboard | Member ranking by behavior score |
+| Behavior leaderboard | Member ranking by behavior score, visible in a dedicated channel |
+| Multi-server config copy | Copy Guardian config from one guild to another (for multi-community managers) |
+
+### v1.4 — Extended i18n
+| Feature | Description |
+|---------|-------------|
+| More languages | NL, PL, RU, ZH, JA, KO — structure ready, JSON files to create |
 
 ### v1.5 — Admin & Infrastructure
 | Feature | Description |
 |---------|-------------|
 | Config export/import | Save/restore a complete server configuration as JSON |
-| Web dashboard | Lightweight interface to view stats and logs without Discord |
+| Web dashboard | Lightweight interface to view bot-level stats and logs without Discord |
 | Internal REST API | Endpoints for third-party integrations (incoming webhooks, stats) |
 
 ---
