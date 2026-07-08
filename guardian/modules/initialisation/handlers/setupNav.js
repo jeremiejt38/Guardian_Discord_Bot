@@ -451,7 +451,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
     await interaction.deferUpdate().catch(() => {});
     try {
-      const { completeGuildSetup } = require('./setup');
+      const { completeGuildSetup } = require('../setup');
       const { recordInstallVersion } = require('../migrations/channelMigrations');
       const { saveConfigBackup } = require('../config/configBackup');
       const { version } = require('../../package.json');
@@ -484,7 +484,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
         logger.info(`Guild ${guildId}: install notify DMs sent to ${sent} members`);
       }
     }
-    const { completeGuildSetup } = require('./setup');
+    const { completeGuildSetup } = require('../setup');
     const { recordInstallVersion } = require('../migrations/channelMigrations');
     const { saveConfigBackup } = require('../config/configBackup');
     const { version } = require('../../package.json');
