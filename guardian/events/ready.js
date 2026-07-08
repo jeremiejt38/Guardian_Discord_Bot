@@ -19,6 +19,7 @@ const { findCategoryByName, findGuildTextChannelByName } = require('../modules/u
 const logger = require('../modules/logs/logger');
 const { version } = require('../package.json');
 const { notifyBotAdminUpdate, getBotAdminId, bootstrapAdminIfNeeded } = require('../modules/admin/botUpdater');
+const { notifyAllGuildsNewOptions } = require('../modules/migrations/newOptionsNotifier');
 const { initAlerts, alertGuildJoin, alertGuildLeave } = require('../modules/admin/adminAlerts');
 const { openOrRefreshPanel, pushPanelToBottom } = require('../modules/admin/adminPanel');
 
@@ -101,13 +102,16 @@ module.exports = {
 
     const GLOBAL = '__global__';
     const lastGlobalVersion = getConfig(GLOBAL, 'bot', 'last_version', null);
-    if (lastGlobalVersion && lastGlobalVersion !== version) {
+    const isUpdate = Boolean(lastGlobalVersion && lastGlobalVersion !== version);
+    if (isUpdate) {
       setConfig(GLOBAL, 'bot', 'last_version', version);
       await notifyBotAdminUpdate(client, lastGlobalVersion, version).catch(() => {});
       await pushPanelToBottom(client).catch(() => {});
     } else if (!lastGlobalVersion) {
       setConfig(GLOBAL, 'bot', 'last_version', version);
     }
+
+    await notifyAllGuildsNewOptions(client).catch(() => {});
 
     setInterval(() => {
       for (const guild of client.guilds.cache.values()) {
