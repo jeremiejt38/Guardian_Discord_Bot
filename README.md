@@ -131,9 +131,6 @@ npm start
 | `BOT_ADMIN_ID` | Discord ID of the bot system administrator — receives alerts and can trigger updates from Discord. If empty, the bot will automatically ask the first user who added it. |
 | `RAWG_API_KEY` | [RAWG.io](https://rawg.io/apidocs) API key — enriches game profiles (description, genres, platforms). Works without it. |
 | `DATABASE_PATH` | Path to the SQLite database. Default: `./data/guardian.db` |
-| `DISCORD_TOKEN_PRODUCTION` | Alternate token for the production environment |
-| `DISCORD_TOKEN_DEVELOPMENT` | Alternate token for the development environment |
-| `DISCORD_TOKEN_TEST` | Alternate token for automated tests |
 
 ---
 

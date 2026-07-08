@@ -3,18 +3,12 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || 'production';
 
-const TOKENS_BY_ENV = Object.freeze({
-  production: process.env.DISCORD_TOKEN_PRODUCTION || process.env.DISCORD_TOKEN,
-  development: process.env.DISCORD_TOKEN_DEVELOPMENT || process.env.DISCORD_TOKEN,
-  test: process.env.DISCORD_TOKEN_TEST || process.env.DISCORD_TOKEN
-});
-
-const DISCORD_TOKEN = TOKENS_BY_ENV[NODE_ENV];
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
 if (!DISCORD_TOKEN) {
-  throw new Error(`No Discord token configured for NODE_ENV=${NODE_ENV}`);
+  throw new Error('DISCORD_TOKEN is not set in .env');
 }
 
 const CATEGORIES = Object.freeze({
