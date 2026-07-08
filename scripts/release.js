@@ -323,6 +323,36 @@ async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false)
 
   const asset = await uploadRes.json();
   console.log(`✅ Asset uploaded: ${asset.browser_download_url}`);
+
+  // Update README.md on the free repo
+  const readmePath = path.join(FREE_OUT_DIR, 'README.md');
+  if (fs.existsSync(readmePath)) {
+    const readmeContent = Buffer.from(fs.readFileSync(readmePath, 'utf8')).toString('base64');
+    const headers = {
+      Authorization: `Bearer ${GITHUB_FREE_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'guardian-release-script'
+    };
+
+    // Get current SHA of README (needed for update)
+    const shaRes = await fetch(`https://api.github.com/repos/${GITHUB_FREE_REPO}/contents/README.md`, { headers });
+    const shaData = shaRes.ok ? await shaRes.json() : null;
+    const sha = shaData?.sha;
+
+    const updateRes = await fetch(`https://api.github.com/repos/${GITHUB_FREE_REPO}/contents/README.md`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        message: `docs: update README for ${tag}`,
+        content: readmeContent,
+        ...(sha ? { sha } : {})
+      })
+    });
+
+    if (updateRes.ok) console.log(`✅ README updated on free repo`);
+    else console.warn(`⚠️  README update failed: ${await updateRes.text()}`);
+  }
+
   return release;
 }
 
