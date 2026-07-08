@@ -1,6 +1,6 @@
 {
   "name": "guardian-discord-bot",
-  "version": "0.21.1",
+  "version": "0.23.5",
   "prerelease": false,
   "description": "Guardian Discord bot for gaming communities",
   "main": "index.js",
@@ -10,7 +10,10 @@
     "dev": "node --watch index.js",
     "start": "node index.js",
     "deploy:commands": "node deploy-commands.js",
-    "test": "node --test"
+    "test": "node --test",
+    "release": "node ../scripts/release.js",
+    "release:minor": "node ../scripts/release.js minor",
+    "release:major": "node ../scripts/release.js major"
   },
   "dependencies": {
     "discord.js": "^14.26.4",
