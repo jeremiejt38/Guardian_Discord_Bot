@@ -28,44 +28,65 @@ The script does the following automatically:
 - Creates and pushes an annotated git tag
 - Creates a GitHub release with the full categorized changelog notes
 
-## README generation
+## README — source de vérité
 
-All content (features, env vars, libraries, changelog, roadmap) lives in `scripts/readme-data.js`.  
-Edit that file, then regenerate:
+**Toutes les sections du README sont générées depuis `scripts/readme-data.js`.**
+
+Le README généré contient dans cet ordre :
+1. Header + badges (version auto-lue depuis `guardian/package.json`)
+2. ✨ Features (`FEATURES`)
+3. 🚀 Getting started — prérequis, installation, variables d'env (`ENV_REQUIRED`, `ENV_OPTIONAL`), librairies (`LIBRARIES`)
+4. Changelog (`CHANGELOG`)
+5. ✅ Roadmap v1.0.0 (`ROADMAP_V1` — blocking / important / nice-to-have)
+6. 🚀 Post-v1.0.0 Roadmap (`ROADMAP_POST_V1`)
+7. Contributing + footer
+
+> La section "Structure du projet" et "Tests" ont été supprimées du README.
+
+Pour modifier n'importe quelle section :
+1. Éditer `scripts/readme-data.js`
+2. Regénérer :
 
 ```bash
-# Preview without pushing
+# Aperçu local sans push
 node scripts/generate-readme.js --dry
 
-# Generate, commit and push to main
+# Générer + commit + push sur main
 node scripts/generate-readme.js
 ```
 
-The generator auto-reads the current version from `guardian/package.json` for the badge.
+### Exemples courants dans readme-data.js
 
-## Roadmap management (without releasing)
-
-Add a new item to the pre-v1 nice-to-have roadmap:
-```bash
-node scripts/release.js roadmap add "Permission check on startup — warn bot admin if ManageChannels missing"
+**Ajouter une feature dans le tableau Features :**
+```js
+{ emoji: '🆕', module: 'Nouveau module', desc: 'Description du module' },
 ```
 
-Mark a pre-v1 item as done:
-```bash
-node scripts/release.js roadmap done "/status command" "v0.24.0"
+**Ajouter une entrée changelog :**
+```js
+{
+  version: 'v0.24',
+  title: 'Titre de la version',
+  desc: 'Description des changements',
+  links: [{ label: 'Full diff', url: 'https://github.com/.../compare/v0.23.5...v0.24.0' }],
+},
 ```
 
-Add a new feature to a post-v1 section (e.g. v1.2):
-```bash
-node scripts/release.js roadmap post-add "v1.2" "Auto-moderation rules export" "Export AutoMod rules as JSON for backup or migration"
+**Ajouter un item roadmap pre-v1 :**
+```js
+{ done: false, label: 'Nom de la feature', desc: 'Description' },
 ```
 
-Mark a post-v1 feature as delivered:
-```bash
-node scripts/release.js roadmap post-done "Temporary sanctions"
+**Cocher un item roadmap pre-v1 comme livré :**
+```js
+{ done: true, label: 'Nom de la feature', desc: 'Description', doneVersion: 'v0.24.0' },
 ```
 
-All roadmap commands auto-commit and push `README.md`.
+**Ajouter une feature dans une section post-v1 :**
+```js
+// Dans ROADMAP_POST_V1, trouver la bonne section et ajouter dans features:
+{ label: 'Nom', desc: 'Description' },
+```
 
 ## After release
 - The GitHub release appears at https://github.com/jeremiejt38/Guardian_Discord_Bot/releases
