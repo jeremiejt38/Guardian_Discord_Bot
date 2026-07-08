@@ -21,7 +21,8 @@ const GITHUB_BASE = data.GITHUB_BASE;
 const dry = process.argv.includes('--dry');
 
 function run(cmd) {
-  return execSync(cmd, { encoding: 'utf8', stdio: dry ? 'pipe' : 'inherit' }).trim();
+  const result = execSync(cmd, { encoding: 'utf8', stdio: dry ? 'pipe' : 'inherit' });
+  return result ? result.trim() : '';
 }
 
 // ── Section builders ─────────────────────────────────────────────────────────
@@ -247,15 +248,11 @@ function generate() {
   const v = version();
 
   const sections = [
-    `<div align="center">\n\n# 🛡️ Guardian\n\n**All-in-one Discord community bot for gaming servers**\n\n${badgeVersion(v)}\n[![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)\n[![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)\n[![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)\n\n*${data.TAGLINE}*\n\n</div>`,
+    `<div align="center">\n\n# 🛡️ Guardian\n\n**All-in-one Discord community bot for gaming servers**\n\n${badgeVersion(v)}\n[![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)\n[![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)\n\n*${data.TAGLINE}*\n\n</div>`,
     '---',
     featuresSection(),
     '---',
     gettingStartedSection(),
-    '---',
-    projectStructureSection(),
-    '---',
-    testsSection(),
     '---',
     changelogSection(),
     '---',
