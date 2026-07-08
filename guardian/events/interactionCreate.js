@@ -50,6 +50,9 @@ const { handleInteractionError } = require('../modules/utils/discordErrors');
 const { checkRateLimit } = require('../modules/utils/rateLimit');
 const logger = require('../modules/logs/logger');
 
+const commandCooldowns = new Map();
+const COMMAND_COOLDOWN_MS = 2000;
+
 module.exports = {
   name: 'interactionCreate',
   async execute(client, interaction) {
@@ -63,6 +66,19 @@ module.exports = {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
         return;
+      }
+
+      const cooldownKey = `${interaction.user.id}:${interaction.commandName}`;
+      const lastUsed = commandCooldowns.get(cooldownKey) ?? 0;
+      const now = Date.now();
+      if (now - lastUsed < COMMAND_COOLDOWN_MS) {
+        await interaction.reply({ content: '⏳ Please wait a moment before using this command again.', ephemeral: true }).catch(() => {});
+        return;
+      }
+      commandCooldowns.set(cooldownKey, now);
+      if (commandCooldowns.size > 500) {
+        const cutoff = now - COMMAND_COOLDOWN_MS;
+        for (const [k, t] of commandCooldowns) if (t < cutoff) commandCooldowns.delete(k);
       }
 
       await command.execute(interaction);
