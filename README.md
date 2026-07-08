@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.21.5-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.23.5-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square)](#tests)
@@ -190,6 +190,10 @@ Tests run on an in-memory SQLite database and cover the setup wizard, config pan
 
 | Version | Description |
 |---------|-------------|
+| **v0.23** | **Community onboarding & invite modes** — 3 invite modes (Classic / Strict / Direct member), `#devenir-membre` ephemeral flow (prerequisites + bio modal + submit), `#rejoindre-notre-serveur` (server stats, Guardian features, owner presentation), strict invite mode blocks vocal + `#general` for guests, rules acceptance (Discord Screening + button for non-community), Discord AutoMod→behavior score integration, server guides (read-only channels or forums), new options notifier on update (DM owner with unconfigured settings) |
+| | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.22.1...v0.23.5) |
+| **v0.22** | **Security & Commands** — `/ping` command + 2s cooldown on slash commands, security fix on bootstrap userId from interaction, prerelease confirmation validation against bot cache |
+| | [41ab089](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/41ab089) [b6c18ff](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/b6c18ff) |
 | **v0.21** | **Admin Panel DM** — interactive system admin panel in DM, 4 views (Status/Servers/DB/Notifications), per-category alert toggles, 15min inactivity timeout, auto-bootstrap of `BOT_ADMIN_ID`, `/admin` command, guild join/leave alerts, contextual Close button, GitHub release notes fetched and auto-translated (Google Translate unofficial API, fallback to English), precise restart instructions without PM2, README changelog grouped by minor version with commit links |
 | | [4d466bc](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/4d466bc) [390af8c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/390af8c) [c5e7f3b](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c5e7f3b) [0d4383e](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0d4383e) [19eb775](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/19eb775) [7bcf9d6](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/7bcf9d6) |
 | **v0.20** | **Auto-update & Bot admin** — `BOT_ADMIN_ID` in `.env`, automatic update via DM button (`git pull` + `npm install` + PM2 restart) |
@@ -234,13 +238,13 @@ Delivered items validated before the public v1.0.0 release:
 - [x] **Bot system admin panel** — DM panel, alert toggles, auto-update, bootstrap ✅ v0.21.0
 
 ### 🟡 Nice-to-have (pre-V1)
-- [ ] **`/ping`** — check bot responsiveness and display latency
-- [ ] **Slash command cooldown** — global rate limiting on slash commands (buttons already protected)
+- [x] **`/ping`** — check bot responsiveness and display latency ✅ v0.22.0
+- [x] **Slash command cooldown** — global rate limiting on slash commands ✅ v0.22.0
 - [ ] **Permission check on startup** — warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing
 - [ ] **`/status`** — display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.
 - [ ] **Bot admin panel — Recap tab** — 5th tab in admin DM panel showing aggregated anonymous stats for the past 30 days across all guilds (new members, active games, moderation incidents count). On-demand only, no automatic DM spam.
 - [ ] **`/setup resume`** — resume the wizard from anywhere via slash command
-- [ ] **Discord forum support** — use Forum Channels for suggestions and reports
+- [x] **Discord forum support** — Forum Channels for suggestions ✅ v0.23.x
 
 ---
 

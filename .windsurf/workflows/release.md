@@ -28,6 +28,30 @@ The script does the following automatically:
 - Creates and pushes an annotated git tag
 - Creates a GitHub release with the full categorized changelog notes
 
+## Roadmap management (without releasing)
+
+Add a new item to the pre-v1 nice-to-have roadmap:
+```bash
+node scripts/release.js roadmap add "Permission check on startup — warn bot admin if ManageChannels missing"
+```
+
+Mark a pre-v1 item as done:
+```bash
+node scripts/release.js roadmap done "/status command" "v0.24.0"
+```
+
+Add a new feature to a post-v1 section (e.g. v1.2):
+```bash
+node scripts/release.js roadmap post-add "v1.2" "Auto-moderation rules export" "Export AutoMod rules as JSON for backup or migration"
+```
+
+Mark a post-v1 feature as delivered:
+```bash
+node scripts/release.js roadmap post-done "Temporary sanctions"
+```
+
+All roadmap commands auto-commit and push `README.md`.
+
 ## After release
 - The GitHub release appears at https://github.com/jeremiejt38/Guardian_Discord_Bot/releases
 - On next bot startup after an update, the bot admin receives a single DM with:

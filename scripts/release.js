@@ -2,14 +2,22 @@
 /**
  * Guardian release script
  *
- * Usage:
- *   node scripts/release.js patch    # 0.23.5 → 0.23.6
- *   node scripts/release.js minor    # 0.23.5 → 0.24.0
- *   node scripts/release.js major    # 0.23.5 → 1.0.0
- *   node scripts/release.js 0.24.1   # explicit version
+ * Release:
+ *   node scripts/release.js patch              # 0.23.5 → 0.23.6
+ *   node scripts/release.js minor              # 0.23.5 → 0.24.0
+ *   node scripts/release.js major              # 0.23.5 → 1.0.0
+ *   node scripts/release.js 0.24.1             # explicit version
+ *
+ * Roadmap — pre-v1:
+ *   node scripts/release.js roadmap add "Feature description"
+ *   node scripts/release.js roadmap done "Feature description" "v0.24.0"
+ *
+ * Roadmap — post-v1:
+ *   node scripts/release.js roadmap post-add "v1.2" "Feature" "Description"
+ *   node scripts/release.js roadmap post-done "Feature"
  *
  * Requirements:
- *   - GITHUB_TOKEN env var (or in .env at repo root)
+ *   - GITHUB_TOKEN env var (or in guardian/.env)
  *   - git configured with push access
  */
 
@@ -180,10 +188,108 @@ async function createGithubRelease(tag, body, prerelease = false) {
   return await res.json();
 }
 
+// ── Roadmap helpers ──────────────────────────────────────────────────────────
+
+function roadmapAdd(description) {
+  if (!fs.existsSync(README_PATH)) throw new Error('README.md not found');
+  let content = fs.readFileSync(README_PATH, 'utf8');
+
+  const marker = '### 🟡 Nice-to-have (pre-V1)';
+  const idx = content.indexOf(marker);
+  if (idx === -1) throw new Error('Could not find "🟡 Nice-to-have" section in README');
+
+  const lineEnd = content.indexOf('\n', idx);
+  const newItem = `\n- [ ] **${description}**`;
+  content = content.slice(0, lineEnd + 1) + newItem + content.slice(lineEnd + 1);
+
+  fs.writeFileSync(README_PATH, content, 'utf8');
+  console.log(`✅ Added to pre-v1 roadmap: ${description}`);
+}
+
+function roadmapDone(description, version) {
+  if (!fs.existsSync(README_PATH)) throw new Error('README.md not found');
+  let content = fs.readFileSync(README_PATH, 'utf8');
+
+  const escapedDesc = description.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`- \\[ \\] \\*\\*${escapedDesc}\\*\\*([^\n]*)`, 'g');
+  if (!re.test(content)) throw new Error(`Item not found: "${description}"`);
+
+  const suffix = version ? ` ✅ ${version}` : ' ✅';
+  content = content.replace(
+    new RegExp(`- \\[ \\] \\*\\*${escapedDesc}\\*\\*([^\n]*)`, 'g'),
+    (_, rest) => `- [x] **${description}**${rest.replace(/ ✅.*$/, '')}${suffix}`
+  );
+
+  fs.writeFileSync(README_PATH, content, 'utf8');
+  console.log(`✅ Marked as done: ${description} ${suffix}`);
+}
+
+function roadmapPostAdd(section, feature, description) {
+  if (!fs.existsSync(README_PATH)) throw new Error('README.md not found');
+  let content = fs.readFileSync(README_PATH, 'utf8');
+
+  // Find the section header (e.g. "### v1.2")
+  const sectionRe = new RegExp(`(### ${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\n]*\n(?:>[^\n]*\n)?\n\| Feature[^\n]*\n\|[-| ]+\|\n)`);
+  const match = content.match(sectionRe);
+  if (!match) throw new Error(`Section "${section}" not found in post-v1 roadmap`);
+
+  const newRow = `| ${feature} | ${description} |\n`;
+  content = content.replace(sectionRe, `$1${newRow}`);
+
+  fs.writeFileSync(README_PATH, content, 'utf8');
+  console.log(`✅ Added to post-v1 roadmap section ${section}: ${feature}`);
+}
+
+function roadmapPostDone(feature) {
+  if (!fs.existsSync(README_PATH)) throw new Error('README.md not found');
+  let content = fs.readFileSync(README_PATH, 'utf8');
+
+  const escapedFeature = feature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(\\| )${escapedFeature}( \\| )`);
+  if (!re.test(content)) throw new Error(`Feature "${feature}" not found in post-v1 roadmap`);
+
+  content = content.replace(re, `$1~~${feature}~~ ✅$2`);
+  fs.writeFileSync(README_PATH, content, 'utf8');
+  console.log(`✅ Marked as done in post-v1 roadmap: ${feature}`);
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
   const bumpArg = process.argv[2] ?? 'patch';
+
+  // ── Roadmap sub-commands ──────────────────────────────────────────────────
+  if (bumpArg === 'roadmap') {
+    const sub = process.argv[3];
+    if (sub === 'add') {
+      const desc = process.argv[4];
+      if (!desc) { console.error('Usage: roadmap add "Feature description"'); process.exit(1); }
+      roadmapAdd(desc);
+    } else if (sub === 'done') {
+      const desc = process.argv[4];
+      const ver = process.argv[5] ?? '';
+      if (!desc) { console.error('Usage: roadmap done "Feature description" "v0.24.0"'); process.exit(1); }
+      roadmapDone(desc, ver);
+    } else if (sub === 'post-add') {
+      const section = process.argv[4];
+      const feature = process.argv[5];
+      const description = process.argv[6];
+      if (!section || !feature || !description) { console.error('Usage: roadmap post-add "v1.2" "Feature" "Description"'); process.exit(1); }
+      roadmapPostAdd(section, feature, description);
+    } else if (sub === 'post-done') {
+      const feature = process.argv[4];
+      if (!feature) { console.error('Usage: roadmap post-done "Feature"'); process.exit(1); }
+      roadmapPostDone(feature);
+    } else {
+      console.error('Unknown roadmap sub-command. Use: add | done | post-add | post-done');
+      process.exit(1);
+    }
+    run('git add README.md');
+    run(`git commit -m "docs: roadmap update"`);
+    run('git push origin main');
+    console.log('✅ README committed and pushed.');
+    return;
+  }
 
   const pkg = JSON.parse(fs.readFileSync(PKG_PATH, 'utf8'));
   const oldVersion = pkg.version;
