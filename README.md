@@ -18,17 +18,19 @@
 ## ✨ Features
 
 | Module | Description |
-|--------|-------------|
+| --- | --- |
 | 🧙 **Setup wizard** | Guided 8-step configuration directly inside Discord |
-| 👥 **Members** | Invite → Member onboarding, sponsorship, behavior score |
+| 👥 **Members** | Invite → Member onboarding (3 modes: Classic / Strict / Direct), sponsorship, behavior score, rules acceptance |
 | 🎮 **Games** | Per-game opt-in, dedicated channels (chat / gallery / updates), Steam & RAWG.io integration |
 | 🔊 **Temporary voice** | On-demand creation, auto-deletion, prefix/suffix/limit |
-| 🛡️ **Moderation** | Anti-spam, blacklist, logs, behavior score, auto-expulsion |
+| 🛡️ **Moderation** | Anti-spam, blacklist, logs, behavior score, auto-expulsion, Discord AutoMod integration |
 | 🖥️ **Game servers** | Proposal, approval and tracking of community game servers |
 | ⚙️ **Config panels** | Persistent admin panels per module (channels, roles, games…) |
 | 🔔 **DM notifications** | Per-category private alerts (bot updates, errors, moderation, promotions…) |
 | 🔄 **Migrations** | Versioned DB & Discord migrations — zero data loss on upgrades |
+| 📚 **Server guides** | Auto-generated read-only guide channels (getting started, promotion, games, commands) |
 | 🌐 **i18n** | French, English, Spanish, Portuguese, Italian, German support |
+
 
 ---
 
@@ -119,7 +121,7 @@ npm start
 #### Required
 
 | Variable | Description |
-|----------|-------------|
+| --- | --- |
 | `DISCORD_TOKEN` | Bot token (Developer Portal → Bot → Token) |
 | `CLIENT_ID` | Application ID (Developer Portal → General Information) |
 | `NODE_ENV` | `production` or `development` |
@@ -127,17 +129,18 @@ npm start
 #### Optional
 
 | Variable | Description |
-|----------|-------------|
+| --- | --- |
 | `BOT_ADMIN_ID` | Discord ID of the bot system administrator — receives alerts and can trigger updates from Discord. If empty, the bot will automatically ask the first user who added it. |
 | `RAWG_API_KEY` | [RAWG.io](https://rawg.io/apidocs) API key — enriches game profiles (description, genres, platforms). Works without it. |
 | `DATABASE_PATH` | Path to the SQLite database. Default: `./data/guardian.db` |
+| `GITHUB_TOKEN` | GitHub personal access token — used by the release script to create GitHub releases automatically. |
 
 ---
 
 ### Core libraries
 
 | Library | Role |
-|---------|------|
+| --- | --- |
 | [discord.js](https://discord.js.org) v14 | Full Discord API interaction (events, slash commands, buttons, modals…) |
 | `node:sqlite` *(built-in Node 22+)* | Embedded SQLite database — no external dependency |
 | `dotenv` | Environment variable loading from `.env` |
@@ -145,6 +148,7 @@ npm start
 | `node:os` / `node:fs` *(built-in)* | System info (RAM, uptime, DB size) for the admin panel |
 
 > Guardian uses **no heavy dependencies**: no Express, no ORM, no Redis. The only external requirement is discord.js.
+
 
 ---
 
@@ -161,28 +165,31 @@ Guardian_Discord_Bot/
 │   │   ├── admin/         # Bot system admin panel, alerts, auto-update
 │   │   ├── config/        # Admin configuration panels
 │   │   ├── games/         # Game management, opt-in, Steam/RAWG changelogs
+│   │   ├── guides/        # Auto-generated server guide channels
 │   │   ├── initialisation/# Setup wizard, channel/role creation, seeds
-│   │   ├── members/       # Promotions, sponsorship, behavior score
-│   │   ├── migrations/    # Versioned Discord migrations (channels, roles)
-│   │   ├── moderation/    # Anti-spam, blacklist, moderation logs
+│   │   ├── members/       # Promotions, sponsorship, behavior score, rules acceptance
+│   │   ├── migrations/    # Versioned Discord migrations (channels, roles, new options)
+│   │   ├── moderation/    # Anti-spam, blacklist, moderation logs, AutoMod integration
 │   │   ├── notifications/ # Per-guild configurable DM notifications
 │   │   ├── servers/       # Game server monitor
 │   │   └── utils/         # Shared utilities (discordErrors, channels…)
-│   └── tests/             # Unit test suite
-└── .lando.yml             # Isolated test environment (Docker)
+│   └── tests/             # Unit + E2E test suite
+├── scripts/               # Release, README generation, roadmap management
+└── .windsurf/workflows/   # Developer workflow shortcuts
 ```
+
 
 ---
 
 ## 🧪 Tests
 
 ```bash
-cd guardian
-npm test
+cd guardian && npm test
 ```
 
 Tests run on an in-memory SQLite database and cover the setup wizard, config panels, games and moderation.
-**E2E tests** (`tests/e2e.test.js`) cover 6 complete integration flows: setup, games, members, moderation, migrations, notifications.
+**E2E tests (`tests/e2e.test.js`) cover 6 complete integration flows: setup, games, members, moderation, migrations, notifications.**
+
 
 ---
 
@@ -194,28 +201,29 @@ Tests run on an in-memory SQLite database and cover the setup wizard, config pan
 | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.22.1...v0.23.5) |
 | **v0.22** | **Security & Commands** — `/ping` command + 2s cooldown on slash commands, security fix on bootstrap userId from interaction, prerelease confirmation validation against bot cache |
 | | [41ab089](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/41ab089) [b6c18ff](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/b6c18ff) |
-| **v0.21** | **Admin Panel DM** — interactive system admin panel in DM, 4 views (Status/Servers/DB/Notifications), per-category alert toggles, 15min inactivity timeout, auto-bootstrap of `BOT_ADMIN_ID`, `/admin` command, guild join/leave alerts, contextual Close button, GitHub release notes fetched and auto-translated (Google Translate unofficial API, fallback to English), precise restart instructions without PM2, README changelog grouped by minor version with commit links |
+| **v0.21** | **Admin Panel DM** — Interactive system admin panel in DM, 4 views (Status/Servers/DB/Notifications), per-category alert toggles, 15min inactivity timeout, auto-bootstrap of `BOT_ADMIN_ID`, `/admin` command, guild join/leave alerts, contextual Close button, GitHub release notes fetched and auto-translated (Google Translate unofficial API, fallback to English), precise restart instructions without PM2 |
 | | [4d466bc](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/4d466bc) [390af8c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/390af8c) [c5e7f3b](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c5e7f3b) [0d4383e](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0d4383e) [19eb775](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/19eb775) [7bcf9d6](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/7bcf9d6) |
 | **v0.20** | **Auto-update & Bot admin** — `BOT_ADMIN_ID` in `.env`, automatic update via DM button (`git pull` + `npm install` + PM2 restart) |
 | | [6f5be4a](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/6f5be4a) |
 | **v0.19** | **RAWG.io & non-Steam games** — RAWG.io integration, non-Steam pseudo App ID `000XXXXXXX`, DB migration v7, toggle button style fixes, adaptive step 3 navigation, multi-language ES/PT/IT, dynamic post-setup summary |
 | | [39fb8e5](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/39fb8e5) [2ff1aa8](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/2ff1aa8) [0f1ab99](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0f1ab99) [0f16d07](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0f16d07) [eb8e5bd](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/eb8e5bd) [708c684](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/708c684) |
-| **v0.18** | **Non-Steam games** — pseudo App ID generator, `isNonSteamId()`, duplicate detection fix |
+| **v0.18** | **Non-Steam games** — Pseudo App ID generator, `isNonSteamId()`, duplicate detection fix |
 | | [4f1f1e4](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/4f1f1e4) |
-| **v0.17** | **Backup & Diagnostics** — backup message protection, enriched `guardian-logs`, bot panel diagnostics, game server password |
+| **v0.17** | **Backup & Diagnostics** — Backup message protection, enriched `guardian-logs`, bot panel diagnostics, game server password |
 | | [480a873](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/480a873) |
-| **v0.16** | **Setup UX & Game Requests** — improved setup UX, member game requests, channel topics, role colors |
+| **v0.16** | **Setup UX & Game Requests** — Improved setup UX, member game requests, channel topics, role colors |
 | | [8d6b846](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/8d6b846) |
-| **v0.15** | **Auto-update & Prerelease** — stable auto-update notification, DM prerelease confirmation, `prerelease` field in `package.json` |
+| **v0.15** | **Auto-update & Prerelease** — Stable auto-update notification, DM prerelease confirmation, `prerelease` field in `package.json` |
 | | [c421882](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c421882) |
-| **v0.14 – v0.13 – v0.12** | **Setup UX & Onboarding** — per-grade role creation, game review step before linking, `#become-member` channel, enriched new member DM, bulk DM at finalize, FAQ as forum channel, channel topics |
+| **v0.14 – v0.13 – v0.12** | **Setup UX & Onboarding** — Per-grade role creation, game review step before linking, `#become-member` channel, enriched new member DM, bulk DM at finalize, FAQ as forum channel, channel topics |
 | | [2102523](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/2102523) [54d5d9c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/54d5d9c) [536130f](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/536130f) [0743b5f](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0743b5f) |
-| **v0.11** | **Resilience, Security & Setup UX** — auto-detect Guardian channels, smart game channel sorting, role audit, bot role repositioning, Steam top 250 detection, rate limiting debounce, backup/restore via `#guardian-backup` |
+| **v0.11** | **Resilience, Security & Setup UX** — Auto-detect Guardian channels, smart game channel sorting, role audit, bot role repositioning, Steam top 250 detection, rate limiting debounce, backup/restore via `#guardian-backup` |
 | | [Full history on GitHub](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases) |
-| **v0.10** | **Robustness & Notifications** — configurable DM notifications, versioned DB/Discord migrations, Discord error handling, game list pagination, E2E integration tests |
+| **v0.10** | **Robustness & Notifications** — Configurable DM notifications, versioned DB/Discord migrations, Discord error handling, game list pagination, E2E integration tests |
 | | [Full history on GitHub](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases) |
-| **v0.1 – v0.9** | **Foundations** — architecture scaffold, SQLite, setup wizard, members, games, voice, moderation, i18n FR+EN |
+| **v0.1 – v0.9** | **Foundations** — Architecture scaffold, SQLite, setup wizard, members, games, voice, moderation, i18n FR+EN |
 | | [Full history on GitHub](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases) |
+
 
 ---
 
@@ -226,25 +234,26 @@ Delivered items validated before the public v1.0.0 release:
 ### 🔴 Blocking
 - [x] **End-to-end integration tests** — 8 E2E tests, 6 complete flows, 95 tests total ✅ v0.10.5
 - [x] **Discord 50013 error handling** — `safeDiscordAction` + global interactionCreate safety net ✅ v0.10.3
-- [x] **Automatic DB migration** — versioned `MIGRATIONS` array system ✅ v0.10.1
-- [x] **`/help` command** — contextual help for 7 modules, embeds, i18n ✅ v0.10.4
+- [x] **Automatic DB migration** — Versioned `MIGRATIONS` array system ✅ v0.10.1
+- [x] **`/help` command** — Contextual help for 7 modules, embeds, i18n ✅ v0.10.4
 
 ### 🟠 Important
 - [x] **Multi-language** — ES, PT, IT + DE (FR+EN already present) ✅ v0.19.5
-- [x] **Post-install summary** — dynamic `#welcome` message with roles, games, modules, next steps ✅ v0.19.7
+- [x] **Post-install summary** — Dynamic `#welcome` message with roles, games, modules, next steps ✅ v0.19.7
 - [x] **Game list pagination** — 3 games per page, unlimited ✅ v0.10.2
 - [x] **Step 3 validation** — `#general` required before proceeding ✅ v0.10.2
 - [x] **Rate limiting** — 4-level debounce 600ms→5s, `rateLimit.js`, auto-cleanup ✅ v0.11.1
 - [x] **Bot system admin panel** — DM panel, alert toggles, auto-update, bootstrap ✅ v0.21.0
 
 ### 🟡 Nice-to-have (pre-V1)
-- [x] **`/ping`** — check bot responsiveness and display latency ✅ v0.22.0
-- [x] **Slash command cooldown** — global rate limiting on slash commands ✅ v0.22.0
-- [ ] **Permission check on startup** — warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing
-- [ ] **`/status`** — display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.
+- [x] **`/ping`** — Check bot responsiveness and display latency ✅ v0.22.0
+- [x] **Slash command cooldown** — Global rate limiting on slash commands ✅ v0.22.0
+- [x] **Discord forum support** — Forum Channels for suggestions and reports ✅ v0.23.x
+- [ ] **Permission check on startup** — Warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing
+- [ ] **`/status`** — Display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.
 - [ ] **Bot admin panel — Recap tab** — 5th tab in admin DM panel showing aggregated anonymous stats for the past 30 days across all guilds (new members, active games, moderation incidents count). On-demand only, no automatic DM spam.
-- [ ] **`/setup resume`** — resume the wizard from anywhere via slash command
-- [x] **Discord forum support** — Forum Channels for suggestions ✅ v0.23.x
+- [ ] **`/setup resume`** — Resume the wizard from anywhere via slash command
+
 
 ---
 
@@ -286,6 +295,7 @@ Delivered items validated before the public v1.0.0 release:
 | Config export/import | Save/restore a complete server configuration as JSON |
 | Web dashboard | Lightweight interface to view bot-level stats and logs without Discord |
 | Internal REST API | Endpoints for third-party integrations (incoming webhooks, stats) |
+
 
 ---
 

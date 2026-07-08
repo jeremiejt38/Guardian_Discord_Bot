@@ -28,6 +28,21 @@ The script does the following automatically:
 - Creates and pushes an annotated git tag
 - Creates a GitHub release with the full categorized changelog notes
 
+## README generation
+
+All content (features, env vars, libraries, changelog, roadmap) lives in `scripts/readme-data.js`.  
+Edit that file, then regenerate:
+
+```bash
+# Preview without pushing
+node scripts/generate-readme.js --dry
+
+# Generate, commit and push to main
+node scripts/generate-readme.js
+```
+
+The generator auto-reads the current version from `guardian/package.json` for the badge.
+
 ## Roadmap management (without releasing)
 
 Add a new item to the pre-v1 nice-to-have roadmap:
