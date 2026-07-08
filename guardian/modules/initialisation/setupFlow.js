@@ -370,12 +370,6 @@ const buildStep9Components = (guildId) => _steps.buildStep9Components(guildId, _
 const buildCommunityCheckContent = (guildId, guild) => _steps.buildCommunityCheckContent(guildId, guild, _ctx());
 const buildCommunityCheckComponents = () => _steps.buildCommunityCheckComponents(CUSTOM_IDS);
 
-// ─── (anciens builders supprimés — voir setupSteps.js) ───────────────────────
-// Conservé ici pour référence : getStep2Config, setStep2Config, SYSCHANNEL_CHOICES,
-// buildStep2Content, buildStep2Components, CHANNEL_SLOTS, getChannelCursor,
-// setChannelCursor, scanExistingChannels, buildChannelOptions, isCommunityGuild,
-// getActiveSlotsForInstall, normalizeChannelName, autoDetectGuardianChannels, ...
-
 async function createRolesAutoHelper(interaction, guild, guildId) {
   const roleColors = {
     [GRADE_NAMES.invite]: 0x95a5a6,
@@ -1470,9 +1464,9 @@ async function _handleStep7(guildId, interaction) {
   return false;
 }
 
-// ─── Sous-handler : Step 4 (suite) — Welcome + Join Presentation + Sécurité ──
+// ─── Sous-handler : Step 4 (suite) + Sécurité ────────────────────────────────
 
-async function _handleStep4ExtraAndSecurity(guildId, interaction) {
+async function _handleStep4Security(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.editWelcomeText) {
     const current = getStep4Config(guildId).welcomeText;
     const modal = new ModalBuilder().setCustomId(CUSTOM_IDS.welcomeModal).setTitle('Message de bienvenue')
@@ -2324,7 +2318,7 @@ async function handleSetupInteraction(interaction) {
     await _handleStep5(guildId, interaction) ||
     await _handleStep6(guildId, interaction) ||
     await _handleStep7(guildId, interaction) ||
-    await _handleStep4ExtraAndSecurity(guildId, interaction) ||
+    await _handleStep4Security(guildId, interaction) ||
     await _handleStep8(guildId, interaction) ||
     await _handleNavAndTransitions(guildId, interaction)
   );
