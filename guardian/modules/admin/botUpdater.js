@@ -69,6 +69,21 @@ function isRunningUnderPM2() {
   return Boolean(process.env.PM2_HOME || process.env.pm_id !== undefined);
 }
 
+const GITHUB_REPO = 'jeremiejt38/Guardian_Discord_Bot';
+
+async function fetchReleaseNotes(version) {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/tags/v${version}`, {
+      headers: { 'User-Agent': 'Guardian-Discord-Bot', 'Accept': 'application/vnd.github+json' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.body?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
   const adminId = getBotAdminId();
   if (!adminId) return;
@@ -81,19 +96,31 @@ async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
 
     const pm2Running = isRunningUnderPM2();
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    const releaseNotes = await fetchReleaseNotes(toVersion);
 
-    const msg = [
-      `## 🔄 Nouvelle version Guardian disponible — v${fromVersion} → **v${toVersion}**`,
+    const lines = [
+      `## 🔄 Guardian updated — v${fromVersion} → **v${toVersion}**`,
       ``,
-      `> Tu reçois ce message car tu es l'administrateur bot (\`BOT_ADMIN_ID\`).`,
+      `> You receive this message as the bot system administrator.`,
       ``,
-      `**Que souhaites-tu faire ?**`,
+    ];
+
+    if (releaseNotes) {
+      lines.push(`### What's new in v${toVersion}`);
+      const truncated = releaseNotes.length > 800 ? releaseNotes.slice(0, 800) + '\n*(truncated — see full changelog below)*' : releaseNotes;
+      lines.push(truncated);
+      lines.push(``);
+    }
+
+    lines.push(
       pm2Running
-        ? `> ✅ PM2 détecté — le bot redémarrera automatiquement après la mise à jour.`
-        : `> ⚠️ PM2 non détecté — tu devras redémarrer le bot manuellement après la mise à jour.`,
+        ? `> ✅ PM2 detected — the bot will restart automatically after the update.`
+        : `> ⚠️ PM2 not detected — you will need to restart the bot manually.`,
       ``,
-      `📋 Changelog : https://github.com/jeremiejt38/Guardian_Discord_Bot/releases`
-    ].join('\n');
+      `📋 Full changelog : https://github.com/jeremiejt38/Guardian_Discord_Bot/releases/tag/v${toVersion}`
+    );
+
+    const msg = lines.join('\n');
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
