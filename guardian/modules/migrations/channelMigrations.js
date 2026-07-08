@@ -24,6 +24,21 @@ const CHANNEL_MIGRATIONS = [
     version: '1.0.0',
     description: 'Baseline — no Discord changes required',
     async up(_guild) {}
+  },
+
+  // ─── v1.1.0 → refacto channels modération + configuration (v0.26) ──────────
+  {
+    version: '1.1.0',
+    description: 'Rename bot→notifications, channels→modules, logs-mod→validation',
+    async up(guild) {
+      const rename = async (oldName, newName) => {
+        const ch = guild.channels.cache.find((c) => c.name === oldName && c.isTextBased?.());
+        if (ch) await ch.setName(newName).catch(() => {});
+      };
+      await rename('bot', 'notifications');
+      await rename('channels', 'modules');
+      await rename('logs-mod', 'validation');
+    }
   }
 
   // ─── Template for future migrations ─────────────────────────────────────────
