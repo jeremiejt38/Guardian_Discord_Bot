@@ -94,6 +94,7 @@ const CUSTOM_IDS = Object.freeze({
   decreaseSlowMode: 'setup:mod:slowmode:dec',
   increaseSlowMode: 'setup:mod:slowmode:inc',
   cycleLogsLevel: 'setup:mod:logs:cycle',
+  toggleInviteStrictMode: 'setup:members:invite:strictmode',
   editWelcomeText: 'setup:members:welcome:edit',
   welcomeModal: 'setup:members:welcome:modal',
   editJoinPresentation: 'setup:members:joinpresentation:edit',
@@ -686,7 +687,8 @@ function getStep4Config(guildId) {
     inviteExpulsionEnabled: Boolean(getGuildSetting(guildId, 'members', 'invite_expulsion_enabled', true)),
     inviteExpulsionDays: Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30))),
     welcomeText: String(getGuildSetting(guildId, 'members', 'welcome_text', '') || ''),
-    joinServerPresentation: String(getGuildSetting(guildId, 'joinserver', 'presentation', '') || '')
+    joinServerPresentation: String(getGuildSetting(guildId, 'joinserver', 'presentation', '') || ''),
+    inviteStrictMode: Boolean(getGuildSetting(guildId, 'members', 'invite_strict_mode', false))
   };
 }
 
@@ -699,6 +701,7 @@ function setStep4Config(guildId, config) {
   setGuildSetting(guildId, 'members', 'invite_expulsion_days', config.inviteExpulsionDays);
   setGuildSetting(guildId, 'members', 'welcome_text', config.welcomeText);
   setGuildSetting(guildId, 'joinserver', 'presentation', config.joinServerPresentation);
+  setGuildSetting(guildId, 'members', 'invite_strict_mode', config.inviteStrictMode);
 }
 
 function cycleReviewerGrade(currentGrade) {
@@ -727,7 +730,9 @@ function buildStep4Content(guildId) {
     `💬 **Message de bienvenue** : ${welcomePreview}`,
     '> Message envoyé en privé à chaque nouveau membre qui rejoint le serveur.',
     (() => { const p = c.joinServerPresentation; const prev = p ? `"${p.slice(0, 60)}${p.length > 60 ? '…' : ''}"` : '*non défini*'; return `🌟 **Présentation #rejoindre-notre-serveur** : ${prev}`; })(),
-    '> Texte personnalisé affiché dans le channel de recrutement des invités.'
+    '> Texte personnalisé affiché dans le channel de recrutement des invités.',
+    `🔒 **Mode strict invité** : ${onOff(c.inviteStrictMode)}`,
+    '> Si actif, les invités n\'ont accès qu\'aux channels #devenir-membre et #rejoindre. Vocal et #general sont réservés aux Membres.'
   ].join('\n');
 }
 
@@ -755,7 +760,10 @@ function buildStep4Components(guildId) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editWelcomeText).setStyle(ButtonStyle.Secondary)
       .setLabel('💬 Modifier message de bienvenue'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editJoinPresentation).setStyle(ButtonStyle.Secondary)
-      .setLabel('🌟 Présentation #rejoindre')
+      .setLabel('🌟 Présentation #rejoindre'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteStrictMode)
+      .setStyle(c.inviteStrictMode ? ButtonStyle.Danger : ButtonStyle.Secondary)
+      .setLabel(`🔒 Strict: ${c.inviteStrictMode ? 'ON' : 'OFF'}`)
   );
   return [toggles, delay, expulsion, welcomeBtn, buildNavRow(guildId, 4)];
 }
@@ -1712,9 +1720,20 @@ async function handleSetupInteraction(interaction) {
 
   if (interaction.customId === CUSTOM_IDS.toggleInviteGrade) {
     const current = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
-    setGuildSetting(guildId, 'setup', 'invite_grade_enabled', !current);
+    const next = !current;
+    setGuildSetting(guildId, 'setup', 'invite_grade_enabled', next);
+    if (!next) {
+      setGuildSetting(guildId, 'members', 'invite_strict_mode', true);
+    }
     await renderStep(interaction, 1);
     return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.toggleInviteStrictMode) {
+    const c = getStep4Config(guildId);
+    c.inviteStrictMode = !c.inviteStrictMode;
+    setStep4Config(guildId, c);
+    await renderStep(interaction, 4); return true;
   }
 
   if (interaction.customId === CUSTOM_IDS.createRolesAll) {

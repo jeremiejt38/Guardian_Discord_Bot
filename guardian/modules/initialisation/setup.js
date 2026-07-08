@@ -159,7 +159,19 @@ async function ensureForumPost(channel, name, content) {
   await channel.threads.create({ name, message: { content } });
 }
 
-function buildGeneralPermissions(guild, roleMap) {
+function buildGeneralPermissions(guild, roleMap, strictInviteMode = false) {
+  if (strictInviteMode) {
+    const permissions = [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }
+    ];
+    const memberPlusGrades = [GRADE_NAMES.membre, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner];
+    for (const grade of memberPlusGrades) {
+      const roleId = roleMap[grade];
+      if (roleId) permissions.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] });
+    }
+    return permissions;
+  }
+
   const permissions = [
     {
       id: guild.roles.everyone.id,
@@ -463,8 +475,9 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   ]);
 
   const generalEnabled = getGuildSetting(guild.id, 'communaute', 'general_enabled', true);
+  const strictInviteMode = Boolean(getGuildSetting(guild.id, 'members', 'invite_strict_mode', false));
   const permissions = generalEnabled
-    ? buildGeneralPermissions(guild, roleMap)
+    ? buildGeneralPermissions(guild, roleMap, strictInviteMode)
     : buildHiddenPermissions(guild, ownerId);
 
   const guildIdC = guild.id;
@@ -502,35 +515,51 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   }
 }
 
-async function createVocalArea(guild, ownerId) {
-  const vocauxCategory = await ensureCategory(guild, CATEGORIES.vocaux, [
-    { id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }
-  ]);
+async function createVocalArea(guild, roleMap, ownerId) {
+  const strictInviteMode = Boolean(getGuildSetting(guild.id, 'members', 'invite_strict_mode', false));
+
+  let vocauxCategoryPerms;
+  let voiceChannelPerms;
+  let voiceCreatePerms;
+
+  if (strictInviteMode) {
+    const memberPlusGrades = [GRADE_NAMES.membre, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner];
+    const allowedRoleIds = memberPlusGrades.map((g) => roleMap[g]).filter(Boolean);
+    const base = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }];
+    for (const roleId of allowedRoleIds) {
+      base.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel] });
+    }
+    vocauxCategoryPerms = base;
+    voiceChannelPerms = [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect] },
+      ...allowedRoleIds.map((id) => ({ id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }))
+    ];
+    voiceCreatePerms = [
+      { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      ...allowedRoleIds.map((id) => ({ id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }))
+    ];
+  } else {
+    vocauxCategoryPerms = [{ id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel] }];
+    voiceChannelPerms = [{ id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }];
+    voiceCreatePerms = [{ id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }];
+  }
+
+  const vocauxCategory = await ensureCategory(guild, CATEGORIES.vocaux, vocauxCategoryPerms);
 
   const guildIdV = guild.id;
-  const voiceCreateChannel = await ensureTextChannel(guild, vocauxCategory.id, CHANNELS.voiceCreate, [
-    {
-      id: guild.roles.everyone.id,
-      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-    }
-  ], { topic: t('init.topics.voiceCreate', {}, { guildId: guildIdV }) });
+  const voiceCreateChannel = await ensureTextChannel(guild, vocauxCategory.id, CHANNELS.voiceCreate, voiceCreatePerms, { topic: t('init.topics.voiceCreate', {}, { guildId: guildIdV }) });
 
-  await ensureVoiceChannel(guild, vocauxCategory.id, CHANNELS.voiceGeneral, [
-    {
-      id: guild.roles.everyone.id,
-      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak]
-    }
-  ]);
+  await ensureVoiceChannel(guild, vocauxCategory.id, CHANNELS.voiceGeneral, voiceChannelPerms);
 
   const afkEnabled = getGuildSetting(guild.id, 'vocaux', 'afk_enabled', true);
-  const afkPermissions = afkEnabled
-    ? [
-        {
-          id: guild.roles.everyone.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak]
-        }
-      ]
-    : buildHiddenPermissions(guild, ownerId);
+  let afkPermissions;
+  if (!afkEnabled) {
+    afkPermissions = buildHiddenPermissions(guild, ownerId);
+  } else if (strictInviteMode) {
+    afkPermissions = voiceChannelPerms;
+  } else {
+    afkPermissions = [{ id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }];
+  }
 
   await ensureVoiceChannel(guild, vocauxCategory.id, CHANNELS.voiceAfk, afkPermissions);
   await seedVoiceCreateMessage(voiceCreateChannel);
@@ -719,7 +748,7 @@ async function runSetupInstallationPhases(guild, ownerId) {
 
   await createInformationsArea(guild, roleMap);
   await createCommunauteArea(guild, roleMap, ownerId);
-  await createVocalArea(guild, ownerId);
+  await createVocalArea(guild, roleMap, ownerId);
   await provisionGuildGameStructures(guild);
   await createModerationArea(guild, roleMap, ownerId);
   await createConfigurationArea(guild, roleMap, ownerId);
