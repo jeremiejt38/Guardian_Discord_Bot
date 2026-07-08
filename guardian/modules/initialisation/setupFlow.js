@@ -15,6 +15,8 @@ const { replyEphemeral } = require('../utils/interactions');
 const _notif = require('./setupNotifications');
 const _gamesDetect = require('./setupGamesDetect');
 const _steps = require('./setupSteps');
+const { CUSTOM_IDS, TOTAL_STEPS } = require('./setupConstants');
+const _render = require('./setupRender');
 const {
   ORDERED_GRADES,
   REQUIRED_GRADES,
@@ -53,129 +55,7 @@ const {
 } = require('./discordSettings');
 // @premium-end
 
-async function sendSetupMessage(interaction, content) {
-  if (interaction.channel?.send) {
-    await interaction.channel.send({ content });
-    await interaction.deferUpdate().catch(() => {});
-  } else {
-    await replyEphemeral(interaction, content);
-  }
-}
-
-const TOTAL_STEPS = 9;
-
-const CUSTOM_IDS = Object.freeze({
-  start: 'setup:start',
-  createRolesAuto: 'setup:grade:create-auto',
-  createRolesAll: 'setup:grade:create-all',
-  transferExistingRoles: 'setup:grade:transfer-existing',
-  recreateRoles: 'setup:grade:recreate',
-  renameGradePrefix: 'setup:grade:rename',
-  renameGradeModal: 'setup:grade:rename:modal',
-  selectOwnerMember: 'setup:grade:owner-member',
-  selectRolePrefix: 'setup:grade:role',
-  previousGrade: 'setup:grade:prev',
-  nextGrade: 'setup:grade:next',
-  back: 'setup:step:back',
-  toggleSuggestions: 'setup:modules:suggestions:toggle',
-  toggleServerList: 'setup:modules:server-list:toggle',
-  toggleStatusBot: 'setup:modules:status-bot:toggle',
-  toggleAfk: 'setup:modules:afk:toggle',
-  toggleGameUpdates: 'setup:modules:game-updates:toggle',
-  toggleGuides: 'setup:modules:guides:toggle',
-  toggleBioRequired: 'setup:members:bio:toggle',
-  toggleSponsorshipRequired: 'setup:members:sponsorship:toggle',
-  decreasePromotionDelay: 'setup:members:delay:dec',
-  increasePromotionDelay: 'setup:members:delay:inc',
-  cyclePromotionReviewerGrade: 'setup:members:reviewer:cycle',
-  toggleInviteExpulsion: 'setup:members:invite-expulsion:toggle',
-  decreaseInviteExpulsionDays: 'setup:members:invite-expulsion-days:dec',
-  increaseInviteExpulsionDays: 'setup:members:invite-expulsion-days:inc',
-  editVocalPrefix: 'setup:vocal:prefix:edit',
-  editVocalSuffix: 'setup:vocal:suffix:edit',
-  toggleVocalSuffix: 'setup:vocal:suffix:toggle',
-  decreaseVocalLimit: 'setup:vocal:limit:dec',
-  increaseVocalLimit: 'setup:vocal:limit:inc',
-  decreaseVocalDelay: 'setup:vocal:delay:dec',
-  increaseVocalDelay: 'setup:vocal:delay:inc',
-  cycleVocalPrefix: 'setup:vocal:prefix:cycle',
-  addGame: 'setup:games:add',
-  addGameModal: 'setup:games:add:modal',
-  editGamePrefix: 'setup:games:edit',
-  editGameModal: 'setup:games:edit:modal',
-  deleteGamePrefix: 'setup:games:delete',
-  confirmGamePrefix: 'setup:games:confirm',
-  toggleGameGallery: 'setup:games:gallery:toggle',
-  toggleGameChangelog: 'setup:games:changelog:toggle',
-  toggleGameText: 'setup:games:text:toggle',
-  addGameConfirmModal: 'setup:games:add:confirm:modal',
-  cycleInviteMode: 'setup:grade:invite:cycle',
-  toggleBehaviorScore: 'setup:modules:behavior:toggle',
-  decreaseSpamThreshold: 'setup:mod:spam:dec',
-  increaseSpamThreshold: 'setup:mod:spam:inc',
-  toggleBlacklistWarn: 'setup:mod:blacklist:toggle',
-  addBlacklistWord: 'setup:mod:blacklist:add',
-  blacklistModal: 'setup:mod:blacklist:modal',
-  clearBlacklist: 'setup:mod:blacklist:clear',
-  decreaseSlowMode: 'setup:mod:slowmode:dec',
-  increaseSlowMode: 'setup:mod:slowmode:inc',
-  cycleLogsLevel: 'setup:mod:logs:cycle',
-  // invite mode is now cycled in step 1 via cycleInviteMode
-  editWelcomeText: 'setup:members:welcome:edit',
-  welcomeModal: 'setup:members:welcome:modal',
-  editJoinPresentation: 'setup:members:joinpresentation:edit',
-  joinPresentationModal: 'setup:members:joinpresentation:modal',
-  channelSelectPrefix: 'setup:channel:select',
-  channelSkip: 'setup:channel:skip',
-  next: 'setup:step:next',
-  communityCheckContinue: 'setup:community:continue',
-  communityCheckRetry: 'setup:community:retry',
-  gameDetectAdopt: 'setup:gamedetect:adopt',
-  gameDetectSkip: 'setup:gamedetect:skip',
-  gameLinkNext: 'setup:gamelink:next',
-  gameLinkSkip: 'setup:gamelink:skip',
-  gameLinkChannelPrefix: 'setup:gamelink:channel',
-  gameLinkTypeSelect: 'setup:gamelink:type',
-  gamePagePrev: 'setup:games:page:prev',
-  gamePageNext: 'setup:games:page:next',
-  newOptionsNext: 'setup:newoptions:next',
-  newOptionsSkip: 'setup:newoptions:skip',
-  finalize: 'setup:finalize',
-  confirmOwner: 'setup:grade:owner-confirm',
-  securityContinue: 'setup:security:continue',
-  securityRoleAction: 'setup:security:role',
-  securityDeleteUnused: 'setup:security:unused:delete',
-  securityKeepUnused: 'setup:security:unused:keep',
-  securityDeleteAllUnused: 'setup:security:unused:delete-all',
-  securityKeepAllUnused: 'setup:security:unused:keep-all',
-  securityConfirmModal: 'setup:security:confirm-modal',
-  clearAllGames: 'setup:games:clear-all',
-  channelAutoDetectAccept: 'setup:channel:autodetect:accept',
-  channelAutoDetectSkip: 'setup:channel:autodetect:skip',
-  notifyMembersYes: 'setup:notify-members:yes',
-  notifyMembersNo: 'setup:notify-members:no',
-  gameReviewRemovePrefix: 'setup:gamereview:remove:',
-  gameReviewAdd: 'setup:gamereview:add',
-  gameReviewAddModal: 'setup:gamereview:add:modal',
-  gameReviewContinue: 'setup:gamereview:continue',
-  prereleaseConfirm: 'setup:prerelease:confirm',
-  prereleaseSkip: 'setup:prerelease:skip',
-  // @premium-start
-  // Step 2 — Discord settings
-  cycleAfkTimeout: 'setup:discord:afk:timeout:cycle',
-  cycleSystemChannel: 'setup:discord:syschannel:cycle',
-  syncLocale: 'setup:discord:locale:sync',
-  // Step 4 — Community settings
-  applyRulesChannel: 'setup:discord:rules:apply',
-  applyPublicUpdates: 'setup:discord:publicupdates:apply',
-  editServerDescription: 'setup:discord:description:edit',
-  serverDescriptionModal: 'setup:discord:description:modal',
-  // Step 8 — Discord avancé
-  toggleAutoModRule: 'setup:discord:automod:toggle',
-  applyOnboardingChannels: 'setup:discord:onboarding:apply',
-  discordSettingsSkip: 'setup:discord:skip'
-  // @premium-end
-});
+const sendSetupMessage = (interaction, content) => _render.sendSetupMessage(interaction, content);
 
 const GRADE_LABELS = Object.freeze({
   [GRADE_NAMES.invite]: 'Invite',
@@ -457,85 +337,14 @@ const buildGameLinkComponents = (guildId, guild) => _gamesDetect.buildGameLinkCo
 
 
 
-function buildStepPayload(guildId, guild, step) {
-  function pad(content) { return content + '\n\u200b'; }
-  switch (step) {
-    case 1: return { content: pad(buildStepOneContent(guildId, guild)), components: buildStepOneComponents(guildId, guild) };
-    case 2: return { content: pad(buildStep2Content(guildId, guild)), components: buildStep2Components(guildId, guild) };
-    case 3: return { content: pad(buildStep3ChannelsContent(guildId, guild)), components: buildStep3ChannelsComponents(guildId, guild) };
-    case 4: return { content: pad(buildStep4Content(guildId, guild)), components: buildStep4Components(guildId, guild) };
-    case 5: return { content: pad(buildStep5VocalContent(guildId)), components: buildStep5VocalComponents(guildId) };
-    case 6: return { content: pad(buildStep6Content_Games(guildId)), components: buildStep6Components_Games(guildId) };
-    case 7: return { content: pad(buildStep7Content(guildId)), components: buildStep7Components(guildId) };
-    // @premium-start
-    case 8: return { content: pad('## 🔧 Paramètres Discord avancés (8/9)\n*Chargement...*'), components: buildStep8DiscordComponents(guildId, guild) };
-    // @premium-end
-    default: return { content: pad(buildStep9Summary(guildId)), components: buildStep9Components(guildId) };
-  }
-}
+const buildStepPayload = (guildId, guild, step) => _render.buildStepPayload(guildId, guild, step, _ctx());
 
-async function renderStep(interaction, step) {
-  const guildId = interaction.guildId;
-  const guild = interaction.guild;
-  // @premium-start
-  if (step === 8) {
-    try {
-      await interaction.deferUpdate().catch(() => {});
-      const content = await buildStep8DiscordContent(guildId, guild);
-      const components = buildStep8DiscordComponents(guildId, guild);
-      await interaction.message.edit({ content: content + '\n\u200b', components }).catch(async () => {
-        await interaction.channel?.send({ content: content + '\n\u200b', components }).catch(() => {});
-      });
-    } catch (err) {
-      logger.error('renderStep 8 failed', err);
-    }
-    return;
-  }
-  // @premium-end
-  const payload = buildStepPayload(guildId, guild, step);
-  try {
-    await interaction.message.edit(payload);
-    await interaction.deferUpdate().catch(() => {});
-  } catch (err) {
-    if (err.code === 10008 && interaction.channel?.send) {
-      await interaction.channel.send(payload);
-      await interaction.deferUpdate().catch(() => {});
-    } else {
-      throw err;
-    }
-  }
-}
+const renderStep = (interaction, step) => _render.renderStep(interaction, step, _ctx());
 
-async function startWizardInChannel(interaction) {
-  const guildId = interaction.guildId;
-  const guild = interaction.guild;
-  const savedStep = Number(getGuildSetting(guildId, 'setup', 'step', 0));
-  const step = (savedStep >= 1 && savedStep <= TOTAL_STEPS) ? savedStep : 1;
-  if (step === 1) {
-    setGuildSetting(guildId, 'setup', 'step', 1);
-    setGradeCursor(guildId, 0);
-  } else if (step === 3) {
-    const slots = getActiveSlotsForInstall(guildId, guild);
-    const anyConfigured = slots.some((s) => getGuildSetting(guildId, s.settingSection, s.settingKey, null));
-    if (anyConfigured) {
-      autoPositionChannelCursor(guildId, guild);
-    } else {
-      setChannelCursor(guildId, 0);
-    }
-  }
-  const payload = buildStepPayload(guildId, guild, step);
-  try {
-    await interaction.message.edit(payload);
-    await interaction.deferUpdate().catch(() => {});
-  } catch (err) {
-    if (err.code === 10008 && interaction.channel?.send) {
-      await interaction.channel.send(payload);
-      await interaction.deferUpdate().catch(() => {});
-    } else {
-      throw err;
-    }
-  }
-}
+const startWizardInChannel = (interaction) => _render.startWizardInChannel(interaction, {
+  ..._ctx(),
+  setGradeCursor, setChannelCursor, autoPositionChannelCursor, getActiveSlotsForInstall,
+});
 
 function explainStepOneValidation(guildId, validation) {
   if (validation.reason === 'missing_mappings') {
