@@ -631,23 +631,9 @@ function buildSecurityComponents(dangerous, unused, _, resolvedIds = new Set()) 
   return rows;
 }
 
-async function handleSetupInteraction(interaction) {
-  const guildId = interaction.guildId;
-  if (!guildId) return false;
-  if (!interaction.customId || !interaction.customId.startsWith('setup:')) return false;
+// ─── Sous-handler : Step 1 — Grades ─────────────────────────────────────────
 
-  const setupOwnerId = getGuildSetting(guildId, 'setup', 'owner_id', null);
-  if (setupOwnerId && interaction.user.id !== setupOwnerId) {
-    if (interaction.isRepliable()) await replyEphemeral(interaction, t('setup.forbiddenNotOwner', {}, { guildId }));
-    return true;
-  }
-
-  if (interaction.locale && !getGuildSetting(guildId, 'i18n', 'language', null)) {
-    const { detectLanguageFromLocale: _dlfl, setGuildLanguage: _sgl } = require('../i18n');
-    _sgl(guildId, _dlfl(interaction.locale));
-  }
-
-
+async function _handleStep1(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.previousGrade) {
     setGradeCursor(guildId, getGradeCursor(guildId) - 1);
     await renderStep(interaction, 1);
@@ -923,6 +909,12 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  return false;
+}
+
+// ─── Sous-handler : Step 2 — Modules + Discord settings ──────────────────────
+
+async function _handleStep2(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.toggleSuggestions) {
     const c = getStep2Config(guildId); c.suggestionsEnabled = !c.suggestionsEnabled; setStep2Config(guildId, c);
     await renderStep(interaction, 2); return true;
@@ -984,6 +976,12 @@ async function handleSetupInteraction(interaction) {
   }
   // @premium-end
 
+  return false;
+}
+
+// ─── Sous-handler : Step 3 — Channels ────────────────────────────────────────
+
+async function _handleStep3(guildId, interaction) {
   if (interaction.customId.startsWith(`${CUSTOM_IDS.channelSelectPrefix}:`)) {
     const slotKey = interaction.customId.split(':').pop();
     const slot = CHANNEL_SLOTS.find((s) => s.key === slotKey);
@@ -1043,6 +1041,12 @@ async function handleSetupInteraction(interaction) {
     }
   }
 
+  return false;
+}
+
+// ─── Sous-handler : Step 4 — Membres ─────────────────────────────────────────
+
+async function _handleStep4(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.toggleBioRequired) {
     const c = getStep4Config(guildId); c.bioRequired = !c.bioRequired; setStep4Config(guildId, c);
     await renderStep(interaction, 4); return true;
@@ -1137,6 +1141,12 @@ async function handleSetupInteraction(interaction) {
   }
   // @premium-end
 
+  return false;
+}
+
+// ─── Sous-handler : Step 5 — Vocal ────────────────────────────────────────────
+
+async function _handleStep5(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.cycleVocalPrefix) {
     const c = getStep4VocalConfig(guildId);
     c.prefix = cycleVocalPrefix(c.prefix);
@@ -1173,6 +1183,12 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 5); return true;
   }
 
+  return false;
+}
+
+// ─── Sous-handler : Step 6 — Jeux ─────────────────────────────────────────────
+
+async function _handleStep6(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.gamePagePrev) {
     setGamesPage(guildId, getGamesPage(guildId) - 1);
     await renderStep(interaction, 6); return true;
@@ -1393,6 +1409,12 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 6); return true;
   }
 
+  return false;
+}
+
+// ─── Sous-handler : Step 7 — Modération ───────────────────────────────────────
+
+async function _handleStep7(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.toggleBehaviorScore) {
     const c = getStep7Config(guildId); c.behaviorScoreEnabled = !c.behaviorScoreEnabled; setStep7Config(guildId, c);
     await renderStep(interaction, 7); return true;
@@ -1444,6 +1466,13 @@ async function handleSetupInteraction(interaction) {
     const c = getStep7Config(guildId); c.blacklistWords = []; setStep7Config(guildId, c);
     await renderStep(interaction, 7); return true;
   }
+
+  return false;
+}
+
+// ─── Sous-handler : Step 4 (suite) — Welcome + Join Presentation + Sécurité ──
+
+async function _handleStep4ExtraAndSecurity(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.editWelcomeText) {
     const current = getStep4Config(guildId).welcomeText;
     const modal = new ModalBuilder().setCustomId(CUSTOM_IDS.welcomeModal).setTitle('Message de bienvenue')
@@ -1727,8 +1756,12 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
-  // @premium-start
-  // ── Step 8 : AutoMod + Onboarding ────────────────────────────────────────────────
+  return false;
+}
+
+// ─── Sous-handler : Step 8 — AutoMod + Onboarding (premium) ──────────────────
+// @premium-start
+async function _handleStep8(guildId, interaction) {
   if (interaction.customId.startsWith(`${CUSTOM_IDS.toggleAutoModRule}:`)) {
     await interaction.deferUpdate().catch(() => {});
     const ruleKey = interaction.customId.split(':').pop();
@@ -1767,8 +1800,14 @@ async function handleSetupInteraction(interaction) {
     setGuildSetting(guildId, 'setup', 'step', nextStep);
     await renderStep(interaction, nextStep); return true;
   }
-  // @premium-end
 
+  return false;
+}
+// @premium-end
+
+// ─── Sous-handler : Navigation + Transitions ──────────────────────────────────
+
+async function _handleNavAndTransitions(guildId, interaction) {
   if (interaction.customId === CUSTOM_IDS.back) {
     const currentStep = getCurrentStep(guildId);
     const prevStep = Math.max(1, currentStep - 1);
@@ -2257,6 +2296,38 @@ async function handleSetupInteraction(interaction) {
   }
 
   return false;
+}
+
+// ─── Dispatcher principal ────────────────────────────────────────────────────
+
+async function handleSetupInteraction(interaction) {
+  const guildId = interaction.guildId;
+  if (!guildId) return false;
+  if (!interaction.customId || !interaction.customId.startsWith('setup:')) return false;
+
+  const setupOwnerId = getGuildSetting(guildId, 'setup', 'owner_id', null);
+  if (setupOwnerId && interaction.user.id !== setupOwnerId) {
+    if (interaction.isRepliable()) await replyEphemeral(interaction, t('setup.forbiddenNotOwner', {}, { guildId }));
+    return true;
+  }
+
+  if (interaction.locale && !getGuildSetting(guildId, 'i18n', 'language', null)) {
+    const { detectLanguageFromLocale: _dlfl, setGuildLanguage: _sgl } = require('../i18n');
+    _sgl(guildId, _dlfl(interaction.locale));
+  }
+
+  return (
+    await _handleStep1(guildId, interaction) ||
+    await _handleStep2(guildId, interaction) ||
+    await _handleStep3(guildId, interaction) ||
+    await _handleStep4(guildId, interaction) ||
+    await _handleStep5(guildId, interaction) ||
+    await _handleStep6(guildId, interaction) ||
+    await _handleStep7(guildId, interaction) ||
+    await _handleStep4ExtraAndSecurity(guildId, interaction) ||
+    await _handleStep8(guildId, interaction) ||
+    await _handleNavAndTransitions(guildId, interaction)
+  );
 }
 
 // ─── Notification membres à l'installation ───────────────────────────────────
