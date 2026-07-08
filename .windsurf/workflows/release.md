@@ -1,10 +1,11 @@
 ---
-description: Release a new version of Guardian (bump version, generate changelog, push tag, create GitHub release)
+description: Release a new version of Guardian (bump version, generate changelog, update README, push tag, create GitHub release)
 ---
 
 ## Prerequisites
-- Working tree must be clean (all changes committed)
-- `GITHUB_TOKEN` must be set in `.env` at the repo root
+- Working tree must be clean (all changes committed and pushed)
+- `GITHUB_TOKEN` must be set in `guardian/.env`
+  - Generate at: https://github.com/settings/tokens → Fine-grained → repo Contents: write + Metadata: read
 
 ## Steps
 
@@ -18,14 +19,18 @@ cd /home/jerem/workspaces/Guardian_Discord_Bot/guardian && npm test
 cd /home/jerem/workspaces/Guardian_Discord_Bot && node scripts/release.js patch
 ```
 
-The script will:
-- Bump the version in `guardian/package.json`
-- Generate a categorized changelog from git commits since the last tag
-- Commit the version bump
-- Create and push a git tag
-- Create a GitHub release with the changelog notes
+The script does the following automatically:
+- Bumps the version in `guardian/package.json`
+- Updates the version badge in `README.md`
+- Inserts a new entry in the `## Changelog` table of `README.md` (summary of commits + diff link)
+- Generates a categorized changelog from git commits since the last tag (feat / fix / refactor / perf / docs / chore)
+- Commits `package.json` + `README.md` together
+- Creates and pushes an annotated git tag
+- Creates a GitHub release with the full categorized changelog notes
 
 ## After release
-- The GitHub release will appear at https://github.com/jeremiejt38/Guardian_Discord_Bot/releases
-- When the bot restarts on a server, it will fetch the changelog from GitHub and send it to the bot admin
-- Guild owners will receive a DM listing new configurable options introduced in this version
+- The GitHub release appears at https://github.com/jeremiejt38/Guardian_Discord_Bot/releases
+- On next bot startup after an update, the bot admin receives a single DM with:
+  - The changelog range (all versions between old and new, fetched from GitHub)
+  - A "Apply update" button
+- Guild owners receive a DM listing new configurable options introduced in this version (setup step indicated), sent once per version update
