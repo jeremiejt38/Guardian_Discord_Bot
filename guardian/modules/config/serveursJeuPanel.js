@@ -16,11 +16,23 @@ const { logConfigChange } = require('./configLogger');
 const { getDb } = require('../../database/db');
 
 const IDS = Object.freeze({
-  gameSelect: 'serveurs-jeu:game-select',
-  addModalPrefix: 'serveurs-jeu:modal:add:',
-  removePrefix: 'serveurs-jeu:remove:',
+  gameSelect:    'serveurs-jeu:game-select',
+  addModalPrefix:'serveurs-jeu:modal:add:',
+  removePrefix:  'serveurs-jeu:remove:',
   approvePrefix: 'servers:approve:',
-  rejectPrefix: 'servers:reject:'
+  rejectPrefix:  'servers:reject:',
+  addFlow:       'svj:add',
+  editMenu:      'svj:edit:menu',
+  deleteMenu:    'svj:delete:menu',
+  selectGame:    'svj:select:game',
+  pageGame:      'svj:page:game:',
+  selectEdit:    'svj:select:edit',
+  pageEdit:      'svj:page:edit:',
+  editInfo:      'svj:edit:info:',
+  editModal:     'svj:modal:edit:',
+  selectDelete:  'svj:select:delete',
+  pageDelete:    'svj:page:delete:',
+  confirmDelete: 'svj:confirm:delete:',
 });
 
 function hasManagerGrade(member, guildId) {
@@ -48,7 +60,10 @@ function buildPanelContent(guildId) {
     lines.push(t(guildId, 'config.serveursJeu.noServers'));
   } else {
     for (const s of servers) {
-      lines.push(`• **${s.name}** (${s.game}) — \`${s.ip}:${s.port}\` ${statusEmoji(s.last_status)}`);
+      const status = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : s.last_status === 'unstable' ? '🟡' : '⚪';
+      lines.push(`${status} **${s.name}** — *${s.game}* — \`${s.ip}:${s.port}\``);
+      const lastCheck = s.last_check ? `Dernière vérif : ${s.last_check}` : 'Jamais vérifié';
+      lines.push(`  -# *${lastCheck}*`);
     }
   }
   lines.push(`\n${t(guildId, 'config.serveursJeu.hint')}`);
@@ -60,34 +75,15 @@ function getGuildGames(guildId) {
 }
 
 function buildRows(guildId) {
-  const servers = getServers(guildId).slice(0, 4);
-  const games = getGuildGames(guildId);
-  const rows = [];
-
-  if (games.length > 0) {
-    const options = games.slice(0, 25).map((g) => ({
-      label: g.name.slice(0, 100),
-      value: String(g.game_id),
-      description: `Ajouter un serveur pour ${g.name}`.slice(0, 100)
-    }));
-    rows.push(new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId(IDS.gameSelect)
-        .setPlaceholder(t(guildId, 'config.serveursJeu.add'))
-        .addOptions(options)
-    ));
-  }
-
-  const removeButtons = servers.map((s) =>
-    new ButtonBuilder()
-      .setCustomId(`${IDS.removePrefix}${s.server_id}`)
-      .setLabel(`Retirer: ${s.name.slice(0, 20)}`)
-      .setStyle(ButtonStyle.Danger)
-  );
-  if (removeButtons.length > 0) {
-    rows.push(new ActionRowBuilder().addComponents(removeButtons));
-  }
-  return rows;
+  const servers = getServers(guildId);
+  const hasServers = servers.length > 0;
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(IDS.addFlow).setLabel('➕ Ajouter un serveur').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(IDS.editMenu).setLabel('✏️ Modifier un serveur').setStyle(ButtonStyle.Primary).setDisabled(!hasServers),
+      new ButtonBuilder().setCustomId(IDS.deleteMenu).setLabel('🗑️ Supprimer un serveur').setStyle(ButtonStyle.Danger).setDisabled(!hasServers)
+    )
+  ];
 }
 
 async function seedServeursJeuPanel(guild) {
@@ -156,13 +152,64 @@ async function handleServeursJeuInteraction(interaction) {
     return true;
   }
 
-  if (!customId?.startsWith('serveurs-jeu:') && !customId?.startsWith('servers:approve:') && !customId?.startsWith('servers:reject:')) return false;
+  if (!customId?.startsWith('serveurs-jeu:') && !customId?.startsWith('servers:approve:') && !customId?.startsWith('servers:reject:') && !customId?.startsWith('svj:')) return false;
 
   if (!hasManagerGrade(interaction.member, guildId)) {
     await replyEphemeral(interaction, t(guildId, 'config.managerOnly'));
     return true;
   }
 
+  // ── Flow Ajouter ─────────────────────────────────────────────────────
+  if (interaction.isButton() && customId === IDS.addFlow) {
+    const games = getGuildGames(guildId);
+    if (games.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.noGames')); return true; }
+    const page = 0;
+    const options = games.slice(page * 25, page * 25 + 25).map((g) => ({ label: g.name.slice(0, 100), value: String(g.game_id), description: `Ajouter un serveur pour ${g.name}`.slice(0, 100) }));
+    const components = [new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder().setCustomId(IDS.selectGame).setPlaceholder('Choisir un jeu…').addOptions(options)
+    )];
+    if (games.length > 25) {
+      components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`${IDS.pageGame}0`).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId(`${IDS.pageGame}1`).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary)
+      ));
+    }
+    await replyEphemeral(interaction, { content: 'Pour quel jeu ajouter un serveur ?', components });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.pageGame)) {
+    const page = Number(customId.slice(IDS.pageGame.length));
+    const games = getGuildGames(guildId);
+    const options = games.slice(page * 25, page * 25 + 25).map((g) => ({ label: g.name.slice(0, 100), value: String(g.game_id) }));
+    const components = [new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder().setCustomId(IDS.selectGame).setPlaceholder('Choisir un jeu…').addOptions(options)
+    ), new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${IDS.pageGame}${page - 1}`).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+      new ButtonBuilder().setCustomId(`${IDS.pageGame}${page + 1}`).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary).setDisabled((page + 1) * 25 >= games.length)
+    )];
+    await interaction.update({ content: 'Pour quel jeu ajouter un serveur ?', components });
+    return true;
+  }
+
+  if (interaction.isStringSelectMenu() && customId === IDS.selectGame) {
+    const gameId = interaction.values?.[0];
+    const game = getDb().prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(guildId, gameId);
+    if (!game) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const modal = new ModalBuilder()
+      .setCustomId(`${IDS.addModalPrefix}${game.game_id}`)
+      .setTitle(t(guildId, 'config.serveursJeu.addModalTitle'))
+      .addComponents(
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel(t(guildId, 'config.serveursJeu.nameLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50).setValue(game.name)),
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ip').setLabel(t(guildId, 'config.serveursJeu.ipLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(100).setPlaceholder('Ex: 192.168.1.1 ou play.monserveur.com')),
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('port').setLabel(t(guildId, 'config.serveursJeu.portLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(6).setPlaceholder('Ex: 25565')),
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('password').setLabel(t(guildId, 'config.serveursJeu.passwordLabel')).setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(100).setPlaceholder(t(guildId, 'config.serveursJeu.passwordPlaceholder')))
+      );
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  // ancien select game (rétrocompat)
   if (interaction.isStringSelectMenu() && customId === IDS.gameSelect) {
     const gameId = interaction.values?.[0];
     const game = getDb().prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(guildId, gameId);
@@ -217,13 +264,134 @@ async function handleServeursJeuInteraction(interaction) {
   if (interaction.isButton() && customId.startsWith(IDS.removePrefix)) {
     const serverId = Number(customId.slice(IDS.removePrefix.length));
     const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
-    if (!server) {
-      await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound'));
-      return true;
-    }
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
     getDb().prepare('DELETE FROM servers_jeu WHERE server_id = ?').run(serverId);
     await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.remove', { name: server.name }, null);
     await refreshServeursJeuPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.removed', { name: server.name }));
+    return true;
+  }
+
+  // ── Flow Modifier ────────────────────────────────────────────────────
+  if (interaction.isButton() && customId === IDS.editMenu) {
+    const servers = getServers(guildId);
+    if (servers.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.noServers')); return true; }
+    const options = servers.slice(0, 25).map((s) => ({ label: s.name.slice(0, 100), value: String(s.server_id), description: `${s.game} — ${s.ip}:${s.port}`.slice(0, 100) }));
+    const components = [new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder().setCustomId(IDS.selectEdit).setPlaceholder('Choisir un serveur…').addOptions(options)
+    )];
+    if (servers.length > 25) {
+      components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`${IDS.pageEdit}0`).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId(`${IDS.pageEdit}1`).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary)
+      ));
+    }
+    await replyEphemeral(interaction, { content: 'Quel serveur souhaitez-vous modifier ?', components });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.pageEdit)) {
+    const page = Number(customId.slice(IDS.pageEdit.length));
+    const servers = getServers(guildId);
+    const options = servers.slice(page * 25, page * 25 + 25).map((s) => ({ label: s.name.slice(0, 100), value: String(s.server_id) }));
+    const components = [new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder().setCustomId(IDS.selectEdit).setPlaceholder('Choisir un serveur…').addOptions(options)
+    ), new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${IDS.pageEdit}${page - 1}`).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+      new ButtonBuilder().setCustomId(`${IDS.pageEdit}${page + 1}`).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary).setDisabled((page + 1) * 25 >= servers.length)
+    )];
+    await interaction.update({ content: 'Quel serveur souhaitez-vous modifier ?', components });
+    return true;
+  }
+
+  if (interaction.isStringSelectMenu() && customId === IDS.selectEdit) {
+    const serverId = interaction.values?.[0];
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const modal = new ModalBuilder()
+      .setCustomId(`${IDS.editModal}${serverId}`)
+      .setTitle(t(guildId, 'config.serveursJeu.editModalTitle'))
+      .addComponents(
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel(t(guildId, 'config.serveursJeu.nameLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(50).setValue(server.name)),
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ip').setLabel(t(guildId, 'config.serveursJeu.ipLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(100).setValue(server.ip)),
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('port').setLabel(t(guildId, 'config.serveursJeu.portLabel')).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(6).setValue(String(server.port))),
+        new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('password').setLabel(t(guildId, 'config.serveursJeu.passwordLabel')).setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(100).setValue(server.password || ''))
+      );
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId.startsWith(IDS.editModal)) {
+    const serverId = customId.slice(IDS.editModal.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const name = interaction.fields.getTextInputValue('name').trim();
+    const ip = interaction.fields.getTextInputValue('ip').trim();
+    const portRaw = interaction.fields.getTextInputValue('port').trim();
+    const password = interaction.fields.getTextInputValue('password').trim() || null;
+    const port = Number.parseInt(portRaw, 10);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.invalidPort')); return true; }
+    getDb().prepare('UPDATE servers_jeu SET name = ?, ip = ?, port = ?, password = ? WHERE server_id = ?').run(name, ip, port, password, serverId);
+    await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.update', { name: server.name }, { name, ip, port, hasPassword: !!password });
+    await refreshServeursJeuPanel(interaction.guild);
+    await refreshServerListPanel(interaction.guild);
+    await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.updated', { name }));
+    return true;
+  }
+
+  // ── Flow Supprimer ───────────────────────────────────────────────────
+  if (interaction.isButton() && customId === IDS.deleteMenu) {
+    const servers = getServers(guildId);
+    if (servers.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.noServers')); return true; }
+    const options = servers.slice(0, 25).map((s) => ({ label: s.name.slice(0, 100), value: String(s.server_id), description: `${s.game} — ${s.ip}:${s.port}`.slice(0, 100) }));
+    const components = [new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder().setCustomId(IDS.selectDelete).setPlaceholder('Choisir un serveur…').addOptions(options)
+    )];
+    if (servers.length > 25) {
+      components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`${IDS.pageDelete}0`).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId(`${IDS.pageDelete}1`).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary)
+      ));
+    }
+    await replyEphemeral(interaction, { content: 'Quel serveur souhaitez-vous supprimer ?', components });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.pageDelete)) {
+    const page = Number(customId.slice(IDS.pageDelete.length));
+    const servers = getServers(guildId);
+    const options = servers.slice(page * 25, page * 25 + 25).map((s) => ({ label: s.name.slice(0, 100), value: String(s.server_id) }));
+    const components = [new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder().setCustomId(IDS.selectDelete).setPlaceholder('Choisir un serveur…').addOptions(options)
+    ), new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${IDS.pageDelete}${page - 1}`).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+      new ButtonBuilder().setCustomId(`${IDS.pageDelete}${page + 1}`).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary).setDisabled((page + 1) * 25 >= servers.length)
+    )];
+    await interaction.update({ content: 'Quel serveur souhaitez-vous supprimer ?', components });
+    return true;
+  }
+
+  if (interaction.isStringSelectMenu() && customId === IDS.selectDelete) {
+    const serverId = interaction.values?.[0];
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    await replyEphemeral(interaction, {
+      content: `⚠️ Confirmer la suppression de **${server.name}** ? Cette action est irréversible.`,
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`${IDS.confirmDelete}${serverId}`).setLabel('🗑️ Confirmer suppression').setStyle(ButtonStyle.Danger)
+      )]
+    });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.confirmDelete)) {
+    const serverId = customId.slice(IDS.confirmDelete.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    getDb().prepare('DELETE FROM servers_jeu WHERE server_id = ?').run(serverId);
+    await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.remove', { name: server.name }, null);
+    await refreshServeursJeuPanel(interaction.guild);
+    await refreshServerListPanel(interaction.guild);
     await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.removed', { name: server.name }));
     return true;
   }
