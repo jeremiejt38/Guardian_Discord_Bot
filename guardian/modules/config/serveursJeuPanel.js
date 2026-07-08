@@ -115,28 +115,47 @@ async function refreshServerListPanel(guild) {
   if (!channel) return;
   const guildId = guild.id;
   const servers = getServers(guildId).filter((s) => s.approved);
-  const lines = ['**🖥️ Serveurs de jeu disponibles**\n'];
+
+  const msgs = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+  const botMsgs = msgs?.filter((m) => m.author.id === guild.client.user.id) ?? new Map();
+  for (const m of botMsgs.values()) await m.delete().catch(() => {});
+
   if (servers.length === 0) {
-    lines.push('_Aucun serveur configuré pour le moment._');
-  } else {
-    for (const s of servers) {
-      const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : '🟡';
-      const passwordLine = s.password ? ` — 🔑 ||${s.password}||` : '';
-      lines.push(`${emoji} **${s.name}** (${s.game}) — \`${s.ip}:${s.port}\`${passwordLine}`);
-    }
+    await channel.send({ content: '**🖥️ Serveurs de jeu disponibles**\n_Aucun serveur configuré pour le moment._' }).catch(() => {});
+    return;
   }
-  const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
-  const existing = msgs?.find((m) => m.author.id === guild.client.user.id);
-  const content = lines.join('\n');
-  if (existing) {
-    await existing.edit({ content }).catch(() => undefined);
-  } else {
-    await channel.send({ content }).catch(() => undefined);
+
+  await channel.send({ content: '**🖥️ Serveurs de jeu disponibles**' }).catch(() => {});
+
+  for (const s of servers) {
+    const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : s.last_status === 'starting' ? '�' : '�🟡';
+    const passwordLine = s.password ? `\n> 🔑 Mot de passe : ||${s.password}||` : '';
+    const content = `${emoji} **${s.name}** — ${s.game}\n> IP : \`${s.ip}:${s.port}\`${passwordLine}`;
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`server:copy:${s.server_id}`)
+        .setLabel('📋 Copier IP')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setURL(`steam://connect/${s.ip}:${s.port}`)
+        .setLabel('🔗 Se connecter')
+        .setStyle(ButtonStyle.Link)
+    );
+    await channel.send({ content, components: [row] }).catch(() => {});
   }
 }
 
 async function handleServeursJeuInteraction(interaction) {
   const { customId, guildId } = interaction;
+
+  if (interaction.isButton() && customId?.startsWith('server:copy:')) {
+    const serverId = Number(customId.slice('server:copy:'.length));
+    const server = getDb().prepare('SELECT ip, port FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, '❌ Serveur introuvable.'); return true; }
+    await replyEphemeral(interaction, `\`${server.ip}:${server.port}\``);
+    return true;
+  }
+
   if (!customId?.startsWith('serveurs-jeu:') && !customId?.startsWith('servers:approve:') && !customId?.startsWith('servers:reject:')) return false;
 
   if (!hasManagerGrade(interaction.member, guildId)) {
