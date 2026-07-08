@@ -1,162 +1,134 @@
 'use strict';
 
-const { describe, it, before, after, beforeEach } = require('node:test');
+const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
-// ─── Setup DB en mémoire ──────────────────────────────────────────────────────
+function freshModule(modulePath) {
+  const resolved = require.resolve(modulePath);
+  delete require.cache[resolved];
+  return require(modulePath);
+}
 
-let db;
-before(() => {
-  process.env.DATABASE_PATH = ':memory:';
-  const { initDatabase, migrateDatabase } = require('../database/db');
-  db = initDatabase();
-  migrateDatabase();
-});
-
-after(() => {
-  db.close?.();
-});
+function makeTempDb() {
+  return path.join(os.tmpdir(), `guardian-tier-${Date.now()}-${Math.random()}.db`);
+}
 
 // ─── Tests getGuildTier / setGuildTier ────────────────────────────────────────
 
-describe('getGuildTier / setGuildTier', () => {
-  const { getGuildTier, setGuildTier } = require('../database/db');
+test('getGuildTier retourne free par défaut', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase, getGuildTier } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  assert.equal(getGuildTier('unknown_guild'), 'free');
+  try { fs.unlinkSync(tempDbPath); } catch {}
+});
 
-  beforeEach(() => {
-    try { db.exec("DELETE FROM guild_tier"); } catch {}
-  });
+test('setGuildTier/getGuildTier: premium persisté correctement', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase, getGuildTier, setGuildTier } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  setGuildTier('guild_1', 'premium', null);
+  assert.equal(getGuildTier('guild_1'), 'premium');
+  setGuildTier('guild_1', 'free', null);
+  assert.equal(getGuildTier('guild_1'), 'free');
+  try { fs.unlinkSync(tempDbPath); } catch {}
+});
 
-  it('retourne free par défaut (guild inconnue)', () => {
-    assert.equal(getGuildTier('unknown_guild'), 'free');
-  });
+test('getGuildTier retourne free si expires_at est dans le passé', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase, getGuildTier, setGuildTier } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  setGuildTier('guild_exp', 'premium', Date.now() - 1000);
+  assert.equal(getGuildTier('guild_exp'), 'free');
+  try { fs.unlinkSync(tempDbPath); } catch {}
+});
 
-  it('retourne premium après setGuildTier premium', () => {
-    setGuildTier('guild_1', 'premium', null);
-    assert.equal(getGuildTier('guild_1'), 'premium');
-  });
+test('getGuildTier retourne premium si expires_at est dans le futur', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase, getGuildTier, setGuildTier } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  setGuildTier('guild_fut', 'premium', Date.now() + 86400_000);
+  assert.equal(getGuildTier('guild_fut'), 'premium');
+  try { fs.unlinkSync(tempDbPath); } catch {}
+});
 
-  it('repasse en free après setGuildTier free', () => {
-    setGuildTier('guild_2', 'premium', null);
-    setGuildTier('guild_2', 'free', null);
-    assert.equal(getGuildTier('guild_2'), 'free');
-  });
-
-  it('retourne free si expires_at est dans le passé', () => {
-    const pastTs = Date.now() - 1000;
-    setGuildTier('guild_3', 'premium', pastTs);
-    assert.equal(getGuildTier('guild_3'), 'free');
-  });
-
-  it('retourne premium si expires_at est dans le futur', () => {
-    const futureTs = Date.now() + 86400_000;
-    setGuildTier('guild_4', 'premium', futureTs);
-    assert.equal(getGuildTier('guild_4'), 'premium');
-  });
-
-  it('ignore une valeur de tier invalide (fallback free)', () => {
-    setGuildTier('guild_5', 'enterprise', null);
-    assert.equal(getGuildTier('guild_5'), 'free');
-  });
+test('setGuildTier ignore une valeur de tier invalide (fallback free)', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase, getGuildTier, setGuildTier } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  setGuildTier('guild_inv', 'enterprise', null);
+  assert.equal(getGuildTier('guild_inv'), 'free');
+  try { fs.unlinkSync(tempDbPath); } catch {}
 });
 
 // ─── Tests isPremium / checkTier / activatePremium / deactivatePremium ────────
 
-describe('tier.js — isPremium / checkTier / activatePremium / deactivatePremium', () => {
-  const { isPremium, checkTier, activatePremium, deactivatePremium } = require('../modules/tier/tier');
+test('tier.js — isPremium retourne false pour guild inconnue', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  const { isPremium } = freshModule('../modules/tier/tier');
+  assert.equal(isPremium('no_guild'), false);
+  try { fs.unlinkSync(tempDbPath); } catch {}
+});
 
-  beforeEach(() => {
-    try { db.exec("DELETE FROM guild_tier"); } catch {}
-  });
+test('tier.js — activatePremium / isPremium / deactivatePremium', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  const { isPremium, activatePremium, deactivatePremium, checkTier } = freshModule('../modules/tier/tier');
+  assert.equal(isPremium('g1'), false);
+  activatePremium('g1', null);
+  assert.equal(isPremium('g1'), true);
+  assert.equal(checkTier('g1'), 'premium');
+  deactivatePremium('g1');
+  assert.equal(isPremium('g1'), false);
+  assert.equal(checkTier('g1'), 'free');
+  try { fs.unlinkSync(tempDbPath); } catch {}
+});
 
-  it('isPremium retourne false pour guild inconnue', () => {
-    assert.equal(isPremium('no_guild'), false);
-  });
-
-  it('isPremium retourne true après activatePremium permanent', () => {
-    activatePremium('g1', null);
-    assert.equal(isPremium('g1'), true);
-  });
-
-  it('isPremium retourne true après activatePremium avec durée', () => {
-    activatePremium('g2', 30);
-    assert.equal(isPremium('g2'), true);
-  });
-
-  it('isPremium retourne false après deactivatePremium', () => {
-    activatePremium('g3', null);
-    deactivatePremium('g3');
-    assert.equal(isPremium('g3'), false);
-  });
-
-  it('checkTier retourne premium pour guild premium', () => {
-    activatePremium('g4', null);
-    assert.equal(checkTier('g4'), 'premium');
-  });
-
-  it('checkTier retourne free pour guild free', () => {
-    assert.equal(checkTier('g5'), 'free');
-  });
+test('tier.js — activatePremium avec durée', () => {
+  const tempDbPath = makeTempDb();
+  const { initDatabase, migrateDatabase } = freshModule('../database/db');
+  initDatabase(tempDbPath);
+  migrateDatabase();
+  const { isPremium, activatePremium } = freshModule('../modules/tier/tier');
+  activatePremium('g2', 30);
+  assert.equal(isPremium('g2'), true);
+  try { fs.unlinkSync(tempDbPath); } catch {}
 });
 
 // ─── Tests premiumGate ────────────────────────────────────────────────────────
 
-describe('premiumGate — isPremiumGateClick', () => {
+test('premiumGate — isPremiumGateClick / GATE_PREFIX / PREMIUM_FEATURE_LABELS', () => {
   const { isPremiumGateClick, GATE_PREFIX, PREMIUM_FEATURE_LABELS } = require('../modules/tier/premiumGate');
-
-  it('retourne true pour un customId premium:gate:*', () => {
-    const fakeInteraction = { isButton: () => true, customId: 'premium:gate:behavior_sanctions' };
-    assert.equal(isPremiumGateClick(fakeInteraction), true);
-  });
-
-  it('retourne false pour un customId quelconque', () => {
-    const fakeInteraction = { isButton: () => true, customId: 'setup:step:next' };
-    assert.equal(isPremiumGateClick(fakeInteraction), false);
-  });
-
-  it('retourne false si pas un bouton', () => {
-    const fakeInteraction = { isButton: () => false, customId: 'premium:gate:x' };
-    assert.equal(isPremiumGateClick(fakeInteraction), false);
-  });
-
-  it('GATE_PREFIX est correct', () => {
-    assert.equal(GATE_PREFIX, 'premium:gate:');
-  });
-
-  it('PREMIUM_FEATURE_LABELS contient les clés attendues', () => {
-    const expected = ['behavior_sanctions', 'welcome_dm', 'suggestions_forum', 'server_list'];
-    for (const key of expected) {
-      assert.ok(PREMIUM_FEATURE_LABELS[key], `Clé manquante: ${key}`);
-    }
-  });
+  assert.equal(GATE_PREFIX, 'premium:gate:');
+  assert.equal(isPremiumGateClick({ isButton: () => true, customId: 'premium:gate:behavior_sanctions' }), true);
+  assert.equal(isPremiumGateClick({ isButton: () => true, customId: 'setup:step:next' }), false);
+  assert.equal(isPremiumGateClick({ isButton: () => false, customId: 'premium:gate:x' }), false);
+  const expected = ['behavior_sanctions', 'welcome_dm', 'suggestions_forum', 'server_list'];
+  for (const key of expected) {
+    assert.ok(PREMIUM_FEATURE_LABELS[key], `Clé manquante: ${key}`);
+  }
 });
 
-// ─── Tests buildPremiumLockButton ─────────────────────────────────────────────
-
-describe('premiumGate — buildPremiumLockButton', () => {
+test('premiumGate — buildPremiumLockButton customId / label / style', () => {
   const { buildPremiumLockButton, GATE_PREFIX } = require('../modules/tier/premiumGate');
   const { ButtonStyle } = require('discord.js');
-
-  it('crée un bouton avec le bon customId', () => {
-    const btn = buildPremiumLockButton('welcome_dm', 'DM custom');
-    const data = btn.toJSON();
-    assert.equal(data.custom_id, `${GATE_PREFIX}welcome_dm`);
-  });
-
-  it('crée un bouton avec le bon label (avec 🔒)', () => {
-    const btn = buildPremiumLockButton('welcome_dm', 'DM custom');
-    const data = btn.toJSON();
-    assert.equal(data.label, '🔒 DM custom');
-  });
-
-  it('le bouton est activé (disabled: false)', () => {
-    const btn = buildPremiumLockButton('welcome_dm', 'DM custom');
-    const data = btn.toJSON();
-    assert.equal(data.disabled, false);
-  });
-
-  it('style par défaut = Secondary', () => {
-    const btn = buildPremiumLockButton('welcome_dm', 'DM custom');
-    const data = btn.toJSON();
-    assert.equal(data.style, ButtonStyle.Secondary);
-  });
+  const btn = buildPremiumLockButton('welcome_dm', 'DM custom');
+  const data = btn.toJSON();
+  assert.equal(data.custom_id, `${GATE_PREFIX}welcome_dm`);
+  assert.equal(data.label, '🔒 DM custom');
+  assert.equal(data.disabled, false);
+  assert.equal(data.style, ButtonStyle.Secondary);
 });
