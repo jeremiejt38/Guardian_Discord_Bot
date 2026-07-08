@@ -101,7 +101,7 @@ async function ensureAnnouncementChannel(guild, parentId, name, permissionOverwr
     }
     return existing;
   }
-  return guild.channels.create({ name, type: targetType, parent: parentId, permissionOverwrites });
+  return guild.channels.create({ name, type: targetType, parent: parentId, permissionOverwrites, ...(safeTopic !== undefined ? { topic: safeTopic } : {}) });
 }
 
 async function ensureVoiceChannel(guild, parentId, name, permissionOverwrites) {
