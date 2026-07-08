@@ -764,8 +764,26 @@ async function runSetupInstallationPhases(guild, ownerId) {
   await createConfigurationArea(guild, roleMap, ownerId);
   await seedGuidesChannels(guild).catch((err) => logger.warn(`seedGuidesChannels failed: ${err.message}`));
   await repositionCategories(guild);
+  await repositionHiddenChannels(guild);
 
   markGuildInstalled(guild.id, ownerId);
+}
+
+async function repositionHiddenChannels(guild) {
+  const toReposition = [
+    CHANNELS.guardian,
+    'guardian-backup',
+    CHANNELS.becomeMember,
+    CHANNELS.joinServer
+  ];
+  for (const name of toReposition) {
+    const ch = guild.channels.cache.find((c) => c.name === name);
+    if (ch) await ch.edit({ position: 999 }).catch(() => {});
+  }
+  const guideChannels = guild.channels.cache.filter((c) => c.name.startsWith('guide-'));
+  for (const ch of guideChannels.values()) {
+    await ch.edit({ position: 999 }).catch(() => {});
+  }
 }
 
 async function createSetupArea(guild, { inviterId } = {}) {
@@ -1058,6 +1076,16 @@ async function cleanupSetupArea(guild) {
   await setupCategory.delete('Guardian setup finalised').catch((error) => {
     logger.error('Failed to remove setup category', error);
   });
+
+  const guardianCatNames = new Set(Object.values(CATEGORIES));
+  const remaining = guild.channels.cache.filter((c) => c.type === 4);
+  for (const cat of remaining.values()) {
+    if (guardianCatNames.has(cat.name)) continue;
+    const hasChildren = guild.channels.cache.some((c) => c.parentId === cat.id);
+    if (!hasChildren) {
+      await cat.delete('Guardian setup — catégorie vide orpheline').catch(() => {});
+    }
+  }
 }
 
 async function postSetupSummary(guild) {
@@ -1363,6 +1391,7 @@ module.exports = {
   createSetupArea,
   ensureSetupInstallPrompt,
   cleanupSetupAreaIfInstalled,
+  repositionHiddenChannels,
   finalizeInstall,
   completeGuildSetup,
   handleSetupLanguageSelection,
