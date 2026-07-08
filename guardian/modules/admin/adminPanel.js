@@ -82,8 +82,8 @@ function baseEmbed() {
 
 function buildClosedContent() {
   return {
-    content: '',
-    embeds: [baseEmbed().setDescription('*Cliquez sur un onglet pour afficher les informations.*')],
+    content: '🛡️ **Guardian — Admin Panel**',
+    embeds: [],
     components: [buildPanelButtons()],
   };
 }

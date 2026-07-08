@@ -84,6 +84,51 @@ async function fetchReleaseNotes(version) {
   }
 }
 
+async function fetchChangelogRange(fromVersion, toVersion) {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=50`, {
+      headers: { 'User-Agent': 'Guardian-Discord-Bot', 'Accept': 'application/vnd.github+json' }
+    });
+    if (!res.ok) return null;
+    const releases = await res.json();
+    if (!Array.isArray(releases)) return null;
+
+    const parseV = (v) => v.replace(/^v/, '').split('.').map(Number);
+    const gt = (a, b) => {
+      for (let i = 0; i < 3; i++) {
+        if ((a[i] ?? 0) > (b[i] ?? 0)) return true;
+        if ((a[i] ?? 0) < (b[i] ?? 0)) return false;
+      }
+      return false;
+    };
+
+    const from = parseV(fromVersion);
+    const to = parseV(toVersion);
+
+    const relevant = releases
+      .filter((r) => {
+        const v = parseV(r.tag_name);
+        return gt(v, from) && !gt(v, to);
+      })
+      .sort((a, b) => {
+        const va = parseV(a.tag_name);
+        const vb = parseV(b.tag_name);
+        return gt(vb, va) ? -1 : 1;
+      });
+
+    if (relevant.length === 0) return await fetchReleaseNotes(toVersion);
+
+    const parts = [];
+    for (const r of relevant) {
+      const body = r.body?.trim();
+      if (body) parts.push(`### ${r.tag_name}\n${body}`);
+    }
+    return parts.length > 0 ? parts.join('\n\n') : null;
+  } catch {
+    return null;
+  }
+}
+
 async function translateText(text, targetLang) {
   if (!targetLang || targetLang === 'en') return text;
   try {
@@ -110,7 +155,7 @@ async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
 
     const pm2Running = isRunningUnderPM2();
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-    const releaseNotes = await fetchReleaseNotes(toVersion);
+    const releaseNotes = await fetchChangelogRange(fromVersion, toVersion);
 
     const locale = adminUser.locale ?? 'en';
     const langCode = locale.split('-')[0];
