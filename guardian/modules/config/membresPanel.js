@@ -15,6 +15,11 @@ const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
 const { seedJoinServerChannel } = require('../members/joinServerChannel');
+// @premium-start
+const { isPremium } = require('../tier/tier');
+const { buildPremiumLockButton } = require('../tier/premiumGate');
+const { getWelcomeMessage, setWelcomeMessage } = require('../members/welcomeMessage');
+// @premium-end
 
 const IDS = Object.freeze({
   editDelay: 'membres:delay:edit',
@@ -27,7 +32,11 @@ const IDS = Object.freeze({
   joinPresentationModal: 'membres:joinpresentation:modal',
   editExpulsion: 'membres:expulsion:edit',
   expulsionModal: 'membres:expulsion:modal',
-  toggleExpulsion: 'membres:expulsion:toggle'
+  toggleExpulsion: 'membres:expulsion:toggle',
+  // @premium-start
+  editWelcomeDm: 'membres:welcomedm:edit',
+  welcomeDmModal: 'membres:welcomedm:modal',
+  // @premium-end
 });
 
 function hasManagerGrade(member, guildId) {
@@ -69,11 +78,17 @@ function buildRows(guildId) {
   const bio = getGuildSetting(guildId, 'members', 'bio_required', false);
   const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
   const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
+  // @premium-start
+  const welcomeDmBtn = isPremium(guildId)
+    ? new ButtonBuilder().setCustomId(IDS.editWelcomeDm).setLabel('✉️ DM Bienvenue custom').setStyle(ButtonStyle.Primary)
+    : buildPremiumLockButton('welcome_dm', 'DM Bienvenue custom');
+  // @premium-end
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(IDS.editDelay).setLabel(t(guildId, 'config.membres.editDelay')).setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId(IDS.editWelcome).setLabel(t(guildId, 'config.membres.editWelcome')).setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(IDS.editJoinPresentation).setLabel('🌟 Présentation #rejoindre').setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId(IDS.editJoinPresentation).setLabel('🌟 Présentation #rejoindre').setStyle(ButtonStyle.Primary),
+      welcomeDmBtn
     ),
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(IDS.toggleBio).setLabel(`Bio: ${bio ? 'ON' : 'OFF'}`).setStyle(bio ? ButtonStyle.Success : ButtonStyle.Secondary),
@@ -209,6 +224,44 @@ async function handleMembresInteraction(interaction) {
     await replyEphemeral(interaction, t(guildId, 'config.membres.welcomeUpdated'));
     return true;
   }
+
+  // @premium-start
+  if (interaction.isButton() && customId === IDS.editWelcomeDm) {
+    if (!isPremium(guildId)) {
+      await replyEphemeral(interaction, '🔒 Cette feature est disponible en **Guardian Premium** uniquement.');
+      return true;
+    }
+    const current = getWelcomeMessage(guildId) ?? '';
+    const modal = new ModalBuilder().setCustomId(IDS.welcomeDmModal).setTitle('DM de bienvenue personnalisé')
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('template')
+          .setLabel('Template (variables : {name}, {server}, {delay}, {grade})')
+          .setStyle(TextInputStyle.Paragraph)
+          .setValue(current)
+          .setRequired(false)
+          .setMaxLength(1000)
+          .setPlaceholder('Bienvenue {name} sur {server} ! Tu peux faire ta demande après {delay}h.')
+      ));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId === IDS.welcomeDmModal) {
+    if (!isPremium(guildId)) {
+      await replyEphemeral(interaction, '🔒 Cette feature est disponible en **Guardian Premium** uniquement.');
+      return true;
+    }
+    const template = interaction.fields.getTextInputValue('template').trim();
+    const old = getWelcomeMessage(guildId);
+    setWelcomeMessage(guildId, template || null);
+    await logConfigChange(interaction.guild, interaction.user.id, 'members.welcome_message', old, template || null);
+    await replyEphemeral(interaction, template
+      ? `✅ DM de bienvenue personnalisé mis à jour.\n> Variables disponibles : \`{name}\`, \`{server}\`, \`{delay}\`, \`{grade}\``
+      : '✅ DM de bienvenue personnalisé supprimé (retour au DM par défaut).'
+    );
+    return true;
+  }
+  // @premium-end
 
   if (interaction.isButton() && customId === IDS.editJoinPresentation) {
     const current = String(getGuildSetting(guildId, 'joinserver', 'presentation', '') || '');

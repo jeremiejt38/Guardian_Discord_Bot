@@ -6,6 +6,9 @@ const { findChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
 const { IDS: PROMOTION_IDS } = require('./promotion');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+// @premium-start
+const { maybeSendCustomWelcomeDm } = require('./welcomeMessage');
+// @premium-end
 
 async function handleNewMember(member) {
   try {
@@ -82,7 +85,17 @@ async function handleNewMember(member) {
 
       lines.push(`_Ce message est envoyé automatiquement par Guardian Bot._`);
 
-      await member.send(lines.join('\n'));
+      // @premium-start
+      const sentCustom = await maybeSendCustomWelcomeDm(member, guildId, {
+        grade: assignedGrade,
+        delayHours: promotionDelayHours,
+      });
+      if (!sentCustom) {
+      // @premium-end
+        await member.send(lines.join('\n'));
+      // @premium-start
+      }
+      // @premium-end
     } catch {
     }
   } catch (error) {
