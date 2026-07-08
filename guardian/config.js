@@ -15,6 +15,7 @@ const CATEGORIES = Object.freeze({
   setup: 'guardian-setup',
   informations: '📋 Informations',
   communaute: '🌐 Communauté',
+  guides: '📚 Guides',
   vocaux: '🔊 Salons Vocaux',
   moderation: '🛡️ Modération',
   configuration: '⚙️ Configuration'

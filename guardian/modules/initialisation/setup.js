@@ -36,6 +36,7 @@ const { getGradeMappings } = require('./gradeMapping');
 const { seedJoinServerChannel } = require('../members/joinServerChannel');
 const { seedBecomeMemberChannel } = require('../members/becomeMemberChannel');
 const { seedRulesAcceptButton, isCommunityGuild } = require('../members/rulesAcceptance');
+const { seedGuidesChannels } = require('../guides/serverGuides');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
@@ -761,6 +762,7 @@ async function runSetupInstallationPhases(guild, ownerId) {
   await provisionGuildGameStructures(guild);
   await createModerationArea(guild, roleMap, ownerId);
   await createConfigurationArea(guild, roleMap, ownerId);
+  await seedGuidesChannels(guild).catch((err) => logger.warn(`seedGuidesChannels failed: ${err.message}`));
   await repositionCategories(guild);
 
   markGuildInstalled(guild.id, ownerId);
