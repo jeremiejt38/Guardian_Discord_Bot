@@ -8,6 +8,7 @@ const { ensureMemberGameInterfaces } = require('../modules/config/settings');
 const { runPassiveScoreRegen } = require('../modules/moderation/behavior');
 const { seedGuildMessages } = require('../modules/initialisation/seeds');
 const { ensureRequestsPanelHasGameButton } = require('../modules/games/gameRequests');
+const { ensureRequestsPanel } = require('../modules/members/memberRequests');
 const { upsertStatusEmbed } = require('../modules/config/botPanel');
 const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
 const { setConfig, getConfig } = require('../database/db');
@@ -83,6 +84,7 @@ module.exports = {
 
         await applyPersistedSlowModeForGuild(guild);
         await ensureMemberGameInterfaces(guild);
+        await ensureRequestsPanel(guild).catch(() => {});
         await seedGuildMessages(guild).catch(() => undefined);
 
         await runChannelMigrations(guild);
