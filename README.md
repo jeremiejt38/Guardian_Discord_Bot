@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.23.8-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.23.9-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-Proprietary-orange?style=flat-square)](LICENSE)
 
@@ -167,6 +167,8 @@ npm start
 
 | Version | Description |
 |---------|-------------|
+| **v0.23** | **release**: auto-update README on free repo at each release · **release**: exclude .env, node_modules and data from free zip · legal: add proprietary LICENSE, CONTRIBUTING CLA, SECURITY policy + auto-push to free repo on release |
+| | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.8...v0.23.9) |
 | **v0.23** | **release**: add free bundle build + GitHub Free release publishing · Discord native settings integration — AFK timeout, system channel, locale sync, Community rules/updates/description, AutoMod rules, Onboarding (step 2/4/8) · README generator — scripts/readme-data.js + generate-readme.js, full rebuild from structured data · invite mode — 3 modes (classic/strict/direct) replace invite_grade_enabled + invite_strict_mode · new options notifier — DM guild owner on update with unconfigured settings from new version · guides toggle in setup step 2 — optional feature, enabled by default |
 | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.23.5...v0.23.8) |
 | **v0.23** | **Community onboarding & invite modes** — 3 invite modes (Classic / Strict / Direct member), `#devenir-membre` ephemeral flow (prerequisites + bio modal + submit), `#rejoindre-notre-serveur` (server stats, Guardian features, owner presentation), strict invite mode blocks vocal + `#general` for guests, rules acceptance (Discord Screening + button for non-community), Discord AutoMod→behavior score integration, server guides (read-only channels or forums), new options notifier on update (DM owner with unconfigured settings) |
