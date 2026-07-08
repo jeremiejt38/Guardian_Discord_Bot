@@ -101,23 +101,28 @@ function buildNotifRows(guildId) {
 }
 
 async function seedGuardianPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.guardian);
-  if (!channel) return;
-  const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
-  const botMsgs = msgs?.filter((m) => m.author.id === guild.client.user.id && m.components.length > 0);
+  const guildId = guild.id;
 
-  const mainPanel = botMsgs?.find((m) => !m.content.includes('🔔'));
-  if (mainPanel) {
-    await mainPanel.edit({ content: buildPanelContent(guild, guild.id), components: buildRows(guild.id) }).catch(() => undefined);
-  } else {
-    await channel.send({ content: buildPanelContent(guild, guild.id), components: buildRows(guild.id) }).catch(() => undefined);
+  const adminChannel = findTextChannelByName(guild, CHANNELS.guardian);
+  if (adminChannel) {
+    const msgs = await adminChannel.messages.fetch({ limit: 10 }).catch(() => null);
+    const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
+    if (panel) {
+      await panel.edit({ content: buildPanelContent(guild, guildId), components: buildRows(guildId) }).catch(() => undefined);
+    } else {
+      await adminChannel.send({ content: buildPanelContent(guild, guildId), components: buildRows(guildId) }).catch(() => undefined);
+    }
   }
 
-  const notifPanel = botMsgs?.find((m) => m.content.includes('🔔'));
-  if (notifPanel) {
-    await notifPanel.edit({ content: buildNotifPanelContent(guild.id), components: buildNotifRows(guild.id) }).catch(() => undefined);
-  } else {
-    await channel.send({ content: buildNotifPanelContent(guild.id), components: buildNotifRows(guild.id) }).catch(() => undefined);
+  const notifChannel = findTextChannelByName(guild, CHANNELS.notifications);
+  if (notifChannel) {
+    const msgs = await notifChannel.messages.fetch({ limit: 10 }).catch(() => null);
+    const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
+    if (panel) {
+      await panel.edit({ content: buildNotifPanelContent(guildId), components: buildNotifRows(guildId) }).catch(() => undefined);
+    } else {
+      await notifChannel.send({ content: buildNotifPanelContent(guildId), components: buildNotifRows(guildId) }).catch(() => undefined);
+    }
   }
 }
 

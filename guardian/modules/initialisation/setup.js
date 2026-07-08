@@ -580,10 +580,11 @@ async function createModerationArea(guild, roleMap, ownerId) {
   const moderationCategory = await ensureCategory(guild, CATEGORIES.moderation, moderationPermissions);
 
   const guildId = guild.id;
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.reports,        moderationPermissions, { topic: t('init.topics.reports',        {}, { guildId }) });
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.autoModeration, moderationPermissions, { topic: t('init.topics.autoModeration', {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderation,     moderationPermissions, { topic: t('init.topics.moderation',     {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.validation,     moderationPermissions, { topic: t('init.topics.validation',     {}, { guildId }) });
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.behavior,       moderationPermissions, { topic: t('init.topics.behavior',        {}, { guildId }) });
-  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.moderationLogs, moderationPermissions, { topic: t('init.topics.moderationLogs',  {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.autoModeration, moderationPermissions, { topic: t('init.topics.autoModeration', {}, { guildId }) });
+  await ensureTextChannel(guild, moderationCategory.id, CHANNELS.reports,        moderationPermissions, { topic: t('init.topics.reports',        {}, { guildId }) });
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.securityUpdates, buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager), { topic: t('init.topics.securityUpdates', {}, { guildId }) });
 }
 
@@ -593,30 +594,29 @@ async function createConfigurationArea(guild, roleMap, ownerId) {
   const guildId = guild.id;
   const channels = [
     // visible to members (opt-in features)
-    { name: CHANNELS.gameChannels,    permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre),                                                          topic: t('init.topics.gameChannels',    {}, { guildId }) },
-    { name: CHANNELS.gameList,        permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre),                                                          topic: t('init.topics.gameList',        {}, { guildId }) },
+    { name: CHANNELS.gameChannels,    permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre),   topic: t('init.topics.gameChannels',    {}, { guildId }) },
+    { name: CHANNELS.gameList,        permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.membre),   topic: t('init.topics.gameList',        {}, { guildId }) },
 
-    // servers management (moderateur+)
-    { name: CHANNELS.serveurs,        permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager),                        topic: t('init.topics.serveurs',        {}, { guildId }) },
+    // moderation access (moderateur+)
+    { name: CHANNELS.serveurs,        permissions: buildViewThenActionPermissions(guild, roleMap, ownerId, GRADE_NAMES.moderateur, GRADE_NAMES.manager), topic: t('init.topics.serveurs', {}, { guildId }) },
 
-    // bot & status (manager+)
-    { name: CHANNELS.botConfig,       permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.botConfig',       {}, { guildId }) },
+    // manager configuration
+    { name: CHANNELS.membres,         permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),  topic: t('init.topics.membres',         {}, { guildId }) },
+    { name: CHANNELS.channelsConfig,  permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),  topic: t('init.topics.channelsConfig',  {}, { guildId }) },
+    { name: CHANNELS.vocauxConfig,    permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),  topic: t('init.topics.vocauxConfig',    {}, { guildId }) },
+    { name: CHANNELS.jeux,            permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),  topic: t('init.topics.jeux',            {}, { guildId }) },
+    { name: CHANNELS.notifications,   permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),  topic: t('init.topics.botConfig',       {}, { guildId }) },
 
-    // admin configuration channels
-    { name: CHANNELS.membres,         permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.membres',         {}, { guildId }) },
-    { name: CHANNELS.channelsConfig,  permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.channelsConfig',  {}, { guildId }) },
-    { name: CHANNELS.vocauxConfig,    permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.vocauxConfig',    {}, { guildId }) },
-    { name: CHANNELS.jeux,            permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                         topic: t('init.topics.jeux',            {}, { guildId }) },
-
-    // logs and guardian config
-    { name: CHANNELS.configLogs,      permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager),                                                       topic: t('init.topics.configLogs',      {}, { guildId }) },
+    // logs (view only, manager+)
+    { name: CHANNELS.configLogs,      permissions: buildViewOnlyPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager), topic: t('init.topics.configLogs',     {}, { guildId }) },
 
     // owner only
-    { name: CHANNELS.roles,           permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),                                                           topic: t('init.topics.roles',           {}, { guildId }) },
-    { name: CHANNELS.guardian,        permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),                                                           topic: t('init.topics.guardian',        {}, { guildId }) },
+    { name: CHANNELS.roles,           permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),    topic: t('init.topics.roles',           {}, { guildId }) },
+    { name: CHANNELS.guardianConfig,  permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),    topic: t('init.topics.guardian',        {}, { guildId }) },
+    { name: CHANNELS.guardian,        permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),    topic: t('init.topics.guardian',        {}, { guildId }) },
 
     // legacy management channel (future Pterodactyl control)
-    { name: CHANNELS.serverManagement, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),                                                          topic: t('init.topics.serverManagement', {}, { guildId }) }
+    { name: CHANNELS.serverManagement, permissions: buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.owner),  topic: t('init.topics.serverManagement', {}, { guildId }) }
   ];
 
   for (const item of channels) {
@@ -1124,8 +1124,8 @@ async function postSetupSummary(guild) {
     `  • Parrainage obligatoire : ${sponsorRequired ? '✅' : '❌'}`,
   ];
 
-  const configChannel = guild.channels.cache.find((c) => c.name === CHANNELS.botConfig);
-  const configMention = configChannel ? `<#${configChannel.id}>` : `\`#${CHANNELS.botConfig}\``;
+  const configChannel = guild.channels.cache.find((c) => c.name === CHANNELS.guardianConfig);
+  const configMention = configChannel ? `<#${configChannel.id}>` : `\`#${CHANNELS.guardianConfig}\``;
 
   const lines = [
     `# 🎉 Guardian est maintenant actif sur **${guild.name}** !`,
@@ -1203,7 +1203,8 @@ const LINKED_CHANNEL_MAP = [
   { settingSection: 'channels', settingKey: 'welcome_channel_id',          targetName: CHANNELS.welcome,       targetCategory: null, type: 'text'  },
   { settingSection: 'channels', settingKey: 'voice_general_id',            targetName: CHANNELS.voiceGeneral,  targetCategory: CATEGORIES.vocaux,        type: 'voice' },
   { settingSection: 'channels', settingKey: 'voice_afk_id',                targetName: CHANNELS.voiceAfk,      targetCategory: CATEGORIES.vocaux,        type: 'voice' },
-  { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',   targetName: CHANNELS.moderationLogs,    targetCategory: CATEGORIES.moderation, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'moderation_logs_channel_id',   targetName: CHANNELS.moderation,        targetCategory: CATEGORIES.moderation, type: 'text'  },
+  { settingSection: 'channels', settingKey: 'validation_channel_id',        targetName: CHANNELS.validation,        targetCategory: CATEGORIES.moderation, type: 'text'  },
   { settingSection: 'channels', settingKey: 'security_updates_channel_id', targetName: CHANNELS.securityUpdates,   targetCategory: CATEGORIES.moderation, type: 'text', customPerms: true }
 ];
 

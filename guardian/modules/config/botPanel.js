@@ -123,7 +123,7 @@ function buildPanelContent(guildId) {
 }
 
 async function upsertStatusEmbed(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  const channel = findTextChannelByName(guild, CHANNELS.guardianConfig);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const existing = msgs?.find((m) => m.author.id === guild.client.user.id && m.embeds.length > 0);
@@ -165,7 +165,7 @@ function buildRows(guildId) {
 }
 
 async function seedBotPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  const channel = findTextChannelByName(guild, CHANNELS.guardianConfig);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const hasPanel = msgs?.some((m) => m.author.id === guild.client.user.id && m.components.length > 0);
@@ -177,7 +177,7 @@ async function seedBotPanel(guild) {
 }
 
 async function refreshBotPanel(guild) {
-  const channel = findTextChannelByName(guild, CHANNELS.botConfig);
+  const channel = findTextChannelByName(guild, CHANNELS.guardianConfig);
   if (!channel) return;
   const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   const panel = msgs?.find((m) => m.author.id === guild.client.user.id && m.components.length > 0);
