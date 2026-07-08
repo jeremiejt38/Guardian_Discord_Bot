@@ -28,12 +28,31 @@ const IDS = Object.freeze({
   pageGame:      'svj:page:game:',
   selectEdit:    'svj:select:edit',
   pageEdit:      'svj:page:edit:',
-  editInfo:      'svj:edit:info:',
-  editModal:     'svj:modal:edit:',
-  selectDelete:  'svj:select:delete',
-  pageDelete:    'svj:page:delete:',
-  confirmDelete: 'svj:confirm:delete:',
+  editInfo:          'svj:edit:info:',
+  editModal:          'svj:modal:edit:',
+  toggleText:         'svj:toggle:text:',
+  toggleGalerie:      'svj:toggle:galerie:',
+  toggleChangelog:    'svj:toggle:changelog:',
+  toggleForum:        'svj:toggle:forum:',
+  selectDelete:       'svj:select:delete',
+  pageDelete:         'svj:page:delete:',
+  confirmDelete:      'svj:confirm:delete:',
+  modalConfirmDelete: 'svj:modal:confirmdelete:',
 });
+
+function buildServerEditRows(serverId, server) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${IDS.editInfo}${serverId}`).setLabel('✏️ Modifier infos').setStyle(ButtonStyle.Primary)
+    ),
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${IDS.toggleText}${serverId}`).setLabel(`Texte: ${server.text_channel_enabled ? 'ON' : 'OFF'}`).setStyle(server.text_channel_enabled ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`${IDS.toggleGalerie}${serverId}`).setLabel(`Galerie: ${server.galerie_enabled ? 'ON' : 'OFF'}`).setStyle(server.galerie_enabled ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`${IDS.toggleChangelog}${serverId}`).setLabel(`Changelog: ${server.changelog_enabled ? 'ON' : 'OFF'}`).setStyle(server.changelog_enabled ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`${IDS.toggleForum}${serverId}`).setLabel(`Forum: ${server.forum_enabled ? 'ON' : 'OFF'}`).setStyle(server.forum_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+    )
+  ];
+}
 
 function hasManagerGrade(member, guildId) {
   const mappings = getGradeMappings(guildId);
@@ -308,6 +327,14 @@ async function handleServeursJeuInteraction(interaction) {
     const serverId = interaction.values?.[0];
     const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
     if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    await replyEphemeral(interaction, { content: `**${server.name}** — que souhaitez-vous modifier ?`, components: buildServerEditRows(serverId, server) });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.editInfo)) {
+    const serverId = customId.slice(IDS.editInfo.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
     const modal = new ModalBuilder()
       .setCustomId(`${IDS.editModal}${serverId}`)
       .setTitle(t(guildId, 'config.serveursJeu.editModalTitle'))
@@ -318,6 +345,50 @@ async function handleServeursJeuInteraction(interaction) {
         new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('password').setLabel(t(guildId, 'config.serveursJeu.passwordLabel')).setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(100).setValue(server.password || ''))
       );
     await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.toggleText)) {
+    const serverId = customId.slice(IDS.toggleText.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const newVal = server.text_channel_enabled ? 0 : 1;
+    getDb().prepare('UPDATE servers_jeu SET text_channel_enabled = ? WHERE server_id = ?').run(newVal, serverId);
+    const updated = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    await interaction.update({ content: `**${server.name}** — que souhaitez-vous modifier ?`, components: buildServerEditRows(serverId, updated) });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.toggleGalerie)) {
+    const serverId = customId.slice(IDS.toggleGalerie.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const newVal = server.galerie_enabled ? 0 : 1;
+    getDb().prepare('UPDATE servers_jeu SET galerie_enabled = ? WHERE server_id = ?').run(newVal, serverId);
+    const updated = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    await interaction.update({ content: `**${server.name}** — que souhaitez-vous modifier ?`, components: buildServerEditRows(serverId, updated) });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.toggleChangelog)) {
+    const serverId = customId.slice(IDS.toggleChangelog.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const newVal = server.changelog_enabled ? 0 : 1;
+    getDb().prepare('UPDATE servers_jeu SET changelog_enabled = ? WHERE server_id = ?').run(newVal, serverId);
+    const updated = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    await interaction.update({ content: `**${server.name}** — que souhaitez-vous modifier ?`, components: buildServerEditRows(serverId, updated) });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.toggleForum)) {
+    const serverId = customId.slice(IDS.toggleForum.length);
+    const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const newVal = server.forum_enabled ? 0 : 1;
+    getDb().prepare('UPDATE servers_jeu SET forum_enabled = ? WHERE server_id = ?').run(newVal, serverId);
+    const updated = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
+    await interaction.update({ content: `**${server.name}** — que souhaitez-vous modifier ?`, components: buildServerEditRows(serverId, updated) });
     return true;
   }
 
@@ -375,19 +446,32 @@ async function handleServeursJeuInteraction(interaction) {
     const serverId = interaction.values?.[0];
     const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
     if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
-    await replyEphemeral(interaction, {
-      content: `⚠️ Confirmer la suppression de **${server.name}** ? Cette action est irréversible.`,
-      components: [new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`${IDS.confirmDelete}${serverId}`).setLabel('🗑️ Confirmer suppression').setStyle(ButtonStyle.Danger)
-      )]
-    });
+    const modal = new ModalBuilder()
+      .setCustomId(`${IDS.modalConfirmDelete}${serverId}`)
+      .setTitle('Confirmer la suppression')
+      .addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('confirm')
+            .setLabel(`Tapez le nom du serveur pour confirmer`)
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder(server.name)
+            .setRequired(true)
+        )
+      );
+    await interaction.showModal(modal);
     return true;
   }
 
-  if (interaction.isButton() && customId.startsWith(IDS.confirmDelete)) {
-    const serverId = customId.slice(IDS.confirmDelete.length);
+  if (interaction.isModalSubmit() && customId.startsWith(IDS.modalConfirmDelete)) {
+    const serverId = customId.slice(IDS.modalConfirmDelete.length);
     const server = getDb().prepare('SELECT * FROM servers_jeu WHERE server_id = ?').get(serverId);
     if (!server) { await replyEphemeral(interaction, t(guildId, 'config.serveursJeu.notFound')); return true; }
+    const confirmValue = interaction.fields.getTextInputValue('confirm').trim();
+    if (confirmValue.toLowerCase() !== server.name.toLowerCase()) {
+      await replyEphemeral(interaction, `❌ Nom incorrect. Tapez exactement : **${server.name}**`);
+      return true;
+    }
     getDb().prepare('DELETE FROM servers_jeu WHERE server_id = ?').run(serverId);
     await logConfigChange(interaction.guild, interaction.user.id, 'servers_jeu.remove', { name: server.name }, null);
     await refreshServeursJeuPanel(interaction.guild);
