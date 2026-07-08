@@ -11,6 +11,7 @@ const { getDb, getGrade } = require('../../database/db');
 const { getGuildSetting } = require('../config/settings');
 const { getSponsorship } = require('./parrainage');
 const { replyEphemeral } = require('../utils/interactions');
+const { hasAcceptedRules, getRulesRequired, isCommunityGuild } = require('./rulesAcceptance');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
 
@@ -34,17 +35,24 @@ function parseHoursSince(dateIso) {
 }
 
 function buildPrerequisitesEphemeral(guildId, record, options) {
-  const { minDelayHours, bioRequired, sponsorshipRequired, sponsorship, hasBio, joinedHours, pendingRequest } = options;
+  const { minDelayHours, bioRequired, sponsorshipRequired, sponsorship, hasBio, joinedHours, pendingRequest, rulesRequired, rulesAccepted } = options;
 
   const delayOk = joinedHours >= minDelayHours;
   const bioOk = !bioRequired || hasBio;
   const sponsorOk = !sponsorshipRequired || !!sponsorship;
-  const allOk = delayOk && bioOk && sponsorOk && !pendingRequest;
+  const rulesOk = !rulesRequired || rulesAccepted;
+  const allOk = delayOk && bioOk && sponsorOk && rulesOk && !pendingRequest;
 
   const lines = [
     '## 📋 Your membership prerequisites',
     ''
   ];
+
+  if (rulesRequired) {
+    lines.push(rulesAccepted
+      ? `✅ **Rules accepted**`
+      : `❌ **Rules** — you must accept the server rules first (see **#${require('../../config').CHANNELS.rules}**)`);
+  }
 
   lines.push(delayOk
     ? `✅ **Time on server** — ${joinedHours}h / ${minDelayHours}h required`
@@ -124,6 +132,8 @@ async function handleBecomeMemberInteraction(interaction) {
     const sponsorship = getSponsorship(guildId, userId);
     const joinedHours = record?.join_date ? parseHoursSince(record.join_date) : 0;
     const hasBio = Boolean(String(record?.bio || '').trim());
+    const rulesRequired = getRulesRequired(guildId) && !isCommunityGuild(interaction.guild);
+    const rulesAccepted = hasAcceptedRules(guildId, userId);
 
     const db = getDb();
     const pendingRequest = db.prepare(
@@ -131,7 +141,7 @@ async function handleBecomeMemberInteraction(interaction) {
     ).get(guildId, userId);
 
     const payload = buildPrerequisitesEphemeral(guildId, record, {
-      minDelayHours, bioRequired, sponsorshipRequired, sponsorship, hasBio, joinedHours, pendingRequest
+      minDelayHours, bioRequired, sponsorshipRequired, sponsorship, hasBio, joinedHours, pendingRequest, rulesRequired, rulesAccepted
     });
 
     await interaction.reply(payload).catch(() => {});

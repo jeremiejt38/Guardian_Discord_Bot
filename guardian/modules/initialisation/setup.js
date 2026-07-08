@@ -35,6 +35,7 @@ const { safeDiscordAction } = require('../utils/discordErrors');
 const { getGradeMappings } = require('./gradeMapping');
 const { seedJoinServerChannel } = require('../members/joinServerChannel');
 const { seedBecomeMemberChannel } = require('../members/becomeMemberChannel');
+const { seedRulesAcceptButton, isCommunityGuild } = require('../members/rulesAcceptance');
 const logger = require('../logs/logger');
 
 const SETUP_INSTALL_BUTTON_ID = 'setup:install';
@@ -458,6 +459,9 @@ async function createInformationsArea(guild, roleMap) {
 
   await seedStaticInfoMessage(welcomeChannel, 'init.welcomeInfo');
   await seedStaticInfoMessage(rulesChannel, 'init.rules');
+  if (!isCommunityGuild(guild)) {
+    await seedRulesAcceptButton(rulesChannel, guild).catch(() => {});
+  }
   await seedStaticInfoMessage(announcementsChannel, 'init.announcements');
   await seedFaqMessages(faqChannel);
 

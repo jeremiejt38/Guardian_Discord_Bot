@@ -271,6 +271,16 @@ const MIGRATIONS = [
     }
   },
   {
+    version: 8,
+    description: 'members: add rules_accepted flag for rule acknowledgement tracking',
+    up(conn) {
+      const cols = conn.prepare('PRAGMA table_info(members)').all().map((c) => c.name);
+      if (!cols.includes('rules_accepted')) {
+        conn.exec('ALTER TABLE members ADD COLUMN rules_accepted INTEGER NOT NULL DEFAULT 0');
+      }
+    }
+  },
+  {
     version: 6,
     description: 'game_requests: table for member game addition requests',
     up(conn) {

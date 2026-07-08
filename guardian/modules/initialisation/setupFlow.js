@@ -604,7 +604,7 @@ function buildStep3ChannelsContent(guildId, guild) {
     const ignored = getIgnoredChannelSlots(guildId).includes(s.key);
     const guardianWillCreate = id === 'guardian:create';
     const configured = Boolean(id) || ignored;
-    const isRequired = s.key === 'general' || s.key === 'voiceGeneral';
+    const isRequired = s.key === 'general' || s.key === 'voiceGeneral' || (s.key === 'rules' && isCommunityGuild(guild));
     const statusIcon = configured ? '✅' : '❌';
     const cursorIcon = i === cursor ? '  ▶' : '';
     const requiredTag = isRequired && !configured ? ' ‼️' : '';
@@ -647,7 +647,7 @@ function buildStep3ChannelsComponents(guildId, guild) {
     .setDisabled(hasNone)
     .addOptions(options);
 
-  const isRequired = slot.key === 'general' || slot.key === 'voiceGeneral';
+  const isRequired = slot.key === 'general' || slot.key === 'voiceGeneral' || (slot.key === 'rules' && isCommunityGuild(guild));
   const isLastSlot = cursor >= slots.length - 1;
   const ignoredSlots = getIgnoredChannelSlots(guildId);
   const isConfigured = Boolean(currentChannel3)

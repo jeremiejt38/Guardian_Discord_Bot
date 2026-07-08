@@ -16,6 +16,7 @@ const { handleServerGamesInteraction } = require('../modules/games/serverGamesMa
 const { handleGameRequestInteraction } = require('../modules/games/gameRequests');
 const { handlePromotionInteraction, IDS: PROMOTION_IDS } = require('../modules/members/promotion');
 const { handleBecomeMemberInteraction } = require('../modules/members/becomeMemberChannel');
+const { handleRulesInteraction } = require('../modules/members/rulesAcceptance');
 const { t } = require('../modules/i18n');
 const { performUpdate, isBotAdmin, setBotAdminId, getBotAdminId } = require('../modules/admin/botUpdater');
 const { handlePanelInteraction, openOrRefreshPanel } = require('../modules/admin/adminPanel');
@@ -276,6 +277,11 @@ module.exports = {
 
     if (interaction.customId?.startsWith('become:')) {
       const handled = await handleBecomeMemberInteraction(interaction);
+      if (handled) return;
+    }
+
+    if (interaction.customId === 'rules:accept') {
+      const handled = await handleRulesInteraction(interaction);
       if (handled) return;
     }
 
