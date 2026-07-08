@@ -6,12 +6,16 @@ const { findTextChannelByName } = require('../utils/channels');
 const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
+// @premium-start
+const { isPremium } = require('../tier/tier');
+const { buildPremiumLockButton } = require('../tier/premiumGate');
+// @premium-end
 
 const TOGGLES = [
   { key: 'afk_enabled', label: 'Canal AFK', id: 'channels:toggle:afk' },
   { key: 'galerie_enabled', label: 'Galerie par jeu', id: 'channels:toggle:galerie' },
-  { key: 'suggestions_enabled', label: 'Module Suggestions', id: 'channels:toggle:suggestions' },
-  { key: 'serveurs_enabled', label: 'Module Liste-Serveurs', id: 'channels:toggle:serveurs' },
+  { key: 'suggestions_enabled', label: 'Module Suggestions', id: 'channels:toggle:suggestions', premiumFeature: 'suggestions_forum' },
+  { key: 'serveurs_enabled', label: 'Module Liste-Serveurs', id: 'channels:toggle:serveurs', premiumFeature: 'server_list' },
   { key: 'statusbot_enabled', label: 'Module Statut-Bot', id: 'channels:toggle:statusbot' }
 ];
 
@@ -33,6 +37,11 @@ function buildPanelContent(guildId) {
 
 function buildRows(guildId) {
   const buttons = TOGGLES.map((toggle) => {
+    // @premium-start
+    if (toggle.premiumFeature && !isPremium(guildId)) {
+      return buildPremiumLockButton(toggle.premiumFeature, toggle.label);
+    }
+    // @premium-end
     const val = getGuildSetting(guildId, 'channels', toggle.key, true);
     return new ButtonBuilder()
       .setCustomId(toggle.id)

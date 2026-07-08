@@ -1,11 +1,15 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 const { addServer } = require('./servers');
-const { getModerationRoleIds } = require('../../database/db');
+const { getModerationRoleIds, getDb } = require('../../database/db');
 const { CHANNELS } = require('../../config');
 const { findGuildTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
 const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../i18n');
+// @premium-start
+const { isPremium } = require('../tier/tier');
+const { buildPremiumLockButton } = require('../tier/premiumGate');
+// @premium-end
 
 function getServerManagerRoleIds(guildId) {
   const db = getDb();
@@ -39,7 +43,30 @@ function memberCanManageServers(interaction) {
   return getServerManagerRoleIds(interaction.guildId).some((roleId) => roleCache.has(roleId));
 }
 
+/**
+ * Construit le bouton principal de la server list (cadenas si free).
+ * @param {string} guildId
+ * @returns {ButtonBuilder}
+ */
+function buildAddServerButton(guildId) {
+  // @premium-start
+  if (!isPremium(guildId)) {
+    return buildPremiumLockButton('server_list', 'Proposer un serveur');
+  }
+  // @premium-end
+  return new ButtonBuilder()
+    .setCustomId('servers:add')
+    .setLabel('➕ Proposer un serveur')
+    .setStyle(ButtonStyle.Primary);
+}
+
 async function handleAddServerButton(interaction) {
+  // @premium-start
+  if (!isPremium(interaction.guildId)) {
+    await replyEphemeral(interaction, '🔒 La liste de serveurs est une feature **Guardian Premium**.');
+    return;
+  }
+  // @premium-end
   const modal = new ModalBuilder().setCustomId('servers:add:modal').setTitle('Ajouter un serveur');
 
   const name = new TextInputBuilder().setCustomId('server_name').setLabel('Nom du serveur').setStyle(TextInputStyle.Short).setRequired(true);
@@ -61,6 +88,12 @@ async function handleAddServerButton(interaction) {
 
 async function handleServerModalSubmit(interaction) {
   const guildId = interaction.guildId;
+  // @premium-start
+  if (!isPremium(guildId)) {
+    await replyEphemeral(interaction, '🔒 La liste de serveurs est une feature **Guardian Premium**.');
+    return;
+  }
+  // @premium-end
   const name = interaction.fields.getTextInputValue('server_name');
   const game = interaction.fields.getTextInputValue('server_game');
   const ip = interaction.fields.getTextInputValue('server_ip');
@@ -100,4 +133,4 @@ async function handleServerModalSubmit(interaction) {
   await replyEphemeral(interaction, t(guildId, 'init.serverProposed', { name }));
 }
 
-module.exports = { handleAddServerButton, handleServerModalSubmit, memberCanManageServers };
+module.exports = { handleAddServerButton, handleServerModalSubmit, memberCanManageServers, buildAddServerButton };
