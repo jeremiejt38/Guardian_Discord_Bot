@@ -588,7 +588,16 @@ async function createModerationArea(guild, roleMap, ownerId) {
   await ensureTextChannel(guild, moderationCategory.id, CHANNELS.securityUpdates, buildConfigPermissions(guild, roleMap, ownerId, GRADE_NAMES.manager), { topic: t('init.topics.securityUpdates', {}, { guildId }) });
 }
 
+async function renameChannelIfExists(guild, oldName, newName) {
+  const ch = guild.channels.cache.find((c) => c.name === oldName && c.isTextBased?.());
+  if (ch && ch.name !== newName) await ch.edit({ name: newName }).catch(() => {});
+}
+
 async function createConfigurationArea(guild, roleMap, ownerId) {
+  await renameChannelIfExists(guild, 'channels', CHANNELS.channelsConfig);
+  await renameChannelIfExists(guild, 'bot', CHANNELS.notifications);
+  await renameChannelIfExists(guild, 'guardian-config', CHANNELS.guardianConfig);
+
   const configurationCategory = await ensureCategory(guild, CATEGORIES.configuration, buildHiddenPermissions(guild, ownerId));
 
   const guildId = guild.id;
