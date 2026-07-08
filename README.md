@@ -205,7 +205,7 @@ npm start
 Delivered items validated before the public v1.0.0 release:
 
 ### 🔴 Blocking
-- [x] **End-to-end integration tests** — 8 E2E tests, 6 complete flows, 95 tests total ✅ v0.10.5
+- [x] **End-to-end integration tests** — 8 E2E tests, 6 complete flows, 148 tests total ✅ v0.10.5→v0.24.0
 - [x] **Discord 50013 error handling** — `safeDiscordAction` + global interactionCreate safety net ✅ v0.10.3
 - [x] **Automatic DB migration** — Versioned `MIGRATIONS` array system ✅ v0.10.1
 - [x] **`/help` command** — Contextual help for 7 modules, embeds, i18n ✅ v0.10.4
@@ -217,11 +217,16 @@ Delivered items validated before the public v1.0.0 release:
 - [x] **Step 3 validation** — `#general` required before proceeding ✅ v0.10.2
 - [x] **Rate limiting** — 4-level debounce 600ms→5s, `rateLimit.js`, auto-cleanup ✅ v0.11.1
 - [x] **Bot system admin panel** — DM panel, alert toggles, auto-update, bootstrap ✅ v0.21.0
+- [x] **Premium tier system** — `guild_tier` DB, `isPremium()`, lock buttons 🔒, `/admin setpremium` ✅ v0.24.0
+- [x] **Premium-gated features** — Auto sanctions, custom welcome DM, suggestions forum, server list ✅ v0.24.0
+- [x] **Release pipeline** — Free bundle build, anti-leak check, README generator, backport auto ✅ v0.23.x
+- [x] **Codebase modularisation** — `setupHandlers.js` 1825→54 lines, 10 dedicated handler files ✅ v0.24.0
+- [x] **Architecture documentation** — `docs/ARCHITECTURE.md`, flux, tables BDD, features premium ✅ v0.24.0
 
 ### 🟡 Nice-to-have (pre-V1)
 - [x] **`/ping`** — Check bot responsiveness and display latency ✅ v0.22.0
 - [x] **Slash command cooldown** — Global rate limiting on slash commands ✅ v0.22.0
-- [x] **Discord forum support** — Forum Channels for suggestions and reports ✅ v0.23.x
+- [x] **Suggestions forum with statuses** — Forum threads + status buttons (pending/inprogress/accepted/rejected), premium-gated ✅ v0.24.0
 - [ ] **Permission check on startup** — Warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing
 - [ ] **`/status`** — Display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.
 - [ ] **Bot admin panel — Recap tab** — 5th tab in admin DM panel showing aggregated anonymous stats for the past 30 days across all guilds (new members, active games, moderation incidents count). On-demand only, no automatic DM spam.
@@ -253,7 +258,7 @@ Delivered items validated before the public v1.0.0 release:
 | Feature | Description |
 |---------|-------------|
 | Steam notifications | Direct Steam API webhook instead of polling |
-| Forum Channels support | Forum Channels for suggestions and reports |
+| ~~Forum Channels support~~ ✅ | Delivered in v0.24.0 (suggestions forum with statuses) |
 | Behavior leaderboard | Member ranking by behavior score, visible in a dedicated channel |
 | Multi-server config copy | Copy Guardian config from one guild to another (for multi-community managers) |
 
