@@ -1,3 +1,4 @@
+// @premium-start
 'use strict';
 
 /**
@@ -383,3 +384,4 @@ module.exports = {
   addOnboardingDefaultChannels,
   fetchOnboardingState,
 };
+// @premium-end

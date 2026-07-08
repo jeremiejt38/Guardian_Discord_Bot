@@ -15,7 +15,9 @@
     "release:minor": "node ../scripts/release.js minor",
     "release:major": "node ../scripts/release.js major",
     "readme": "node ../scripts/generate-readme.js",
-    "readme:dry": "node ../scripts/generate-readme.js --dry"
+    "readme:dry": "node ../scripts/generate-readme.js --dry",
+    "build:free": "node ../scripts/build-free.js",
+    "build:free:dry": "node ../scripts/build-free.js --dry-run"
   },
   "dependencies": {
     "discord.js": "^14.26.4",

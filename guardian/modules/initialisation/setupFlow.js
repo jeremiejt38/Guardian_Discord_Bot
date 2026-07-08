@@ -27,6 +27,7 @@ const {
 } = require('./setupGames');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
+// @premium-start
 const {
   AFK_TIMEOUTS,
   AFK_TIMEOUT_LABELS,
@@ -47,6 +48,7 @@ const {
   fetchOnboardingState,
   addOnboardingDefaultChannels,
 } = require('./discordSettings');
+// @premium-end
 
 async function sendSetupMessage(interaction, content) {
   if (interaction.channel?.send) {
@@ -155,6 +157,7 @@ const CUSTOM_IDS = Object.freeze({
   gameReviewContinue: 'setup:gamereview:continue',
   prereleaseConfirm: 'setup:prerelease:confirm',
   prereleaseSkip: 'setup:prerelease:skip',
+  // @premium-start
   // Step 2 — Discord settings
   cycleAfkTimeout: 'setup:discord:afk:timeout:cycle',
   cycleSystemChannel: 'setup:discord:syschannel:cycle',
@@ -168,6 +171,7 @@ const CUSTOM_IDS = Object.freeze({
   toggleAutoModRule: 'setup:discord:automod:toggle',
   applyOnboardingChannels: 'setup:discord:onboarding:apply',
   discordSettingsSkip: 'setup:discord:skip'
+  // @premium-end
 });
 
 const GRADE_LABELS = Object.freeze({
@@ -466,9 +470,11 @@ function setStep2Config(guildId, config) {
   setGuildSetting(guildId, 'guides', 'enabled', config.guidesEnabled);
 }
 
+// @premium-start
 // ── System channel choices ──────────────────────────────────────────────────
 const SYSCHANNEL_CHOICES = ['disabled', 'general', 'keep'];
 const SYSCHANNEL_LABELS = { disabled: '🔕 Désactivé', general: '📢 #general', keep: '📌 Garder actuel' };
+// @premium-end
 
 function buildStep2Content(guildId, guild) {
   const c = getStep2Config(guildId);
@@ -514,6 +520,7 @@ function buildStep2Content(guildId, guild) {
     `📚 **Guides** — ${dot(c.guidesEnabled)}`,
     '> Génère une catégorie de guides de serveur (démarrage, promotion, parrainage, jeux, commandes).',
     '',
+    // @premium-start
     '### ⚙️ Paramètres Discord',
     `🔇 **Canal AFK** — ${afkChannelMention} — délai : **${afkTimeoutLabel}**`,
     '> Guardian applique ce délai dans les paramètres Discord. Change le délai avec le bouton ci-dessous.',
@@ -523,6 +530,7 @@ function buildStep2Content(guildId, guild) {
     '',
     `🌐 **Langue du serveur** — ${localeStatus}`,
     '> Si différentes, Guardian peut synchroniser la langue Discord avec ton choix Guardian.'
+    // @premium-end
   ].join('\n');
 }
 
@@ -544,7 +552,7 @@ function buildStep2Components(guildId, guild) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGuides).setStyle(c.guidesEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
       .setLabel('📚 Guides')
   );
-  // Discord native settings row
+  // @premium-start
   const afkCfg = getAfkConfig(guildId, guild);
   const afkTimeoutLabel = AFK_TIMEOUT_LABELS[afkCfg.timeout] ?? `${afkCfg.timeout}s`;
   const syschanChoice = getGuildSetting(guildId, 'discord', 'system_channel_choice', 'keep');
@@ -562,6 +570,7 @@ function buildStep2Components(guildId, guild) {
       .setLabel(locale.inSync ? '🌐 Langue ✅' : '🌐 Sync langue')
       .setDisabled(locale.inSync)
   );
+  // @premium-end
   return [row, row2, discordRow, buildNavRow(guildId, 2)];
 }
 
@@ -838,6 +847,7 @@ function buildStep4Content(guildId, guild) {
     '> Message envoyé en privé à chaque nouveau membre qui rejoint le serveur.',
     (() => { const p = c.joinServerPresentation; const prev = p ? `"${p.slice(0, 60)}${p.length > 60 ? '…' : ''}"` : '*non défini*'; return `🌟 **Présentation #rejoindre-notre-serveur** : ${prev}`; })(),
     '> Texte personnalisé affiché dans le channel de recrutement des invités.',
+    // @premium-start
     ...(isCommunity ? [
       '',
       '### ⚙️ Paramètres Discord (serveur Community)',
@@ -848,6 +858,7 @@ function buildStep4Content(guildId, guild) {
       `📝 **Description du serveur** — ${descPreview}`,
       '> Texte affiché dans le profil public du serveur Discord.',
     ] : [])
+    // @premium-end
   ].join('\n');
 }
 
@@ -878,7 +889,7 @@ function buildStep4Components(guildId, guild) {
       .setLabel('🌟 Présentation #rejoindre')
   );
   const rows = [toggles, delay, expulsion, welcomeBtn];
-  // Community-only Discord settings
+  // @premium-start
   const isCommunity4 = Boolean(c._isCommunity);
   if (isCommunity4) {
     rows.push(new ActionRowBuilder().addComponents(
@@ -890,6 +901,7 @@ function buildStep4Components(guildId, guild) {
         .setLabel('📝 Description serveur')
     ));
   }
+  // @premium-end
   rows.push(buildNavRow(guildId, 4));
   return rows;
 }
@@ -1665,6 +1677,7 @@ function buildGameLinkComponents(guildId, guild) {
   return rows;
 }
 
+// @premium-start
 // ── Step 8 — Discord settings avancés (AutoMod + Onboarding) ───────────────────────
 
 async function buildStep8DiscordContent(guildId, guild) {
@@ -1723,6 +1736,7 @@ function buildStep8DiscordComponents(guildId, guild) {
   rows.push(buildNavRow(guildId, 8));
   return rows;
 }
+// @premium-end
 
 function buildStepPayload(guildId, guild, step) {
   function pad(content) { return content + '\n\u200b'; }
@@ -1742,7 +1756,7 @@ function buildStepPayload(guildId, guild, step) {
 async function renderStep(interaction, step) {
   const guildId = interaction.guildId;
   const guild = interaction.guild;
-  // Step 8 has async content — build it first then edit
+  // @premium-start
   if (step === 8) {
     try {
       await interaction.deferUpdate().catch(() => {});
@@ -1756,6 +1770,7 @@ async function renderStep(interaction, step) {
     }
     return;
   }
+  // @premium-end
   const payload = buildStepPayload(guildId, guild, step);
   try {
     await interaction.message.edit(payload);
@@ -2206,6 +2221,7 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 2); return true;
   }
 
+  // @premium-start
   // ── Step 2 : Paramètres Discord natifs ────────────────────────────────────────
   if (interaction.customId === CUSTOM_IDS.cycleAfkTimeout) {
     const afkCfg = getAfkConfig(guildId, interaction.guild);
@@ -2239,6 +2255,7 @@ async function handleSetupInteraction(interaction) {
     if (interaction.guild) await syncLocaleToDiscord(interaction.guild, lang);
     await renderStep(interaction, 2); return true;
   }
+  // @premium-end
 
   if (interaction.customId.startsWith(`${CUSTOM_IDS.channelSelectPrefix}:`)) {
     const slotKey = interaction.customId.split(':').pop();
@@ -2332,6 +2349,7 @@ async function handleSetupInteraction(interaction) {
     await renderStep(interaction, 4); return true;
   }
 
+  // @premium-start
   // ── Step 4 : Paramètres Discord Community ─────────────────────────────────
   if (interaction.customId === CUSTOM_IDS.applyRulesChannel) {
     await interaction.deferUpdate().catch(() => {});
@@ -2390,6 +2408,7 @@ async function handleSetupInteraction(interaction) {
     }
     await renderStep(interaction, 4); return true;
   }
+  // @premium-end
 
   if (interaction.customId === CUSTOM_IDS.cycleVocalPrefix) {
     const c = getStep4VocalConfig(guildId);
@@ -2981,6 +3000,7 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
+  // @premium-start
   // ── Step 8 : AutoMod + Onboarding ────────────────────────────────────────────────
   if (interaction.customId.startsWith(`${CUSTOM_IDS.toggleAutoModRule}:`)) {
     await interaction.deferUpdate().catch(() => {});
@@ -3020,6 +3040,7 @@ async function handleSetupInteraction(interaction) {
     setGuildSetting(guildId, 'setup', 'step', nextStep);
     await renderStep(interaction, nextStep); return true;
   }
+  // @premium-end
 
   if (interaction.customId === CUSTOM_IDS.back) {
     const currentStep = getCurrentStep(guildId);
