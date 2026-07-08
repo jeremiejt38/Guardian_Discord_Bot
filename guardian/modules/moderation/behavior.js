@@ -1,6 +1,9 @@
 const { getDb } = require('../../database/db');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const logger = require('../logs/logger');
+// @premium-start
+const { isPremium } = require('../tier/tier');
+// @premium-end
 
 const SCORE_MAX = 350;
 const SCORE_DEFAULT = 200;
@@ -71,6 +74,9 @@ async function runPassiveScoreRegen(client) {
 }
 
 async function checkBehaviorThresholds(guild, userId) {
+  // @premium-start
+  if (!isPremium(guild.id)) return;
+  // @premium-end
   const db = getDb();
   const row = db
     .prepare('SELECT score_comportement FROM members WHERE guild_id = ? AND user_id = ?')
