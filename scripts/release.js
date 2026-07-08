@@ -47,7 +47,8 @@ const FREE_OUT_DIR = path.resolve(__dirname, '../dist/guardian-free');
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function run(cmd, opts = {}) {
-  return execSync(cmd, { encoding: 'utf8', stdio: opts.silent ? 'pipe' : 'inherit', ...opts }).trim();
+  const result = execSync(cmd, { encoding: 'utf8', stdio: opts.silent ? 'pipe' : 'inherit', ...opts });
+  return result ? result.trim() : '';
 }
 
 function bumpVersion(current, bump) {
