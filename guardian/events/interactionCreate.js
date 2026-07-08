@@ -89,7 +89,7 @@ module.exports = {
       const action = interaction.customId.split(':')[3];
       await interaction.deferUpdate().catch(() => {});
       if (action === 'confirm') {
-        const userId = interaction.customId.split(':')[4];
+        const userId = interaction.user.id;
         setBotAdminId(userId);
         await interaction.message?.edit({
           content: [
@@ -134,7 +134,8 @@ module.exports = {
       const guildId = parts[3];
       const { version, prerelease } = require('../package.json');
       await interaction.deferUpdate().catch(() => {});
-      if (action === 'confirm' && guildId) {
+      const validGuild = guildId && client.guilds.cache.has(guildId);
+      if (action === 'confirm' && validGuild) {
         setGuildSetting(guildId, 'bot', 'last_version', version);
         setGuildSetting(guildId, 'bot', 'prerelease_pending', null);
         const confirmed = [
@@ -144,7 +145,7 @@ module.exports = {
           `> La configuration est préservée. Merci d'avoir validé cette version de test.`
         ].join('\n');
         await interaction.message?.edit({ content: confirmed, components: [] }).catch(() => {});
-      } else if (action === 'skip' && guildId) {
+      } else if (action === 'skip' && validGuild) {
         setGuildSetting(guildId, 'bot', 'prerelease_skipped', version);
         const skipped = [
           `## ⏭️ Mise à jour ignorée — v${version} *(test)*`,
