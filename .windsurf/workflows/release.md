@@ -47,15 +47,36 @@ cd /home/jerem/workspaces/Guardian_Discord_Bot && node scripts/release.js patch
 ```
 
 The script does the following automatically:
+
+**Garde-fous :**
+- ❌ Bloque si la branche courante n'est pas `main`
+- ❌ Bloque si le working tree est dirty
+- ❌ Bloque si le tag existe déjà
+
+**Release privée (premium) :**
 - Bumps the version in `guardian/package.json`
 - Updates the version badge in `README.md`
-- Inserts a new entry in the `## Changelog` table of `README.md` (summary of commits + diff link)
-- Generates a categorized changelog from git commits since the last tag (feat / fix / refactor / perf / docs / chore)
-- Commits `package.json` + `README.md` together
+- Inserts a new entry in the `## Changelog` table of `README.md`
+- Generates categorized changelog from git commits since last tag (feat / fix / refactor / perf / docs / chore)
+- Commit avec body détaillé : liste des fichiers modifiés + top 10 des changements
 - Creates and pushes an annotated git tag
-- Creates a GitHub release on the private repo (premium)
-- **Builds the free bundle** (strips `@premium-start/end` blocks + excludes `discordSettings.js`)
-- **Publishes a GitHub Release on `Guardian_Discord_Bot_Free`** with the zip as downloadable asset
+- Creates a GitHub Release on the private repo (premium)
+
+**Release free (public) :**
+- Builds the free bundle via `scripts/build-free.js` :
+  - Strips `@premium-start/end` blocks
+  - Excludes `discordSettings.js` entièrement
+  - Exclut les fichiers listés dans `.freeignore` (docs internes)
+  - Copie les docs publiques dans le bundle
+  - **Vérifie l'absence de leak premium** (bloque si référence premium détectée)
+- Génère le zip (sans `tests/`, `e2e/`, `node_modules/`, `data/`)
+- Clone `Guardian_Discord_Bot_Free`, écrase le contenu, commit avec body listant les patches
+- Push sur `main` du repo free
+- Creates a GitHub Release on `Guardian_Discord_Bot_Free` with the zip as downloadable asset
+
+**Finalisation :**
+- Backporte automatiquement le bump de version sur `beta` puis `dev`
+- Revient sur `main`
 
 ## Beta / prerelease flow (early access)
 

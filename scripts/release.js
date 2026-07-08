@@ -420,6 +420,14 @@ async function main() {
   console.log(`\n🚀 Guardian release: v${oldVersion} → ${newTag}\n`);
 
   // 1. Check working tree is clean
+  // 1a. Check we are on main
+  const currentBranch = run('git rev-parse --abbrev-ref HEAD', { silent: true });
+  if (currentBranch !== 'main') {
+    console.error(`❌ Release must be run from 'main' branch (current: '${currentBranch}').`);
+    console.error(`   Run: git checkout main && git merge beta && node scripts/release.js ${bumpArg}`);
+    process.exit(1);
+  }
+
   const dirty = run('git status --porcelain', { silent: true });
   if (dirty) {
     console.error('❌ Working tree is dirty. Commit or stash changes first.');
