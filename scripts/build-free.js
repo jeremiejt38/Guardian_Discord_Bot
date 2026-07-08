@@ -134,7 +134,7 @@ if (!DRY_RUN) {
 processDir(SRC_DIR, OUT_DIR);
 
 // Copier les fichiers racine utiles
-const ROOT_FILES = ['package.json', '.env.example', 'README.md'];
+const ROOT_FILES = ['package.json', '.env.example', 'README.md', 'LICENSE', 'CONTRIBUTING.md', 'SECURITY.md'];
 const repoRoot = path.resolve(__dirname, '..');
 for (const f of ROOT_FILES) {
   const src = path.join(repoRoot, f);
