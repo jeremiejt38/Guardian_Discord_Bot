@@ -17,6 +17,8 @@ const _gamesDetect = require('./setupGamesDetect');
 const _steps = require('./setupSteps');
 const { CUSTOM_IDS, TOTAL_STEPS } = require('./setupConstants');
 const _render = require('./setupRender');
+const _grades = require('./setupGrades');
+const _security = require('./setupSecurity');
 const {
   ORDERED_GRADES,
   REQUIRED_GRADES,
@@ -57,122 +59,22 @@ const {
 
 const sendSetupMessage = (interaction, content) => _render.sendSetupMessage(interaction, content);
 
-const GRADE_LABELS = Object.freeze({
-  [GRADE_NAMES.invite]: 'Invite',
-  [GRADE_NAMES.membre]: 'Membre',
-  [GRADE_NAMES.moderateur]: 'Moderateur',
-  [GRADE_NAMES.manager]: 'Manager',
-  [GRADE_NAMES.owner]: 'Owner'
-});
-
-function gradeLabel(gradeName) {
-  return GRADE_LABELS[gradeName] || gradeName;
-}
-
-function getGradeCursor(guildId) {
-  const cursor = getGuildSetting(guildId, 'setup', 'grade_cursor', 0);
-  if (!Number.isInteger(cursor)) return 0;
-  return Math.min(Math.max(cursor, 0), ORDERED_GRADES.length - 1);
-}
-
-function setGradeCursor(guildId, cursor) {
-  const safeCursor = Math.min(Math.max(cursor, 0), ORDERED_GRADES.length - 1);
-  setGuildSetting(guildId, 'setup', 'grade_cursor', safeCursor);
-  return safeCursor;
-}
-
-function getCurrentStep(guildId) {
-  const step = getGuildSetting(guildId, 'setup', 'step', 1);
-  return Number.isInteger(step) ? step : 1;
-}
-
-function boolText(value, guildId) {
-  return value ? t('setup.enabled', {}, { guildId }) : t('setup.disabled', {}, { guildId });
-}
-
-function onOff(flag) {
-  return flag ? '🟢 Actif' : '🔴 Inactif';
-}
-
-function onOffDot(flag) {
-  return flag ? '🟢' : '🔴';
-}
-
-function buildNavRow(guildId, step) {
-  const isLastStep = step >= TOTAL_STEPS;
-  const buttons = [];
-  if (step > 1) {
-    buttons.push(
-      new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.back)
-        .setStyle(ButtonStyle.Secondary)
-        .setLabel('◀ ' + t('setup.backStep', {}, { guildId }))
-    );
-  }
-  if (!isLastStep) {
-    buttons.push(
-      new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.next)
-        .setStyle(ButtonStyle.Primary)
-        .setLabel(t('setup.nextStep', {}, { guildId }) + ' ▶')
-    );
-  } else {
-    buttons.push(
-      new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.finalize)
-        .setStyle(ButtonStyle.Success)
-        .setLabel('🚀 ' + t('setup.finalizeButton', {}, { guildId }))
-    );
-  }
-  return new ActionRowBuilder().addComponents(buttons);
-}
-
-function buildRoleOptions(guild, selectedRoleId) {
-  const roleList = guild.roles.cache
-    .filter((role) => role.id !== guild.id && !role.managed)
-    .sort((a, b) => b.position - a.position)
-    .first(24)
-    .map((role) => ({
-      label: role.name.slice(0, 100),
-      value: role.id,
-      default: false
-    }));
-
-  if (selectedRoleId && !roleList.find((o) => o.value === selectedRoleId)) {
-    const selectedRole = guild.roles.cache.get(selectedRoleId);
-    if (selectedRole) {
-      roleList.unshift({ label: selectedRole.name.slice(0, 100), value: selectedRole.id, default: false });
-    }
-  }
-
-  const clearOption = { label: '— Effacer la sélection', value: 'none', description: 'Désassigner ce grade', default: false };
-  return [clearOption, ...roleList].slice(0, 25);
-}
-
-function hasMapableRoles(guild) {
-  return guild.roles.cache.some(
-    (role) => role.id !== guild.roles.everyone.id && !role.managed
-  );
-}
-
-function getRolesAutoCreated(guildId) {
-  return Boolean(getGuildSetting(guildId, 'setup', 'roles_auto_created', false));
-}
-
-function getGradeRenameMap(guildId) {
-  const stored = getGuildSetting(guildId, 'setup', 'grade_rename_map', {});
-  return stored && typeof stored === 'object' ? stored : {};
-}
-
-function setGradeRenameName(guildId, grade, name) {
-  const map = getGradeRenameMap(guildId);
-  map[grade] = name;
-  setGuildSetting(guildId, 'setup', 'grade_rename_map', map);
-}
-
-function isFreshInstall(guildId) {
-  return Boolean(getGuildSetting(guildId, 'setup', 'fresh_install', false));
-}
+// ─── Délégations grades ────────────────────────────────────────────────────────
+const { GRADE_LABELS, ROLE_COLORS } = _grades;
+const gradeLabel = (g) => _grades.gradeLabel(g);
+const getGradeCursor = (guildId) => _grades.getGradeCursor(guildId);
+const setGradeCursor = (guildId, c) => _grades.setGradeCursor(guildId, c);
+const getCurrentStep = (guildId) => _grades.getCurrentStep(guildId);
+const boolText = (v, g) => _grades.boolText(v, g);
+const onOff = (f) => _grades.onOff(f);
+const onOffDot = (f) => _grades.onOffDot(f);
+const buildNavRow = (guildId, step) => _grades.buildNavRow(guildId, step);
+const buildRoleOptions = (guild, id) => _grades.buildRoleOptions(guild, id);
+const hasMapableRoles = (guild) => _grades.hasMapableRoles(guild);
+const getRolesAutoCreated = (guildId) => _grades.getRolesAutoCreated(guildId);
+const getGradeRenameMap = (guildId) => _grades.getGradeRenameMap(guildId);
+const setGradeRenameName = (guildId, grade, name) => _grades.setGradeRenameName(guildId, grade, name);
+const isFreshInstall = (guildId) => _grades.isFreshInstall(guildId);
 
 // ─── Imports depuis setupSteps.js ────────────────────────────────────────────
 const { CHANNEL_SLOTS, getChannelCursor, setChannelCursor, isCommunityGuild } = _steps;
@@ -250,60 +152,8 @@ const buildStep9Components = (guildId) => _steps.buildStep9Components(guildId, _
 const buildCommunityCheckContent = (guildId, guild) => _steps.buildCommunityCheckContent(guildId, guild, _ctx());
 const buildCommunityCheckComponents = () => _steps.buildCommunityCheckComponents(CUSTOM_IDS);
 
-async function createRolesAutoHelper(interaction, guild, guildId) {
-  const roleColors = {
-    [GRADE_NAMES.invite]: 0x95a5a6,
-    [GRADE_NAMES.membre]: 0x3498db,
-    [GRADE_NAMES.moderateur]: 0x2ecc71,
-    [GRADE_NAMES.manager]: 0xe67e22,
-    [GRADE_NAMES.owner]: 0xe74c3c
-  };
-  for (const grade of ORDERED_GRADES) {
-    try {
-      const existingMappedId = getGradeMappings(guildId)[grade];
-      const alreadyExists = existingMappedId && guild.roles.cache.has(existingMappedId);
-      if (alreadyExists) continue;
-      const role = await guild.roles.create({
-        name: gradeLabel(grade),
-        color: roleColors[grade] ?? 0x99aab5,
-        reason: 'Guardian setup — création automatique des rôles'
-      });
-      setGradeRole(guildId, grade, role.id);
-    } catch (err) {
-      logger.error(`Failed to create role for grade ${grade}`, err);
-    }
-  }
-  setGuildSetting(guildId, 'setup', 'roles_auto_created', true);
-  setGuildSetting(guildId, 'setup', 'fresh_install', false);
-  setGradeCursor(guildId, 0);
-  try {
-    const ownerRoleId = getGradeMappings(guildId)[GRADE_NAMES.owner];
-    const ownerRole = ownerRoleId && guild.roles.cache.get(ownerRoleId);
-    const botMember = guild.members.me;
-    const botRole = botMember?.roles?.botRole;
-    if (ownerRole && botRole && botRole.position <= ownerRole.position) {
-      await guild.roles.setPositions([
-        { role: botRole.id, position: ownerRole.position + 1 }
-      ]).catch((err) => logger.warn(`[setup] Failed to reposition bot role: ${err?.message}`));
-    }
-  } catch (err) {
-    logger.warn(`[setup] Failed to reposition bot role: ${err?.message}`);
-  }
-  await renderStep(interaction, 1);
-}
-
-function detectDuplicateGradeRoles(guild) {
-  if (!guild?.roles?.cache) return [];
-  const dupes = [];
-  for (const grade of ORDERED_GRADES) {
-    const label = gradeLabel(grade).toLowerCase();
-    const matches = [...guild.roles.cache.values()].filter(
-      (r) => r.name.toLowerCase() === label && !r.managed && r.id !== guild.roles.everyone?.id
-    );
-    if (matches.length > 1) dupes.push({ grade, roles: matches });
-  }
-  return dupes;
-}
+const createRolesAutoHelper = (interaction, guild, guildId) => _grades.createRolesAutoHelper(interaction, guild, guildId, renderStep);
+const detectDuplicateGradeRoles = (guild) => _grades.detectDuplicateGradeRoles(guild);
 
 
 function autoPositionChannelCursor(guildId, guild) {
@@ -346,93 +196,9 @@ const startWizardInChannel = (interaction) => _render.startWizardInChannel(inter
   setGradeCursor, setChannelCursor, autoPositionChannelCursor, getActiveSlotsForInstall,
 });
 
-function explainStepOneValidation(guildId, validation) {
-  if (validation.reason === 'missing_mappings') {
-    const missing = validation?.details?.missingGrades || [];
-    return t('setup.validationMissingMappings', { grades: missing.map(gradeLabel).join(', ') }, { guildId });
-  }
-  if (validation.reason === 'duplicate_roles') return t('setup.validationDuplicateRoles', {}, { guildId });
-  if (validation.reason === 'owner_role_missing') return t('setup.validationOwnerRoleMissing', {}, { guildId });
-  if (validation.reason === 'owner_cardinality') return t('setup.validationOwnerCardinality', { count: validation?.details?.ownerCount ?? 0 }, { guildId });
-  return t('setup.validationGenericError', {}, { guildId });
-}
-
-async function advanceToStep2AfterSecurity(interaction, guildId) {
-  const nextStep = 2;
-  setGuildSetting(guildId, 'setup', 'step', nextStep);
-  await interaction.message.delete().catch(() => {});
-  const wizardChannel = interaction.channel;
-  if (!wizardChannel) return;
-  const msgs = await wizardChannel.messages.fetch({ limit: 20 }).catch(() => null);
-  if (!msgs) return;
-  const botId = interaction.client.user.id;
-  const wizardMsg = msgs.find((m) => m.author.id === botId && m.components.length > 0)
-    ?? msgs.find((m) => m.author.id === botId);
-  if (wizardMsg) {
-    await wizardMsg.edit(buildStepPayload(guildId, interaction.guild, nextStep)).catch((err) => {
-      logger.warn(`[security] failed to edit wizardMsg: ${err?.message}`);
-    });
-  } else {
-    logger.warn('[security] no wizardMsg found, sending new');
-    await wizardChannel.send(buildStepPayload(guildId, interaction.guild, nextStep)).catch(() => {});
-  }
-}
-
-function buildSecurityComponents(dangerous, unused, _, resolvedIds = new Set()) {
-  const rows = [];
-  const allResolved = !hasUnresolvedIssues(dangerous, unused, resolvedIds);
-
-  const unusedSlot = unused.length > 0 ? 1 : 0;
-  const dangerousSlots = Math.min(dangerous.length, 4 - unusedSlot);
-
-  for (const r of dangerous.slice(0, dangerousSlots)) {
-    const resolved = resolvedIds.has(r.id);
-    rows.push(new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`${CUSTOM_IDS.securityRoleAction}:${r.id}`)
-        .setLabel(resolved ? `🟢 Réglé — @${r.name}`.slice(0, 80) : `🔐 Régler le problème — @${r.name}`.slice(0, 80))
-        .setStyle(resolved ? ButtonStyle.Success : ButtonStyle.Danger)
-        .setDisabled(resolved)
-    ));
-  }
-
-  if (unused.length === 1) {
-    const r = unused[0];
-    const resolved = resolvedIds.has(r.id);
-    if (!resolved) {
-      rows.push(new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`${CUSTOM_IDS.securityDeleteUnused}:${r.id}`)
-          .setLabel(_('roleSecurity.btnDelete', { name: r.name }).slice(0, 40))
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId(`${CUSTOM_IDS.securityKeepUnused}:${r.id}`)
-          .setLabel(_('roleSecurity.btnKeep', { name: r.name }).slice(0, 40))
-          .setStyle(ButtonStyle.Secondary)
-      ));
-    }
-  } else if (unused.length > 1) {
-    const allUnusedResolved = unused.every(r => resolvedIds.has(r.id));
-    if (!allUnusedResolved) {
-      rows.push(new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(CUSTOM_IDS.securityDeleteAllUnused)
-          .setLabel(_('roleSecurity.btnDeleteAll', { count: unused.length }).slice(0, 80))
-          .setStyle(ButtonStyle.Danger)
-      ));
-    }
-  }
-
-  rows.push(new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(CUSTOM_IDS.securityContinue)
-      .setLabel(allResolved ? '✅ Continuer' : _('roleSecurity.btnContinue'))
-      .setStyle(allResolved ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setDisabled(false)
-  ));
-
-  return rows;
-}
+const explainStepOneValidation = (guildId, validation) => _security.explainStepOneValidation(guildId, validation, gradeLabel);
+const advanceToStep2AfterSecurity = (interaction, guildId) => _security.advanceToStep2AfterSecurity(interaction, guildId, buildStepPayload);
+const buildSecurityComponents = (dangerous, unused, _, resolvedIds) => _security.buildSecurityComponents(dangerous, unused, _, resolvedIds);
 
 // ─── Sous-handler : Step 1 — Grades ─────────────────────────────────────────
 
