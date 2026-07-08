@@ -84,6 +84,20 @@ async function fetchReleaseNotes(version) {
   }
 }
 
+async function translateText(text, targetLang) {
+  if (!targetLang || targetLang === 'en') return text;
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'Guardian-Discord-Bot' }, signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return text;
+    const data = await res.json();
+    const translated = data[0]?.map(seg => seg[0]).join('') ?? text;
+    return translated || text;
+  } catch {
+    return text;
+  }
+}
+
 async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
   const adminId = getBotAdminId();
   if (!adminId) return;
@@ -98,6 +112,9 @@ async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
     const releaseNotes = await fetchReleaseNotes(toVersion);
 
+    const locale = adminUser.locale ?? 'en';
+    const langCode = locale.split('-')[0];
+
     const lines = [
       `## 🔄 Guardian updated — v${fromVersion} → **v${toVersion}**`,
       ``,
@@ -106,9 +123,10 @@ async function notifyBotAdminUpdate(client, fromVersion, toVersion) {
     ];
 
     if (releaseNotes) {
+      const raw = releaseNotes.length > 800 ? releaseNotes.slice(0, 800) + '\n*(truncated — see full changelog below)*' : releaseNotes;
+      const body = await translateText(raw, langCode);
       lines.push(`### What's new in v${toVersion}`);
-      const truncated = releaseNotes.length > 800 ? releaseNotes.slice(0, 800) + '\n*(truncated — see full changelog below)*' : releaseNotes;
-      lines.push(truncated);
+      lines.push(body);
       lines.push(``);
     }
 

@@ -191,22 +191,30 @@ Tests run on an in-memory SQLite database and cover the setup wizard, config pan
 
 ## Changelog
 
-### v0.21.x — Admin Panel DM ← *current*
-| Version | Date | Content |
-|---------|------|---------|
-| **v0.21.3** | 2026-07-08 | Fix: post-update message without PM2 — precise restart instructions + PM2 tip ← *current* |
-| v0.21.2 | 2026-07-08 | Docs: README rewritten in English — PM2 multi-OS setup, .env variables, core libraries |
-| v0.21.1 | 2026-07-08 | Fix: Admin Panel — 🔄 button becomes ✖ Close when a view is open, cancels timeout |
-| v0.21.0 | 2026-07-08 | Feat: system admin DM panel — 4 views (Status/Servers/DB/Notifs), alert toggles, 15min timeout, auto-bootstrap, `/admin`, guild join/leave alerts |
-
-### v0.20.x — Auto-update & Bot admin
-| Version | Date | Content |
-|---------|------|---------|
-| **v0.20.0** | 2026-07-07 | Feat: `BOT_ADMIN_ID` in `.env` — automatic update via DM button (`git pull` + `npm install` + PM2 restart) |
-
-### v0.19.x and earlier
-
-> Full history available at [github.com/jeremiejt38/Guardian_Discord_Bot/releases](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+| Version | Description |
+|---------|-------------|
+| **v0.21** | **Admin Panel DM** — interactive system admin panel in DM, 4 views (Status/Servers/DB/Notifications), per-category alert toggles, 15min inactivity timeout, auto-bootstrap of `BOT_ADMIN_ID`, `/admin` command, guild join/leave alerts, contextual Close button, GitHub release notes fetched and translated on update notification, precise restart instructions without PM2 |
+| | [390af8c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/390af8c) [c5e7f3b](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c5e7f3b) [0d4383e](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0d4383e) [19eb775](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/19eb775) [7bcf9d6](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/7bcf9d6) |
+| **v0.20** | **Auto-update & Bot admin** — `BOT_ADMIN_ID` in `.env`, automatic update via DM button (`git pull` + `npm install` + PM2 restart) |
+| | [6f5be4a](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/6f5be4a) |
+| **v0.19** | **RAWG.io & non-Steam games** — RAWG.io integration, non-Steam pseudo App ID `000XXXXXXX`, DB migration v7, toggle button style fixes, adaptive step 3 navigation, multi-language ES/PT/IT, dynamic post-setup summary |
+| | [39fb8e5](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/39fb8e5) [2ff1aa8](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/2ff1aa8) [0f1ab99](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0f1ab99) [0f16d07](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0f16d07) [eb8e5bd](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/eb8e5bd) [708c684](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/708c684) |
+| **v0.18** | **Non-Steam games** — pseudo App ID generator, `isNonSteamId()`, duplicate detection fix |
+| | [4f1f1e4](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/4f1f1e4) |
+| **v0.17** | **Backup & Diagnostics** — backup message protection, enriched `guardian-logs`, bot panel diagnostics, game server password |
+| | [480a873](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/480a873) |
+| **v0.16** | **Setup UX & Game Requests** — improved setup UX, member game requests, channel topics, role colors |
+| | [8d6b846](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/8d6b846) |
+| **v0.15** | **Auto-update & Prerelease** — stable auto-update notification, DM prerelease confirmation, `prerelease` field in `package.json` |
+| | [c421882](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/c421882) |
+| **v0.14 – v0.13 – v0.12** | **Setup UX & Onboarding** — per-grade role creation, game review step before linking, `#become-member` channel, enriched new member DM, bulk DM at finalize, FAQ as forum channel, channel topics |
+| | [2102523](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/2102523) [54d5d9c](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/54d5d9c) [536130f](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/536130f) [0743b5f](https://github.com/jeremiejt38/Guardian_Discord_Bot/commit/0743b5f) |
+| **v0.11** | **Resilience, Security & Setup UX** — auto-detect Guardian channels, smart game channel sorting, role audit, bot role repositioning, Steam top 250 detection, rate limiting debounce, backup/restore via `#guardian-backup` |
+| | [Full history on GitHub](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases) |
+| **v0.10** | **Robustness & Notifications** — configurable DM notifications, versioned DB/Discord migrations, Discord error handling, game list pagination, E2E integration tests |
+| | [Full history on GitHub](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases) |
+| **v0.1 – v0.9** | **Foundations** — architecture scaffold, SQLite, setup wizard, members, games, voice, moderation, i18n FR+EN |
+| | [Full history on GitHub](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases) |
 
 ---
 
