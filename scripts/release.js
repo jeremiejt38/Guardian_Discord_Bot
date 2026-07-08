@@ -276,7 +276,7 @@ function buildFreeZip(version) {
 /**
  * Crée une GitHub Release sur le repo Free et uploade le zip en asset.
  */
-async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false) {
+async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false, lastTag = null) {
   if (!GITHUB_FREE_TOKEN) {
     console.warn('⚠️  GITHUB_FREE_RELEASE_TOKEN non défini — publication free ignorée.');
     return null;
@@ -351,7 +351,17 @@ async function publishFreeRelease(tag, releaseBody, zipPath, prerelease = false)
   run(`git config user.email "release-bot@guardian"`, { cwd: tmpDir });
   run(`git config user.name "Guardian Release Bot"`, { cwd: tmpDir });
   run(`git add -A`, { cwd: tmpDir });
-  run(`git commit -m "release: ${tag}" --allow-empty`, { cwd: tmpDir });
+
+  const patchList = releaseBody
+    .split('\n')
+    .filter(l => l.match(/^[-*] \*\*/))
+    .slice(0, 15)
+    .join('\n');
+  const freeCommitBody = patchList
+    ? `Patches included since ${lastTag ?? 'previous release'}:\n${patchList}`
+    : 'See release notes for details.';
+
+  run(`git commit -m "release: ${tag}" -m "${freeCommitBody.replace(/"/g, "'")}" --allow-empty`, { cwd: tmpDir });
   run(`git push origin main`, { cwd: tmpDir });
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -453,7 +463,17 @@ async function main() {
   // 6. Commit + tag + push
   run('git add guardian/package.json');
   if (readmeUpdated) run('git add README.md');
-  run(`git commit -m "chore: bump version to ${newVersion}"`);
+
+  const commitBody = [
+    `- package.json: ${pkg.version.replace(newVersion, lastTag ?? '?')} → ${newVersion}`,
+    readmeUpdated ? '- README: badge + changelog entry updated' : null,
+    `- tag: ${newTag}`,
+    '',
+    changelog ? `Changes since ${lastTag ?? 'beginning'}:` : null,
+    changelog ? changelog.split('\n').filter(l => l.match(/^[-*]/)).slice(0, 10).join('\n') : null,
+  ].filter(l => l !== null).join('\n');
+
+  run(`git commit -m "chore: bump version to ${newVersion}" -m "${commitBody.replace(/"/g, "'")}"`);
   run(`git tag -a ${newTag} HEAD -m "release ${newTag}"`);
   console.log(`✅ Committed and tagged ${newTag}`);
 
@@ -490,7 +510,7 @@ async function main() {
     ].join('\n');
 
     const zipPath = buildFreeZip(newVersion);
-    await publishFreeRelease(newTag, freeReleaseBody, zipPath, pkg.prerelease ?? false);
+    await publishFreeRelease(newTag, freeReleaseBody, zipPath, pkg.prerelease ?? false, lastTag);
   } else {
     console.warn('\n⚠️  GITHUB_FREE_RELEASE_TOKEN absent — étape free ignorée.');
     console.warn('   Définis GITHUB_FREE_RELEASE_TOKEN dans guardian/.env pour activer la publication free.\n');
