@@ -1,7 +1,7 @@
 const { getDb, getGrade } = require('../../database/db');
 const { GRADE_NAMES, CHANNELS } = require('../../config');
-const { t } = require('../i18n');
 const { getGuildSetting } = require('../config/settings');
+const { t } = require('../i18n');
 const { findChannelByName } = require('../utils/channels');
 const logger = require('../logs/logger');
 const { IDS: PROMOTION_IDS } = require('./promotion');
@@ -9,9 +9,12 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 async function handleNewMember(member) {
   try {
-    const inviteRoleId = getGrade(member.guild.id, GRADE_NAMES.invite);
-    if (inviteRoleId) {
-      await member.roles.add(inviteRoleId);
+    const inviteMode = getGuildSetting(member.guild.id, 'setup', 'invite_mode', 'classic');
+    const assignedGrade = inviteMode === 'direct' ? GRADE_NAMES.membre : GRADE_NAMES.invite;
+    const roleId = getGrade(member.guild.id, assignedGrade)
+      ?? (inviteMode === 'direct' ? null : getGrade(member.guild.id, GRADE_NAMES.invite));
+    if (roleId) {
+      await member.roles.add(roleId);
     }
 
     const welcomeChannel = findChannelByName(member.guild, CHANNELS.welcome);
@@ -40,7 +43,7 @@ async function handleNewMember(member) {
        VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(guild_id, user_id)
        DO UPDATE SET grade = excluded.grade, join_date = excluded.join_date`
-    ).run(member.guild.id, member.id, GRADE_NAMES.invite, new Date().toISOString(), initialScore);
+    ).run(member.guild.id, member.id, assignedGrade, new Date().toISOString(), initialScore);
 
     try {
       const guildId = member.guild.id;

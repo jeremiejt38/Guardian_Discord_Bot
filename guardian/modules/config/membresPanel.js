@@ -27,8 +27,7 @@ const IDS = Object.freeze({
   joinPresentationModal: 'membres:joinpresentation:modal',
   editExpulsion: 'membres:expulsion:edit',
   expulsionModal: 'membres:expulsion:modal',
-  toggleExpulsion: 'membres:expulsion:toggle',
-  toggleStrictMode: 'membres:strictmode:toggle'
+  toggleExpulsion: 'membres:expulsion:toggle'
 });
 
 function hasManagerGrade(member, guildId) {
@@ -49,7 +48,8 @@ function buildPanelEmbed(guildId) {
   const joinPreview = joinPresentation
     ? `"${String(joinPresentation).slice(0, 80)}${String(joinPresentation).length > 80 ? '…' : ''}"`
     : '*non défini*';
-  const strictMode = Boolean(getGuildSetting(guildId, 'members', 'invite_strict_mode', false));
+  const inviteMode = getGuildSetting(guildId, 'setup', 'invite_mode', 'classic');
+  const inviteModeLabel = { classic: '👤 Classique', strict: '🔒 Strict', direct: '🚀 Membre direct' }[inviteMode] ?? 'Classique';
 
   return new EmbedBuilder()
     .setColor(0x5865F2)
@@ -59,7 +59,7 @@ function buildPanelEmbed(guildId) {
       { name: '📝 Bio obligatoire', value: bio ? '✅ Oui' : '❌ Non', inline: true },
       { name: '🤝 Parrainage', value: sponsor ? '✅ Oui' : '❌ Non', inline: true },
       { name: '🚨 Expulsion auto', value: expulsion ? `✅ ${expulsionDays}j` : '❌ Non', inline: true },
-      { name: '🔒 Mode strict invité', value: strictMode ? '✅ Actif' : '❌ Inactif', inline: true },
+      { name: '� Mode invité', value: inviteModeLabel, inline: true },
       { name: '🌟 Présentation #rejoindre', value: joinPreview, inline: false }
     )
     .setTimestamp();
@@ -69,8 +69,6 @@ function buildRows(guildId) {
   const bio = getGuildSetting(guildId, 'members', 'bio_required', false);
   const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
   const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
-  const strictMode = Boolean(getGuildSetting(guildId, 'members', 'invite_strict_mode', false));
-
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(IDS.editDelay).setLabel(t(guildId, 'config.membres.editDelay')).setStyle(ButtonStyle.Primary),
@@ -81,8 +79,7 @@ function buildRows(guildId) {
       new ButtonBuilder().setCustomId(IDS.toggleBio).setLabel(`Bio: ${bio ? 'ON' : 'OFF'}`).setStyle(bio ? ButtonStyle.Success : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(IDS.toggleSponsor).setLabel(`Parrainage: ${sponsor ? 'ON' : 'OFF'}`).setStyle(sponsor ? ButtonStyle.Success : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(IDS.toggleExpulsion).setLabel(`Expulsion auto: ${expulsion ? 'ON' : 'OFF'}`).setStyle(expulsion ? ButtonStyle.Success : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(IDS.editExpulsion).setLabel(t(guildId, 'config.membres.editExpulsion')).setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(IDS.toggleStrictMode).setLabel(`🔒 Strict: ${strictMode ? 'ON' : 'OFF'}`).setStyle(strictMode ? ButtonStyle.Danger : ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId(IDS.editExpulsion).setLabel(t(guildId, 'config.membres.editExpulsion')).setStyle(ButtonStyle.Secondary)
     )
   ];
 }
@@ -235,15 +232,6 @@ async function handleMembresInteraction(interaction) {
     if (ch) await seedJoinServerChannel(ch, interaction.guild).catch(() => {});
     await refreshMembresPanel(interaction.guild);
     await replyEphemeral(interaction, '✅ Présentation mise à jour et channel **#rejoindre-notre-serveur** rafraîchi.');
-    return true;
-  }
-
-  if (interaction.isButton() && customId === IDS.toggleStrictMode) {
-    const current = Boolean(getGuildSetting(guildId, 'members', 'invite_strict_mode', false));
-    setGuildSetting(guildId, 'members', 'invite_strict_mode', !current);
-    await logConfigChange(interaction.guild, interaction.user.id, 'members.invite_strict_mode', current, !current);
-    await refreshMembresPanel(interaction.guild);
-    await replyEphemeral(interaction, `🔒 Mode strict invité : ${!current ? '✅ activé (vocal + #general bloqués pour les invités)' : '❌ désactivé'}. Les channels seront mis à jour au prochain setup ou redress.`);
     return true;
   }
 

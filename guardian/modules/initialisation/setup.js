@@ -161,8 +161,8 @@ async function ensureForumPost(channel, name, content) {
   await channel.threads.create({ name, message: { content } });
 }
 
-function buildGeneralPermissions(guild, roleMap, strictInviteMode = false) {
-  if (strictInviteMode) {
+function buildGeneralPermissions(guild, roleMap, inviteMode = 'classic') {
+  if (inviteMode === 'strict' || inviteMode === 'direct') {
     const permissions = [
       { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }
     ];
@@ -479,9 +479,9 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
   ]);
 
   const generalEnabled = getGuildSetting(guild.id, 'communaute', 'general_enabled', true);
-  const strictInviteMode = Boolean(getGuildSetting(guild.id, 'members', 'invite_strict_mode', false));
+  const inviteMode = getGuildSetting(guild.id, 'setup', 'invite_mode', 'classic');
   const permissions = generalEnabled
-    ? buildGeneralPermissions(guild, roleMap, strictInviteMode)
+    ? buildGeneralPermissions(guild, roleMap, inviteMode)
     : buildHiddenPermissions(guild, ownerId);
 
   const guildIdC = guild.id;
@@ -526,13 +526,13 @@ async function createCommunauteArea(guild, roleMap, ownerId) {
 }
 
 async function createVocalArea(guild, roleMap, ownerId) {
-  const strictInviteMode = Boolean(getGuildSetting(guild.id, 'members', 'invite_strict_mode', false));
+  const inviteMode = getGuildSetting(guild.id, 'setup', 'invite_mode', 'classic');
 
   let vocauxCategoryPerms;
   let voiceChannelPerms;
   let voiceCreatePerms;
 
-  if (strictInviteMode) {
+  if (inviteMode === 'strict' || inviteMode === 'direct') {
     const memberPlusGrades = [GRADE_NAMES.membre, GRADE_NAMES.moderateur, GRADE_NAMES.manager, GRADE_NAMES.owner];
     const allowedRoleIds = memberPlusGrades.map((g) => roleMap[g]).filter(Boolean);
     const base = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }];
@@ -565,7 +565,7 @@ async function createVocalArea(guild, roleMap, ownerId) {
   let afkPermissions;
   if (!afkEnabled) {
     afkPermissions = buildHiddenPermissions(guild, ownerId);
-  } else if (strictInviteMode) {
+  } else if (inviteMode === 'strict' || inviteMode === 'direct') {
     afkPermissions = voiceChannelPerms;
   } else {
     afkPermissions = [{ id: guild.roles.everyone.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }];

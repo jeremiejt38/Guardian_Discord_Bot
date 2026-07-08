@@ -84,7 +84,7 @@ const CUSTOM_IDS = Object.freeze({
   toggleGameChangelog: 'setup:games:changelog:toggle',
   toggleGameText: 'setup:games:text:toggle',
   addGameConfirmModal: 'setup:games:add:confirm:modal',
-  toggleInviteGrade: 'setup:grade:invite:toggle',
+  cycleInviteMode: 'setup:grade:invite:cycle',
   toggleBehaviorScore: 'setup:modules:behavior:toggle',
   decreaseSpamThreshold: 'setup:mod:spam:dec',
   increaseSpamThreshold: 'setup:mod:spam:inc',
@@ -95,7 +95,7 @@ const CUSTOM_IDS = Object.freeze({
   decreaseSlowMode: 'setup:mod:slowmode:dec',
   increaseSlowMode: 'setup:mod:slowmode:inc',
   cycleLogsLevel: 'setup:mod:logs:cycle',
-  toggleInviteStrictMode: 'setup:members:invite:strictmode',
+  // invite mode is now cycled in step 1 via cycleInviteMode
   editWelcomeText: 'setup:members:welcome:edit',
   welcomeModal: 'setup:members:welcome:modal',
   editJoinPresentation: 'setup:members:joinpresentation:edit',
@@ -290,9 +290,15 @@ function buildStepOneContent(guildId, guild) {
   } else {
     const cursor = getGradeCursor(guildId);
     const currentGrade = ORDERED_GRADES[cursor];
-    const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
+    const inviteMode = getGuildSetting(guildId, 'setup', 'invite_mode', 'classic');
+    const inviteModeLabel = { classic: '👤 Classique', strict: '🔒 Strict', direct: '🚀 Membre direct' }[inviteMode] ?? 'Classique';
+    const inviteModeDesc = {
+      classic: 'Les invités voient les channels mais ont un accès limité.',
+      strict: 'Les invités n\'ont accès qu\'à #devenir-membre et #rejoindre. Vocal et #general réservés aux Membres.',
+      direct: 'Pas de grade Invité — toute nouvelle personne est directement Membre.'
+    }[inviteMode];
     lines.push(t('setup.step1Instructions', {}, { guildId }));
-    lines.push(`> Grade Invité : ${onOff(inviteEnabled)} — ${inviteEnabled ? 'les nouveaux membres reçoivent ce grade en arrivant.' : 'les nouveaux membres arrivent directement en Membre.'}`);
+    lines.push(`> Mode invité : **${inviteModeLabel}** — ${inviteModeDesc}`);
     lines.push(`> ${t('setup.step1CurrentGrade', { grade: gradeLabel(currentGrade) }, { guildId })}`);
     lines.push(`> ${GRADE_DESCS[currentGrade] || ''}`);
     lines.push('');
@@ -331,20 +337,20 @@ function buildStepOneComponents(guildId, guild) {
   }
 
   if (noRoles) {
-    const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
+    const inviteModeFresh = getGuildSetting(guildId, 'setup', 'invite_mode', 'classic');
     const autoRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.createRolesAll)
         .setStyle(ButtonStyle.Primary)
         .setLabel(t('setup.step1CreateRolesAuto', {}, { guildId }))
     );
-    const toggleInviteRowFresh = new ActionRowBuilder().addComponents(
+    const inviteModeRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(CUSTOM_IDS.toggleInviteGrade)
-        .setStyle(inviteEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-        .setLabel('Grade Invité')
+        .setCustomId(CUSTOM_IDS.cycleInviteMode)
+        .setStyle({ classic: ButtonStyle.Secondary, strict: ButtonStyle.Danger, direct: ButtonStyle.Success }[inviteModeFresh] ?? ButtonStyle.Secondary)
+        .setLabel({ classic: '👤 Invité: Classique', strict: '🔒 Invité: Strict', direct: '🚀 Invité: Direct' }[inviteModeFresh] ?? '👤 Invité: Classique')
     );
-    return [autoRow, toggleInviteRowFresh, buildNavRow(guildId, 1)];
+    return [autoRow, inviteModeRow, buildNavRow(guildId, 1)];
   }
 
   const mappings = getGradeMappings(guildId);
@@ -384,12 +390,12 @@ function buildStepOneComponents(guildId, guild) {
       .setDisabled(cursor >= ORDERED_GRADES.length - 1)
   );
 
-  const inviteEnabled = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
-  const toggleInviteRow = new ActionRowBuilder().addComponents(
+  const inviteMode = getGuildSetting(guildId, 'setup', 'invite_mode', 'classic');
+  const inviteModeRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(CUSTOM_IDS.toggleInviteGrade)
-      .setStyle(inviteEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel('Grade Invité')
+      .setCustomId(CUSTOM_IDS.cycleInviteMode)
+      .setStyle({ classic: ButtonStyle.Secondary, strict: ButtonStyle.Danger, direct: ButtonStyle.Success }[inviteMode] ?? ButtonStyle.Secondary)
+      .setLabel({ classic: '👤 Invité: Classique', strict: '🔒 Invité: Strict', direct: '🚀 Invité: Direct' }[inviteMode] ?? '👤 Invité: Classique')
   );
 
   const cursor2 = getGradeCursor(guildId);
@@ -404,7 +410,7 @@ function buildStepOneComponents(guildId, guild) {
       .setDisabled(Boolean(alreadyMappedRoleExists))
   );
 
-  return [roleSelector, gradeNavigation, toggleInviteRow, autoCreateRow, buildNavRow(guildId, 1)];
+  return [roleSelector, gradeNavigation, inviteModeRow, autoCreateRow, buildNavRow(guildId, 1)];
 }
 
 function getStep2Config(guildId) {
@@ -696,7 +702,6 @@ function getStep4Config(guildId) {
     inviteExpulsionDays: Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30))),
     welcomeText: String(getGuildSetting(guildId, 'members', 'welcome_text', '') || ''),
     joinServerPresentation: String(getGuildSetting(guildId, 'joinserver', 'presentation', '') || ''),
-    inviteStrictMode: Boolean(getGuildSetting(guildId, 'members', 'invite_strict_mode', false))
   };
 }
 
@@ -709,7 +714,6 @@ function setStep4Config(guildId, config) {
   setGuildSetting(guildId, 'members', 'invite_expulsion_days', config.inviteExpulsionDays);
   setGuildSetting(guildId, 'members', 'welcome_text', config.welcomeText);
   setGuildSetting(guildId, 'joinserver', 'presentation', config.joinServerPresentation);
-  setGuildSetting(guildId, 'members', 'invite_strict_mode', config.inviteStrictMode);
 }
 
 function cycleReviewerGrade(currentGrade) {
@@ -768,10 +772,7 @@ function buildStep4Components(guildId) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editWelcomeText).setStyle(ButtonStyle.Secondary)
       .setLabel('💬 Modifier message de bienvenue'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editJoinPresentation).setStyle(ButtonStyle.Secondary)
-      .setLabel('🌟 Présentation #rejoindre'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteStrictMode)
-      .setStyle(c.inviteStrictMode ? ButtonStyle.Danger : ButtonStyle.Secondary)
-      .setLabel(`🔒 Strict: ${c.inviteStrictMode ? 'ON' : 'OFF'}`)
+      .setLabel('🌟 Présentation #rejoindre')
   );
   return [toggles, delay, expulsion, welcomeBtn, buildNavRow(guildId, 4)];
 }
@@ -1726,22 +1727,13 @@ async function handleSetupInteraction(interaction) {
     return true;
   }
 
-  if (interaction.customId === CUSTOM_IDS.toggleInviteGrade) {
-    const current = Boolean(getGuildSetting(guildId, 'setup', 'invite_grade_enabled', true));
-    const next = !current;
-    setGuildSetting(guildId, 'setup', 'invite_grade_enabled', next);
-    if (!next) {
-      setGuildSetting(guildId, 'members', 'invite_strict_mode', true);
-    }
+  if (interaction.customId === CUSTOM_IDS.cycleInviteMode) {
+    const sequence = ['classic', 'strict', 'direct'];
+    const current = getGuildSetting(guildId, 'setup', 'invite_mode', 'classic');
+    const next = sequence[(sequence.indexOf(current) + 1) % sequence.length];
+    setGuildSetting(guildId, 'setup', 'invite_mode', next);
     await renderStep(interaction, 1);
     return true;
-  }
-
-  if (interaction.customId === CUSTOM_IDS.toggleInviteStrictMode) {
-    const c = getStep4Config(guildId);
-    c.inviteStrictMode = !c.inviteStrictMode;
-    setStep4Config(guildId, c);
-    await renderStep(interaction, 4); return true;
   }
 
   if (interaction.customId === CUSTOM_IDS.createRolesAll) {
