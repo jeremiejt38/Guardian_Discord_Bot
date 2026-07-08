@@ -13,6 +13,7 @@ const { findTextChannelByName } = require('../utils/channels');
 const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
+const { seedJoinServerChannel } = require('../members/joinServerChannel');
 
 const IDS = Object.freeze({
   editDelay: 'membres:delay:edit',
@@ -21,6 +22,8 @@ const IDS = Object.freeze({
   toggleSponsor: 'membres:sponsor:toggle',
   editWelcome: 'membres:welcome:edit',
   welcomeModal: 'membres:welcome:modal',
+  editJoinPresentation: 'membres:joinpresentation:edit',
+  joinPresentationModal: 'membres:joinpresentation:modal',
   editExpulsion: 'membres:expulsion:edit',
   expulsionModal: 'membres:expulsion:modal',
   toggleExpulsion: 'membres:expulsion:toggle'
@@ -40,13 +43,16 @@ function buildPanelContent(guildId) {
   const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
   const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
   const expulsionDays = getGuildSetting(guildId, 'members', 'expulsion_delay_days', 30);
+  const joinPresentation = getGuildSetting(guildId, 'joinserver', 'presentation', null);
+  const joinPreview = joinPresentation ? `"${String(joinPresentation).slice(0, 60)}${String(joinPresentation).length > 60 ? '…' : ''}"` : '*non défini*';
 
   return [
     `**${t(guildId, 'config.membres.title')}**\n`,
     `• **${t(guildId, 'config.membres.delay')}** : ${delay}h`,
     `• **${t(guildId, 'config.membres.bioRequired')}** : ${bio ? '✅' : '❌'}`,
     `• **${t(guildId, 'config.membres.sponsorRequired')}** : ${sponsor ? '✅' : '❌'}`,
-    `• **${t(guildId, 'config.membres.expulsion')}** : ${expulsion ? `✅ (${expulsionDays}j)` : '❌'}`
+    `• **${t(guildId, 'config.membres.expulsion')}** : ${expulsion ? `✅ (${expulsionDays}j)` : '❌'}`,
+    `• **🌟 Présentation #rejoindre** : ${joinPreview}`
   ].join('\n');
 }
 
@@ -58,7 +64,8 @@ function buildRows(guildId) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(IDS.editDelay).setLabel(t(guildId, 'config.membres.editDelay')).setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(IDS.editWelcome).setLabel(t(guildId, 'config.membres.editWelcome')).setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId(IDS.editWelcome).setLabel(t(guildId, 'config.membres.editWelcome')).setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(IDS.editJoinPresentation).setLabel('🌟 Présentation #rejoindre').setStyle(ButtonStyle.Primary)
     ),
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(IDS.toggleBio).setLabel(`Bio: ${bio ? 'ON' : 'OFF'}`).setStyle(bio ? ButtonStyle.Success : ButtonStyle.Secondary),
@@ -192,6 +199,31 @@ async function handleMembresInteraction(interaction) {
     setGuildSetting(guildId, 'members', 'welcome_text', text);
     await logConfigChange(interaction.guild, interaction.user.id, 'members.welcome_text', old, text);
     await replyEphemeral(interaction, t(guildId, 'config.membres.welcomeUpdated'));
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.editJoinPresentation) {
+    const current = String(getGuildSetting(guildId, 'joinserver', 'presentation', '') || '');
+    const modal = new ModalBuilder().setCustomId(IDS.joinPresentationModal).setTitle('Présentation #rejoindre-notre-serveur')
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('text')
+          .setLabel('Pourquoi rejoindre votre serveur ?')
+          .setStyle(TextInputStyle.Paragraph).setValue(current).setRequired(false).setMaxLength(1000)
+          .setPlaceholder('Décrivez votre communauté, ses valeurs, ce que les membres y trouvent…')
+      ));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  if (interaction.isModalSubmit() && customId === IDS.joinPresentationModal) {
+    const text = interaction.fields.getTextInputValue('text').trim();
+    const old = getGuildSetting(guildId, 'joinserver', 'presentation', null);
+    setGuildSetting(guildId, 'joinserver', 'presentation', text || null);
+    await logConfigChange(interaction.guild, interaction.user.id, 'joinserver.presentation', old, text || null);
+    const ch = findTextChannelByName(interaction.guild, CHANNELS.joinServer);
+    if (ch) await seedJoinServerChannel(ch, interaction.guild).catch(() => {});
+    await refreshMembresPanel(interaction.guild);
+    await replyEphemeral(interaction, '✅ Présentation mise à jour et channel **#rejoindre-notre-serveur** rafraîchi.');
     return true;
   }
 

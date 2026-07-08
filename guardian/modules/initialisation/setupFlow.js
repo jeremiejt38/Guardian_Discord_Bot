@@ -96,6 +96,8 @@ const CUSTOM_IDS = Object.freeze({
   cycleLogsLevel: 'setup:mod:logs:cycle',
   editWelcomeText: 'setup:members:welcome:edit',
   welcomeModal: 'setup:members:welcome:modal',
+  editJoinPresentation: 'setup:members:joinpresentation:edit',
+  joinPresentationModal: 'setup:members:joinpresentation:modal',
   channelSelectPrefix: 'setup:channel:select',
   channelSkip: 'setup:channel:skip',
   next: 'setup:step:next',
@@ -683,7 +685,8 @@ function getStep4Config(guildId) {
     reviewerGrade: getGuildSetting(guildId, 'members', 'promotion_review_grade', GRADE_NAMES.moderateur),
     inviteExpulsionEnabled: Boolean(getGuildSetting(guildId, 'members', 'invite_expulsion_enabled', true)),
     inviteExpulsionDays: Math.max(1, Number(getGuildSetting(guildId, 'members', 'invite_expulsion_days', 30))),
-    welcomeText: String(getGuildSetting(guildId, 'members', 'welcome_text', '') || '')
+    welcomeText: String(getGuildSetting(guildId, 'members', 'welcome_text', '') || ''),
+    joinServerPresentation: String(getGuildSetting(guildId, 'joinserver', 'presentation', '') || '')
   };
 }
 
@@ -695,6 +698,7 @@ function setStep4Config(guildId, config) {
   setGuildSetting(guildId, 'members', 'invite_expulsion_enabled', config.inviteExpulsionEnabled);
   setGuildSetting(guildId, 'members', 'invite_expulsion_days', config.inviteExpulsionDays);
   setGuildSetting(guildId, 'members', 'welcome_text', config.welcomeText);
+  setGuildSetting(guildId, 'joinserver', 'presentation', config.joinServerPresentation);
 }
 
 function cycleReviewerGrade(currentGrade) {
@@ -721,7 +725,9 @@ function buildStep4Content(guildId) {
     `🚪 **Expulsion des invités** : ${onOff(c.inviteExpulsionEnabled)} (après ${c.inviteExpulsionDays}j)`,
     '> Guardian expulse automatiquement les invités qui ne sont pas promus après le délai.',
     `💬 **Message de bienvenue** : ${welcomePreview}`,
-    '> Message envoyé en privé à chaque nouveau membre qui rejoint le serveur.'
+    '> Message envoyé en privé à chaque nouveau membre qui rejoint le serveur.',
+    (() => { const p = c.joinServerPresentation; const prev = p ? `"${p.slice(0, 60)}${p.length > 60 ? '…' : ''}"` : '*non défini*'; return `🌟 **Présentation #rejoindre-notre-serveur** : ${prev}`; })(),
+    '> Texte personnalisé affiché dans le channel de recrutement des invités.'
   ].join('\n');
 }
 
@@ -747,7 +753,9 @@ function buildStep4Components(guildId) {
   );
   const welcomeBtn = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editWelcomeText).setStyle(ButtonStyle.Secondary)
-      .setLabel('💬 Modifier message de bienvenue')
+      .setLabel('💬 Modifier message de bienvenue'),
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.editJoinPresentation).setStyle(ButtonStyle.Secondary)
+      .setLabel('🌟 Présentation #rejoindre')
   );
   return [toggles, delay, expulsion, welcomeBtn, buildNavRow(guildId, 4)];
 }
@@ -2396,6 +2404,29 @@ async function handleSetupInteraction(interaction) {
   if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.welcomeModal) {
     const text = interaction.fields.getTextInputValue('text').trim();
     setGuildSetting(guildId, 'members', 'welcome_text', text);
+    await renderStep(interaction, 4); return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.editJoinPresentation) {
+    const current = getStep4Config(guildId).joinServerPresentation;
+    const modal = new ModalBuilder().setCustomId(CUSTOM_IDS.joinPresentationModal).setTitle('Présentation #rejoindre-notre-serveur')
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('text')
+          .setLabel('Pourquoi rejoindre votre serveur ? (Manager/Owner)')
+          .setStyle(TextInputStyle.Paragraph).setValue(current).setRequired(false).setMaxLength(1000)
+          .setPlaceholder('Décrivez votre communauté, ses valeurs, ce que les membres y trouvent…')
+      ));
+    await interaction.showModal(modal).catch((err) => logger.warn('showModal failed (joinPresentation)', { error: err?.message })); return true;
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId === CUSTOM_IDS.joinPresentationModal) {
+    const text = interaction.fields.getTextInputValue('text').trim();
+    setGuildSetting(guildId, 'joinserver', 'presentation', text || null);
+    const { seedJoinServerChannel } = require('../members/joinServerChannel');
+    const { findChannelByName } = require('../utils/channels');
+    const { CHANNELS } = require('../../config');
+    const ch = findChannelByName(interaction.guild, CHANNELS.joinServer);
+    if (ch) await seedJoinServerChannel(ch, interaction.guild).catch(() => {});
     await renderStep(interaction, 4); return true;
   }
 
