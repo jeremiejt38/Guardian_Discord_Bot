@@ -38,7 +38,10 @@ function buildPanelContent(guild, guildId) {
   for (const grade of GRADES_LIST) {
     const roleId = mappings[grade];
     const role = roleId ? guild.roles.cache.get(roleId) : null;
-    lines.push(`• **${grade}** : ${role ? `<@&${role.id}> (\`${role.name}\`)` : '❌ non configuré'}`);
+    const roleInfo = role
+      ? `<@&${role.id}> \`${role.name}\` — couleur \`${role.hexColor}\` — ${role.members.size} membre(s)`
+      : '❌ non configuré';
+    lines.push(`• **${grade}** : ${roleInfo}`);
   }
   lines.push(`\n${t(guildId, 'config.roles.hint')}`);
   return lines.join('\n');
