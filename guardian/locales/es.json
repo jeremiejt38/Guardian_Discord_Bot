@@ -223,6 +223,8 @@
       "reports": "Informes de miembros — Guardian registra aquí los informes enviados vía /signaler.",
       "autoModeration": "Registros de auto-moderación — Guardian registra las infracciones detectadas automáticamente (spam, lista negra…).",
       "behavior": "Puntuación de comportamiento — Guardian muestra aquí el historial de advertencias y sanciones.",
+      "moderation": "Registros de moderación Guardian — sanciones, bans, advertencias y acciones del equipo.",
+      "validation": "Validación de solicitudes — Guardian muestra aquí las solicitudes de miembros pendientes de aprobación.",
       "moderationLogs": "Registros de moderación Guardian — sanciones, promociones, acciones del equipo.",
       "securityUpdates": "Actualizaciones de seguridad de Discord — visible solo para Manager y Owner.",
       "gameChannels": "Mis canales de juego — cada miembro puede gestionar aquí sus opt-in de canales de juego.",

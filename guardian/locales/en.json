@@ -331,6 +331,8 @@
       "reports": "Member reports — Guardian logs reports submitted via /signaler here.",
       "autoModeration": "Auto-moderation logs — Guardian records automatically detected violations (spam, blacklist…).",
       "behavior": "Behavior score — Guardian displays warnings and sanction history here.",
+      "moderation": "Guardian moderation logs — sanctions, bans, warnings and team actions.",
+      "validation": "Request validation — Guardian displays pending member requests awaiting approval.",
       "moderationLogs": "Guardian moderation logs — sanctions, promotions, team actions.",
       "securityUpdates": "Discord security updates — visible to Manager and Owner only.",
       "gameChannels": "My game channels — each member can manage their game channel opt-ins here.",

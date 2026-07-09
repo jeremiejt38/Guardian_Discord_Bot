@@ -490,6 +490,8 @@
       "reports": "Signalements de membres — Guardian enregistre ici les rapports soumis via /signaler.",
       "autoModeration": "Logs d'auto-moderation — Guardian y consigne les infractions detectees automatiquement (spam, blacklist…).",
       "behavior": "Score comportemental — Guardian y affiche l'historique des avertissements et sanctions.",
+      "moderation": "Logs de moderation Guardian — sanctions, bans, avertissements et actions d'equipe.",
+      "validation": "Validation des demandes — Guardian y affiche les demandes de membres en attente d'approbation.",
       "moderationLogs": "Logs de moderation Guardian — sanctions, promotions, actions d'equipe.",
       "securityUpdates": "Mises a jour de securite Discord — visible uniquement par Manager et Owner.",
       "gameChannels": "Mes salons de jeux — chaque membre peut y gerer ses opt-in de salons de jeu.",

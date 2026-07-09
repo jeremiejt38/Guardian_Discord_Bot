@@ -221,6 +221,8 @@
       "reports": "Mitgliederberichte — Guardian protokolliert hier über /signaler eingereichte Berichte.",
       "autoModeration": "Automatische Moderationsprotokolle — Guardian erfasst automatisch erkannte Verstöße (Spam, Blacklist…).",
       "behavior": "Verhaltens-Score — Guardian zeigt hier den Verlauf von Warnungen und Sanktionen.",
+      "moderation": "Guardian-Moderationsprotokolle — Sanktionen, Bans, Verwarnungen und Teamaktionen.",
+      "validation": "Anfragenvalidierung — Guardian zeigt ausstehende Mitgliederanfragen zur Genehmigung.",
       "moderationLogs": "Guardian-Moderationsprotokolle — Sanktionen, Beförderungen, Teamaktionen.",
       "securityUpdates": "Discord-Sicherheitsupdates — nur für Manager und Owner sichtbar.",
       "gameChannels": "Meine Spielkanäle — jedes Mitglied kann hier seine Spielkanal-Opt-ins verwalten.",
