@@ -124,7 +124,7 @@ module.exports = {
 
     startInviteExpulsionJob(client);
     startChangelogTimer();
-    startServerMonitor(60 * 1000);
+    startServerMonitor(client, 60 * 1000);
     setInterval(() => runPassiveScoreRegen(client).catch((err) => logger.error('Passive regen error', err)), 60 * 60 * 1000);
     runPassiveScoreRegen(client).catch((err) => logger.error('Passive regen error', err));
   }

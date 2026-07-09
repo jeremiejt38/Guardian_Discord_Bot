@@ -101,6 +101,7 @@ async function monitorServers(client) {
     if (!guild) {
       continue;
     }
+    await guild.channels.fetch().catch(() => {});
 
     const statusChannel = await resolveServerListChannel(guild);
 
