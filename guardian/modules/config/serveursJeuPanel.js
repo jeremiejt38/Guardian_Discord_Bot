@@ -150,16 +150,11 @@ async function refreshServerListPanel(guild) {
     const emoji = s.last_status === 'online' ? '🟢' : s.last_status === 'offline' ? '🔴' : '⚪';
     const passwordLine = s.password ? `\n> 🔑 Mot de passe : ||${s.password}||` : '';
     const content = `${emoji} **${s.name}** — ${s.game}\n> IP : \`${s.ip}:${s.port}\`${passwordLine}`;
-    const connectBtn = new ButtonBuilder()
-      .setURL(`https://connectto.game/?ip=${s.ip}&port=${s.port}`)
-      .setLabel('� Se connecter')
-      .setStyle(ButtonStyle.Link);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`server:copy:${s.server_id}`)
-        .setLabel('� Copier IP')
-        .setStyle(ButtonStyle.Secondary),
-      connectBtn
+        .setLabel('Copier IP')
+        .setStyle(ButtonStyle.Secondary)
     );
     await channel.send({ content, components: [row] }).catch((e) => logger.warn(`Guild ${guildId}: liste-serveurs entry failed: ${e.message}`));
   }
