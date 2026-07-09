@@ -250,7 +250,7 @@ async function handleBotInteraction(interaction) {
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()
             .setCustomId('key')
-            .setLabel(t(guildId, 'config.bot.steamKeyLabel'))
+            .setLabel((t(guildId, 'config.bot.steamKeyLabel') || 'Steam API Key').slice(0, 45))
             .setStyle(TextInputStyle.Short)
             .setRequired(false)
             .setMaxLength(40)

@@ -174,7 +174,7 @@
       "languageUpdated": "Langue mise a jour : {{lang}}.",
       "invalidLanguage": "Langue invalide. Disponibles : {{available}}.",
       "steamKeyModalTitle": "Cle Steam API",
-      "steamKeyLabel": "Entrez votre cle Steam API (laisser vide pour supprimer)",
+      "steamKeyLabel": "Cle Steam API (vide = supprimer)",
       "steamKeySet": "Cle Steam API enregistree.",
       "steamKeyCleared": "Cle Steam API supprimee."
     },
