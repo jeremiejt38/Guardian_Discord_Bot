@@ -54,6 +54,7 @@ async function ensureCategory(guild, name, permissionOverwrites) {
   const existing = findCategoryByName(guild, name);
 
   if (existing) {
+    await existing.edit({ permissionOverwrites }).catch(() => {});
     return existing;
   }
 
@@ -66,7 +67,8 @@ async function ensureCategory(guild, name, permissionOverwrites) {
 
 async function ensureTextChannel(guild, parentId, name, permissionOverwrites, { topic } = {}) {
   const safeTopic = typeof topic === 'string' ? topic : undefined;
-  const existing = findGuildTextChannelByName(guild, name, parentId);
+  const existing = findGuildTextChannelByName(guild, name, parentId)
+    ?? findGuildTextChannelByName(guild, name);
 
   if (existing) {
     await existing.edit({
