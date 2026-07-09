@@ -1070,6 +1070,7 @@ async function cleanupSetupAreaIfInstalled(guild) {
 }
 
 async function cleanupSetupArea(guild) {
+  await guild.channels.fetch().catch(() => {});
   const setupCategory = findCategoryByName(guild, CATEGORIES.setup);
   if (!setupCategory) {
     return;
