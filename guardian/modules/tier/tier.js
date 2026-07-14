@@ -19,6 +19,7 @@ const { getGuildTier, setGuildTier } = require('../../database/db');
  * @returns {boolean}
  */
 function isPremium(guildId) {
+  if (process.env.GUARDIAN_PREMIUM_INSTANCE === 'true') return true;
   return getGuildTier(guildId) === 'premium';
 }
 
