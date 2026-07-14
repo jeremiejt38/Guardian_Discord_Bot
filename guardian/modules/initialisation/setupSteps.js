@@ -27,14 +27,24 @@ const {
 
 // ─── Step 1 helpers ──────────────────────────────────────────────────────────
 
-function buildStepOneContent(guildId, guild, { TOTAL_STEPS, gradeLabel, getGradeCursor, getRolesAutoCreated, hasMapableRoles, getGradeRenameMap }) {
+function buildStepOneContent(guildId, guild, { TOTAL_STEPS, gradeLabel, getGradeCursor, getRolesAutoCreated, hasMapableRoles, getGradeRenameMap, isCommunityGuild }) {
   const mappings = getGradeMappings(guildId);
   const autoCreated = getRolesAutoCreated(guildId);
   const noRoles = !hasMapableRoles(guild);
   const { version } = require('../../package.json');
+  const isCommunity = isCommunityGuild(guild);
   const lines = [
     `## ${t('setup.step1Title', {}, { guildId })} (1/${TOTAL_STEPS}) — Guardian v${version}`
   ];
+
+  if (!isCommunity) {
+    lines.push(
+      '',
+      '> ⚠️ **Mode Communauté requis** — Ce serveur n\'est pas un serveur Community Discord.',
+      '> Les channels `#règles`, `#logs-modération` et `#maj-sécurité` nécessitent le mode Communauté.',
+      '> Active-le dans *Paramètres du serveur → Communauté* pour débloquer toutes les fonctionnalités.'
+    );
+  }
 
   const GRADE_DESCS = {
     invite:     '👤 Nouveau venu — accès limité, en attente de validation',
@@ -355,6 +365,23 @@ function normalizeChannelName(name) {
     .replace(/^-|-$/g, '');
 }
 
+function getCachedAutoDetectedChannels(guildId, guild, CHANNEL_SLOTS) {
+  const raw = getGuildSetting(guildId, 'setup', 'auto_detected_channels', null);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch { /* cache invalide, on recalcule */ }
+  }
+  const detected = autoDetectGuardianChannels(guild, CHANNEL_SLOTS);
+  setGuildSetting(guildId, 'setup', 'auto_detected_channels', JSON.stringify(detected));
+  return detected;
+}
+
+function invalidateAutoDetectedChannels(guildId) {
+  setGuildSetting(guildId, 'setup', 'auto_detected_channels', null);
+}
+
 function autoDetectGuardianChannels(guild, CHANNEL_SLOTS) {
   const detected = {};
   for (const slot of CHANNEL_SLOTS) {
@@ -384,7 +411,7 @@ function autoDetectGuardianChannels(guild, CHANNEL_SLOTS) {
 }
 
 function buildChannelAutoDetectContent(guildId, guild, { TOTAL_STEPS, CHANNEL_SLOTS, isCommunityGuild }) {
-  const detected = autoDetectGuardianChannels(guild, CHANNEL_SLOTS);
+  const detected = getCachedAutoDetectedChannels(guildId, guild, CHANNEL_SLOTS);
   const slots = getActiveSlotsForInstall(guildId, guild, CHANNEL_SLOTS, isCommunityGuild);
   const found = slots.filter((s) => detected[s.key]);
   const lines = [
@@ -1126,6 +1153,8 @@ module.exports = {
   getActiveSlotsForInstall,
   normalizeChannelName,
   autoDetectGuardianChannels,
+  getCachedAutoDetectedChannels,
+  invalidateAutoDetectedChannels,
   buildChannelAutoDetectContent,
   buildChannelAutoDetectComponents,
   getIgnoredChannelSlots,

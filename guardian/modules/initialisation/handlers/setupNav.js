@@ -6,6 +6,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, StringSelect
   getGuildSetting, setGuildSetting, replyEphemeral,
   CUSTOM_IDS, TOTAL_STEPS,
   ORDERED_GRADES, REQUIRED_GRADES, setGradeRole, getGradeMappings, validateStepOneMappings,
+  invalidateAutoDetectedChannels, getCachedAutoDetectedChannels,
   listSetupGames, addSetupGame, removeLastSetupGame, updateSetupGame,
   t, logger,
   CHANNEL_SLOTS, getChannelCursor, setChannelCursor, isCommunityGuild,
@@ -47,6 +48,12 @@ async function _handleNavAndTransitions(guildId, interaction) {
     const currentStep = getCurrentStep(guildId);
     const prevStep = Math.max(1, currentStep - 1);
     setGuildSetting(guildId, 'setup', 'step', prevStep);
+    // Reset sécurité / owner si on revient au step 1
+    if (prevStep === 1) {
+      setGuildSetting(guildId, 'setup', 'owner_id', null);
+      invalidateAutoDetectedChannels(guildId);
+      logger.info('[setupNav] back to step 1 — reset owner_id + channel autodetect cache');
+    }
     await renderStep(interaction, prevStep);
     return true;
   }
@@ -199,7 +206,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
     if (games.length === 0) {
       setGuildSetting(guildId, 'setup', 'step', 3);
       setChannelCursor(guildId, 0);
-      const detectedC = autoDetectGuardianChannels(interaction.guild);
+      const detectedC = getCachedAutoDetectedChannels(guildId, interaction.guild, CHANNEL_SLOTS);
       const slotsC = getActiveSlotsForInstall(guildId, interaction.guild);
       const anyFoundC = slotsC.some((s) => detectedC[s.key]);
       if (anyFoundC && !getGuildSetting(guildId, 'setup', 'channel_autodetect_done', false)) {
@@ -271,7 +278,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
     await interaction.deferUpdate().catch(() => {});
     setGuildSetting(guildId, 'setup', 'step', 3);
     setChannelCursor(guildId, 0);
-    const detected = autoDetectGuardianChannels(interaction.guild);
+    const detected = getCachedAutoDetectedChannels(guildId, interaction.guild, CHANNEL_SLOTS);
     const slots = getActiveSlotsForInstall(guildId, interaction.guild);
     const anyFound = slots.some((s) => detected[s.key]);
     if (anyFound && !getGuildSetting(guildId, 'setup', 'channel_autodetect_done', false)) {
@@ -287,7 +294,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
   if (interaction.customId === CUSTOM_IDS.channelAutoDetectAccept) {
     await interaction.deferUpdate().catch(() => {});
-    const detected = autoDetectGuardianChannels(interaction.guild);
+    const detected = getCachedAutoDetectedChannels(guildId, interaction.guild, CHANNEL_SLOTS);
     const slots = getActiveSlotsForInstall(guildId, interaction.guild);
     for (const slot of slots) {
       if (detected[slot.key]) setGuildSetting(guildId, slot.settingSection, slot.settingKey, detected[slot.key]);
@@ -378,7 +385,7 @@ async function _handleNavAndTransitions(guildId, interaction) {
     } else {
       setGuildSetting(guildId, 'setup', 'step', 3);
       setChannelCursor(guildId, 0);
-      const detectedGL = autoDetectGuardianChannels(interaction.guild);
+      const detectedGL = getCachedAutoDetectedChannels(guildId, interaction.guild, CHANNEL_SLOTS);
       const slotsGL = getActiveSlotsForInstall(guildId, interaction.guild);
       const anyFoundGL = slotsGL.some((s) => detectedGL[s.key]);
       if (anyFoundGL && !getGuildSetting(guildId, 'setup', 'channel_autodetect_done', false)) {

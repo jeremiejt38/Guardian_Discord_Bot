@@ -9,6 +9,9 @@
 
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { replyEphemeral } = require('../utils/interactions');
+const { getGradeMappings } = require('./gradeMapping');
+const { autoMapRolesByName } = require('./detectInstallContext');
+const { detectExistingGameChannels, setDetectedGames } = require('./setupGamesDetect');
 const logger = require('../logs/logger');
 
 // ─── sendSetupMessage ─────────────────────────────────────────────────────────
@@ -89,6 +92,30 @@ async function startWizardInChannel(interaction, ctx) {
   if (step === 1) {
     setGuildSetting(guildId, 'setup', 'step', 1);
     ctx.setGradeCursor(guildId, 0);
+    // Auto-map des rôles existants si aucun mapping n'est défini
+    const mappings = getGradeMappings(guildId);
+    const hasAnyMapping = Object.values(mappings).some(Boolean);
+    if (!hasAnyMapping) {
+      try {
+        const mapped = await autoMapRolesByName(guild);
+        if (Object.keys(mapped).length > 0) {
+          logger.info('[setupRender] autoMapRolesByName mapped', { guildId, mapped });
+        }
+      } catch (err) {
+        logger.error('[setupRender] autoMapRolesByName failed', err);
+      }
+    }
+    // Pré-détection des jeux en background pour accélérer le step 6
+    try {
+      const existing = getGuildSetting(guildId, 'setup', 'detected_games', null);
+      if (!existing) {
+        const games = detectExistingGameChannels(guild);
+        setDetectedGames(guildId, games);
+        logger.info('[setupRender] pre-detected games', { guildId, count: games.length });
+      }
+    } catch (err) {
+      logger.error('[setupRender] game pre-detection failed', err);
+    }
   } else if (step === 3) {
     const slots = ctx.getActiveSlotsForInstall(guildId, guild);
     const anyConfigured = slots.some((s) => getGuildSetting(guildId, s.settingSection, s.settingKey, null));

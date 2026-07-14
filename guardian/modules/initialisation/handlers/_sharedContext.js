@@ -77,6 +77,8 @@ const getStep2Config = (guildId) => _s.getStep2Config(guildId);
 const setStep2Config = (guildId, c) => _s.setStep2Config(guildId, c);
 const getActiveSlotsForInstall = (guildId, guild) => _s.getActiveSlotsForInstall(guildId, guild, CHANNEL_SLOTS, isCommunityGuild);
 const autoDetectGuardianChannels = (guild) => _s.autoDetectGuardianChannels(guild, CHANNEL_SLOTS);
+const getCachedAutoDetectedChannels = (guildId, guild) => _s.getCachedAutoDetectedChannels(guildId, guild, CHANNEL_SLOTS);
+const invalidateAutoDetectedChannels = (guildId) => _s.invalidateAutoDetectedChannels(guildId);
 const buildChannelAutoDetectContent = (guildId, guild) => _s.buildChannelAutoDetectContent(guildId, guild, _ctx());
 const buildChannelAutoDetectComponents = () => _s.buildChannelAutoDetectComponents(CUSTOM_IDS);
 const addIgnoredChannelSlot = (guildId, k) => _s.addIgnoredChannelSlot(guildId, k);
@@ -143,6 +145,7 @@ module.exports = {
   createRolesAutoHelper, detectDuplicateGradeRoles, autoPositionChannelCursor,
   explainStepOneValidation, advanceToStep2AfterSecurity, buildSecurityComponents,
   getStep2Config, setStep2Config, getActiveSlotsForInstall, autoDetectGuardianChannels,
+  getCachedAutoDetectedChannels, invalidateAutoDetectedChannels,
   buildChannelAutoDetectContent, buildChannelAutoDetectComponents,
   addIgnoredChannelSlot, getIgnoredChannelSlots, buildChannelOptions,
   getStep4Config, setStep4Config, cycleReviewerGrade, getStep4VocalConfig,
