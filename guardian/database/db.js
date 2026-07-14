@@ -338,7 +338,24 @@ const MIGRATIONS = [
       if (!cols.includes('changelog_enabled'))    conn.exec('ALTER TABLE servers_jeu ADD COLUMN changelog_enabled INTEGER NOT NULL DEFAULT 0');
       if (!cols.includes('forum_enabled'))        conn.exec('ALTER TABLE servers_jeu ADD COLUMN forum_enabled INTEGER NOT NULL DEFAULT 0');
     }
+  },
+  // @premium-start
+  {
+    version: 12,
+    description: 'guild_licenses: license keys for premium activation',
+    up(conn) {
+      conn.exec(`
+        CREATE TABLE IF NOT EXISTS guild_licenses (
+          license_key TEXT PRIMARY KEY,
+          guild_id    TEXT UNIQUE,
+          created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+          expires_at  INTEGER,
+          active      INTEGER NOT NULL DEFAULT 1
+        )
+      `);
+    }
   }
+  // @premium-end
 ];
 
 function migrateDatabase() {
