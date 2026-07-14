@@ -47,6 +47,8 @@ runcmd:
   # Dossier de l'application
   - mkdir -p /opt/guardian /var/log/guardian
   - chown guardian:guardian /opt/guardian /var/log/guardian
+  # Auto-update cron toutes les 2 minutes
+  - (crontab -u guardian -l 2>/dev/null; echo '*/2 * * * * /opt/guardian/guardian/scripts/auto-update.sh') | crontab -u guardian -
   # Reboot final pour appliquer SSH + mises à jour
   - reboot
 

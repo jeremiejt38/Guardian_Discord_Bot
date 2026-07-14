@@ -70,6 +70,7 @@ function isRunningUnderPM2() {
 }
 
 const GITHUB_REPO = process.env.GITHUB_FREE_REPO ?? 'jeremiejt38/Guardian_Discord_Bot_Free';
+const UPDATE_BRANCH = process.env.UPDATE_BRANCH || 'main';
 
 async function fetchReleaseNotes(version) {
   try {
@@ -224,7 +225,7 @@ async function performUpdate(interaction) {
 
   await interaction.message?.edit({ content: updating, components: [] }).catch(() => {});
 
-  execFile('git', ['pull', '--ff-only'], { cwd: ROOT_DIR }, (gitErr, gitOut, gitStderr) => {
+  execFile('git', ['pull', '--ff-only', 'origin', UPDATE_BRANCH], { cwd: ROOT_DIR }, (gitErr, gitOut, gitStderr) => {
     if (gitErr) {
       logger.error('botUpdater: git pull échoué', gitErr);
       interaction.message?.edit({
@@ -234,37 +235,45 @@ async function performUpdate(interaction) {
       return;
     }
 
-    logger.info(`botUpdater: git pull OK\n${gitOut}`);
+    logger.info(`botUpdater: git pull origin ${UPDATE_BRANCH} OK\n${gitOut}`);
 
-    execFile('npm', ['install', '--omit=dev'], { cwd: ROOT_DIR }, (npmErr, npmOut, npmStderr) => {
+    execFile('npm', ['ci', '--omit=dev'], { cwd: ROOT_DIR }, (npmErr, npmOut, npmStderr) => {
       if (npmErr) {
-        logger.error('botUpdater: npm install échoué', npmErr);
+        logger.error('botUpdater: npm ci échoué', npmErr);
         interaction.message?.edit({
-          content: `## ❌ Échec npm install\n\`\`\`\n${npmStderr || npmErr.message}\n\`\`\``,
+          content: `## ❌ Échec npm ci\n\`\`\`\n${npmStderr || npmErr.message}\n\`\`\``,
           components: []
         }).catch(() => {});
         return;
       }
 
-      logger.info(`botUpdater: npm install OK`);
+      logger.info(`botUpdater: npm ci OK`);
 
       const done = pm2Running
-        ? `## ✅ Mise à jour appliquée — redémarrage automatique dans 3s…`
+        ? `## ✅ Mise à jour appliquée depuis **${UPDATE_BRANCH}** — redémarrage PM2…`
         : [
-            `## ✅ Mise à jour appliquée`,
+            `## ✅ Mise à jour appliquée depuis **${UPDATE_BRANCH}**`,
             ``,
             `> Le nouveau code est en place, mais le bot tourne encore sur l'ancienne version en mémoire.`,
             `> **Redémarre-le pour appliquer les changements :**`,
             `> 1. Arrête le terminal avec \`Ctrl+C\``,
             `> 2. Relance avec \`npm start\` (ou \`node index.js\`)`,
             ``,
-            `> 💡 Pour éviter cette étape à l'avenir, utilise **PM2** : \`pm2 start index.js --name guardian\``,
+            `> 💡 Pour éviter cette étape à l'avenir, utilise **PM2** : \`pm2 start ecosystem.config.js\``,
           ].join('\n');
 
       interaction.message?.edit({ content: done, components: [] }).catch(() => {});
 
       if (pm2Running) {
-        setTimeout(() => process.exit(0), 3000);
+        setTimeout(() => {
+          execFile('pm2', ['restart', 'ecosystem.config.js', '--update-env'], { cwd: ROOT_DIR }, (pm2Err) => {
+            if (pm2Err) {
+              logger.error('botUpdater: pm2 restart échoué', pm2Err);
+            } else {
+              logger.info('botUpdater: pm2 restart OK');
+            }
+          });
+        }, 1000);
       }
     });
   });

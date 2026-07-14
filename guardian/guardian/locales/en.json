@@ -1,7 +1,5 @@
 {
-  "permissionsStartup": {
-    "manageChannels": "Manage Channels",
-    "manageRoles": "Manage Roles",
-    "missingPermissionsDM": "The bot is in server **{{guildName}}** but is missing the following permissions: {{missingPermissions}}"
+  "setup": {
+    "missingPermissions": "The bot does not have the required permissions on server **{guildName}**.\nMissing permissions: {missingPermissions}"
   }
 }

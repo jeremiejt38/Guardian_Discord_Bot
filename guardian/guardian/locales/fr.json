@@ -1,7 +1,5 @@
 {
-  "permissionsStartup": {
-    "manageChannels": "Gérer les canaux",
-    "manageRoles": "Gérer les rôles",
-    "missingPermissionsDM": "Le bot est dans le serveur **{{guildName}}** mais ne dispose pas des permissions suivantes : {{missingPermissions}}"
+  "setup": {
+    "missingPermissions": "Le bot ne dispose pas des permissions requises sur le serveur **{guildName}**.\nPermissions manquantes : {missingPermissions}"
   }
 }
