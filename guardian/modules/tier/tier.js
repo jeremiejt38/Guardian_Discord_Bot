@@ -20,7 +20,9 @@ const { getGuildTier, setGuildTier } = require('../../database/db');
  */
 function isPremium(guildId) {
   if (process.env.GUARDIAN_PREMIUM_INSTANCE === 'true') return true;
-  return getGuildTier(guildId) === 'premium';
+  if (getGuildTier(guildId) === 'premium') return true;
+  const { isLicenseValidForGuild } = require('./licenses');
+  return isLicenseValidForGuild(guildId);
 }
 
 /**
