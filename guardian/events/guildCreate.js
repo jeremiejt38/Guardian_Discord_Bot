@@ -7,6 +7,7 @@ const { setGuildSetting, getGuildSetting } = require('../modules/config/settings
 const { detectLanguageFromLocale, tForLanguage } = require('../modules/i18n');
 const logger = require('../modules/logs/logger');
 const { alertGuildJoin } = require('../modules/admin/adminAlerts');
+const { activatePremium } = require('../modules/tier/tier');
 
 async function detectInviter(guild) {
   try {
@@ -67,6 +68,11 @@ module.exports = {
         } catch (err) {
           logger.warn(`Guild ${guild.id}: could not send DM to inviter/owner ${dmTargetId} — ${err?.message}`);
         }
+      }
+
+      if (process.env.GUARDIAN_PREMIUM_INSTANCE === 'true') {
+        activatePremium(guild.id);
+        logger.info(`Guild ${guild.id}: premium auto-activated (GUARDIAN_PREMIUM_INSTANCE=true)`);
       }
 
       await ensureSetupInstallPrompt(guild, { forceCreateIfMissing: !installed || true });

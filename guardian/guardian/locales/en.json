@@ -1,0 +1,5 @@
+{
+  "setup": {
+    "missingPermissions": "The bot does not have the required permissions on server **{guildName}**.\nMissing permissions: {missingPermissions}"
+  }
+}

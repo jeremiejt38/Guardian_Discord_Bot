@@ -23,6 +23,7 @@ const { notifyBotAdminUpdate, getBotAdminId, bootstrapAdminIfNeeded } = require(
 const { notifyAllGuildsNewOptions } = require('../modules/migrations/newOptionsNotifier');
 const { initAlerts, alertGuildJoin, alertGuildLeave } = require('../modules/admin/adminAlerts');
 const { openOrRefreshPanel, pushPanelToBottom } = require('../modules/admin/adminPanel');
+const { checkMissingPermissions } = require('../modules/admin/permissionStartupCheck');
 
 module.exports = {
   name: 'clientReady',
@@ -36,6 +37,8 @@ module.exports = {
     } else {
       await openOrRefreshPanel(client).catch(() => {});
     }
+
+    await checkMissingPermissions(client).catch((err) => logger.error('Permission startup check failed', err));
 
     for (const guild of client.guilds.cache.values()) {
       try {
