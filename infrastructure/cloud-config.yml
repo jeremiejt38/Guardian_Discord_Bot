@@ -1,0 +1,85 @@
+#cloud-config
+# Cloud-init pour serveur Hetzner dédié à Guardian Discord Bot
+# Copier ce contenu dans le champ "User data" lors de la création du serveur.
+# IMPORTANT : remplacer <PASTE_SSH_PUBLIC_KEY> par ta clé publique SSH.
+
+users:
+  - name: guardian
+    groups: users, sudo
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - <PASTE_SSH_PUBLIC_KEY>
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - curl
+  - ca-certificates
+  - gnupg
+  - build-essential
+  - sqlite3
+  - fail2ban
+  - ufw
+
+# Installation de Node.js LTS (via NodeSource)
+runcmd:
+  # NodeSource setup LTS
+  - curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+  - apt-get install -y nodejs
+  # PM2 global
+  - npm install -g pm2
+  # Hardening SSH via fichier dédié
+  - systemctl enable ssh
+  # fail2ban : protection SSH
+  - printf "[sshd]\nenabled = true\nport = ssh,2222\nbanaction = iptables-multiport\n" > /etc/fail2ban/jail.local
+  - systemctl enable fail2ban
+  # Firewall : SSH custom + HTTP/S pour éventuel dashboard/web
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 2222/tcp
+  - ufw allow 22/tcp comment 'temporary fallback until reboot'
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+  # Dossier de l'application
+  - mkdir -p /opt/guardian /var/log/guardian
+  - chown guardian:guardian /opt/guardian /var/log/guardian
+  # Reboot final pour appliquer SSH + mises à jour
+  - reboot
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/guardian-hardening.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      Port 2222
+      KbdInteractiveAuthentication no
+      ChallengeResponseAuthentication no
+      MaxAuthTries 2
+      AllowTcpForwarding no
+      X11Forwarding no
+      AllowAgentForwarding no
+      AuthorizedKeysFile .ssh/authorized_keys
+      AllowUsers guardian
+    permissions: '0644'
+  - path: /home/guardian/setup.sh
+    owner: guardian:guardian
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Script de déploiement Guardian à exécuter après le premier boot
+      set -e
+      cd /opt/guardian
+      git clone https://github.com/jeremiejt38/Guardian_Discord_Bot.git .
+      cd guardian
+      npm ci
+      cp .env.example .env
+      echo "===== Guardian installé ====="
+      echo "1. Édite /opt/guardian/guardian/.env avec DISCORD_TOKEN, CLIENT_ID, BOT_ADMIN_ID"
+      echo "2. Déploie les commandes : npm run deploy:commands"
+      echo "3. Puis : pm2 start ecosystem.config.js"
+
+final_message: "Guardian cloud-init terminé. Connecte-toi avec: ssh -p 2222 guardian@<IP>"
