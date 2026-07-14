@@ -1,7 +1,7 @@
 {
   "name": "guardian-discord-bot",
-  "version": "0.27.1",
-  "prerelease": false,
+  "version": "0.28.0-beta.0",
+  "prerelease": true,
   "description": "Guardian Discord bot for gaming communities",
   "main": "index.js",
   "type": "commonjs",
