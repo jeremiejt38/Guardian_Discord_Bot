@@ -1,5 +1,0 @@
-{
-  "setup": {
-    "missingPermissions": "Le bot ne dispose pas des permissions requises sur le serveur **{guildName}**.\nPermissions manquantes : {missingPermissions}"
-  }
-}
