@@ -1,6 +1,11 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { activatePremium, deactivatePremium, checkTier } = require('../modules/tier/tier');
 
+function isDevMode() {
+  const env = process.env.NODE_ENV || '';
+  return env === 'development' || env === 'dev';
+}
+
 const data = new SlashCommandBuilder()
   .setName('dev-premium')
   .setDescription('[DEV] Toggle premium state for this test server')
@@ -21,9 +26,10 @@ const data = new SlashCommandBuilder()
 module.exports = {
   data,
   devOnly: true,
+  isDevMode,
 
   async execute(interaction) {
-    if (process.env.NODE_ENV !== 'development') {
+    if (!isDevMode()) {
       await interaction.reply({
         content: 'This command is only available in development mode.',
         ephemeral: true
