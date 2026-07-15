@@ -103,6 +103,7 @@ const CUSTOM_IDS = Object.freeze({
   gameReviewRemovePrefix: 'setup:gamereview:remove:',
   gameReviewAdd: 'setup:gamereview:add',
   gameReviewAddModal: 'setup:gamereview:add:modal',
+  gameReviewPrev: 'setup:gamereview:prev',
   gameReviewContinue: 'setup:gamereview:continue',
   prereleaseConfirm: 'setup:prerelease:confirm',
   prereleaseSkip: 'setup:prerelease:skip',
