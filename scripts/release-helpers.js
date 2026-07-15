@@ -30,7 +30,11 @@ function loadEnv() {
 }
 
 function bumpVersion(current, bump) {
-  const [major, minor, patch] = current.split('.').map(Number);
+  const base = current.replace(/-.*$/, '');
+  const [major, minor, patch] = base.split('.').map(Number);
+  if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) {
+    throw new Error(`Invalid current version: ${current}`);
+  }
   if (bump === 'major') return `${major + 1}.0.0`;
   if (bump === 'minor') return `${major}.${minor + 1}.0`;
   if (bump === 'patch') return `${major}.${minor}.${patch + 1}`;

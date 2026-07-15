@@ -86,8 +86,30 @@ function roadmapPostDone(feature) {
   console.log(`✅ Marked as done in post-v1 roadmap: ${feature}`);
 }
 
+function runOrLog(dryRun, cmd, label) {
+  if (dryRun) {
+    console.log(`[dry-run] ${label ?? cmd}`);
+    return '';
+  }
+  return run(cmd);
+}
+
+function writeOrLog(dryRun, filePath, data, label) {
+  if (dryRun) {
+    console.log(`[dry-run] would write ${path.relative(REPO_ROOT, filePath)}`);
+    return;
+  }
+  fs.writeFileSync(filePath, data);
+}
+
 async function main() {
-  const bumpArg = process.argv[2] ?? 'patch';
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const bumpArg = args.find((a) => a !== '--dry-run') ?? 'patch';
+
+  if (dryRun) {
+    console.log('🏷️  DRY RUN — no files will be written and no git commands executed\n');
+  }
 
   // Roadmap sub-commands
   if (bumpArg === 'roadmap') {
@@ -115,9 +137,9 @@ async function main() {
       console.error('Unknown roadmap sub-command. Use: add | done | post-add | post-done');
       process.exit(1);
     }
-    run('git add README.md');
-    run('git commit -m "docs: roadmap update"');
-    run('git push origin HEAD');
+    runOrLog(dryRun, 'git add README.md');
+    runOrLog(dryRun, 'git commit -m "docs: roadmap update"');
+    runOrLog(dryRun, 'git push origin HEAD');
     console.log('✅ README committed and pushed.');
     return;
   }
@@ -163,15 +185,34 @@ async function main() {
   console.log('────────────────────────────────────────────────────────\n');
 
   pkg.version = newVersion;
-  fs.writeFileSync(PKG_PATH, JSON.stringify(pkg, null, 2) + '\n');
+  writeOrLog(dryRun, PKG_PATH, JSON.stringify(pkg, null, 2) + '\n');
   console.log(`✅ package.json updated → ${newVersion}`);
 
   const isMinorOrMajor = bumpArg === 'minor' || bumpArg === 'major' || /^\d+\.\d+\.0$/.test(newVersion);
-  const readmeUpdated = updateReadme(newVersion, newTag, lastTag, changelog, { updateChangelog: isMinorOrMajor });
+  let readmeUpdated = false;
+  if (isMinorOrMajor) {
+    const originalReadme = fs.readFileSync(README_PATH, 'utf8');
+    const newReadme = updateReadme(newVersion, newTag, lastTag, changelog, { updateChangelog: true });
+    if (newReadme) {
+      readmeUpdated = true;
+      writeOrLog(dryRun, README_PATH, fs.readFileSync(README_PATH, 'utf8'), 'README.md');
+      // restore original in dry-run so updateReadme mutation is not persisted
+      if (dryRun) fs.writeFileSync(README_PATH, originalReadme, 'utf8');
+    }
+  } else {
+    // still update badge for patch
+    const originalReadme = fs.readFileSync(README_PATH, 'utf8');
+    const newReadme = updateReadme(newVersion, newTag, lastTag, changelog, { updateChangelog: false });
+    if (newReadme) {
+      readmeUpdated = true;
+      writeOrLog(dryRun, README_PATH, fs.readFileSync(README_PATH, 'utf8'), 'README.md');
+      if (dryRun) fs.writeFileSync(README_PATH, originalReadme, 'utf8');
+    }
+  }
   if (readmeUpdated) console.log(`✅ README.md updated (${isMinorOrMajor ? 'badge + changelog' : 'badge only'})`);
 
-  run('git add guardian/package.json');
-  if (readmeUpdated) run('git add README.md');
+  runOrLog(dryRun, 'git add guardian/package.json');
+  if (readmeUpdated) runOrLog(dryRun, 'git add README.md');
 
   const commitBody = [
     `- package.json: ${oldVersion} → ${newVersion}`,
@@ -182,11 +223,11 @@ async function main() {
     changelog ? changelog.split('\n').filter(l => l.match(/^[-*]/)).slice(0, 10).join('\n') : null,
   ].filter(l => l !== null).join('\n');
 
-  run(`git commit -m "chore(release): bump v${newVersion}" -m "${commitBody.replace(/"/g, "'")}"`);
-  run(`git tag -a ${newTag} HEAD -m "${releaseBody.replace(/"/g, "'")}"`);
+  runOrLog(dryRun, `git commit -m "chore(release): bump v${newVersion}" -m "${commitBody.replace(/"/g, "'")}"`, 'git commit');
+  runOrLog(dryRun, `git tag -a ${newTag} HEAD -m "${releaseBody.replace(/"/g, "'")}"`, 'git tag');
   console.log(`✅ Committed and tagged ${newTag}`);
 
-  run('git push origin HEAD --tags');
+  runOrLog(dryRun, 'git push origin HEAD --tags', 'git push');
   console.log('✅ Pushed commit and tag to origin\n');
 }
 
