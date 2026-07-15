@@ -1113,19 +1113,14 @@ function buildCommunityCheckContent(guildId, guild, { TOTAL_STEPS }) {
     `## ⚠️ Serveur classique détecté (${TOTAL_STEPS > 0 ? `${TOTAL_STEPS}/` : ''}${TOTAL_STEPS})`,
     '',
     '> Ton serveur n\'est pas encore en mode **Communautaire**.',
-    '> Certains salons Guardian sont exclusifs à ce mode et seront ignorés si tu continues sans l\'activer.',
+    '> **Ce n\'est pas obligatoire.** Guardian fonctionne très bien sans — seules certaines fonctionnalités Discord natives seront désactivées.',
+    '> Active le mode Communautaire uniquement si tu veux utiliser : #règles officiel, #logs-modération, événements, annonces, salons Stage, etc.',
     '',
-    '### 🔒 Salons exclusifs au mode Communautaire',
+    '### 🔒 Fonctionnalités désactivées sans mode Communautaire',
     '> 📜 **#règles** — salon officiel du règlement (requis par Discord)',
-    '> 🛡️ **#logs-modération** — corresponds au salon « Moderator Only » de Discord',
+    '> 🛡️ **#logs-modération** — correspond au salon « Moderator Only » de Discord',
     '> 🔒 **#maj-securite** — reçoit les mises à jour de sécurité Discord',
-    '',
-    '### ✨ Ce que le mode Communautaire apporte',
-    '> 📣 Salons **Annonces** (abonnements croisés entre serveurs)',
-    '> 🎪 Accès aux **Événements** programmés (agenda communautaire)',
-    '> 📊 **Insights serveur** — statistiques d\'audience et de croissance',
-    '> 🎭 **Salons Stage** (conférences audio publiques)',
-    '> 🏷️ **Répertoire Discord** — ton serveur devient découvrable',
+    '> 🎪 **Événements**, 📣 **annonces** et 🎭 **salons Stage** resteront inaccessibles',
     '',
     '### ✅ Prérequis pour activer la Communauté',
     req(memberCount >= 0, 'Serveur créé (toujours vrai)'),
@@ -1133,13 +1128,7 @@ function buildCommunityCheckContent(guildId, guild, { TOTAL_STEPS }) {
     req(hasRules, 'Salon « Règles » désigné'),
     req(hasModChannel, 'Salon « Mises à jour de la communauté » désigné'),
     '',
-    '### ⚙️ Comment activer la Communauté',
-    '> 1. Ouvre les **Paramètres du serveur** (roue dentée à côté du nom)',
-    '> 2. Menu **Activer la communauté** → clique sur **Commencer**',
-    '> 3. Suis les étapes Discord (vérification, règles, sécurité)',
-    '> 4. Reviens ici et clique **🔄 Vérifier à nouveau**',
-    '',
-    '*Tu peux aussi continuer sans activer — les salons communautaires seront simplement ignorés.*'
+    '*Tu peux continuer sans activer — les fonctionnalités communautaires seront simplement ignorées.*'
   ].join('\n');
 }
 
@@ -1150,6 +1139,10 @@ function buildCommunityCheckComponents(CUSTOM_IDS) {
         .setCustomId(CUSTOM_IDS.communityCheckRetry)
         .setStyle(ButtonStyle.Primary)
         .setLabel('🔄 Vérifier à nouveau'),
+      new ButtonBuilder()
+        .setCustomId(CUSTOM_IDS.communityCheckHelp)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel('ℹ️ Comment activer'),
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.communityCheckContinue)
         .setStyle(ButtonStyle.Secondary)

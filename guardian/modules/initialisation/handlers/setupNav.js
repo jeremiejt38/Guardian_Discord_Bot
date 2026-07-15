@@ -174,6 +174,29 @@ async function _handleNavAndTransitions(guildId, interaction) {
     return true;
   }
 
+  if (interaction.customId === CUSTOM_IDS.communityCheckHelp) {
+    await interaction.reply({
+      content: [
+        '**Activer le mode Communautaire Discord :**',
+        '',
+        '1. Sur ton serveur Discord, clique sur le nom du serveur en haut à gauche.',
+        '2. Sélectionne **Paramètres du serveur** (roue dentée).',
+        '3. Dans la colonne de gauche, clique sur **Activer la communauté** (sous Engagement).',
+        '4. Clique sur **Commencer**, puis choisis :',
+        '   - **Sécurité** : active la vérification par e-mail (recommandé).',
+        '   - **Règles** : désigne un salon existant comme salon des règles, ou crées-en un nouveau.',
+        '   - **Mises à jour de la communauté** : désigne un salon existant, ou crées-en un nouveau.',
+        '5. Valide avec **Terminer**.',
+        '',
+        'Une fois fait, reviens ici et clique sur **🔄 Vérifier à nouveau**.',
+        '',
+        '⏭️ Tu peux aussi cliquer sur **Continuer sans activer** — Guardian fonctionnera sans les fonctionnalités communautaires.'
+      ].join('\n'),
+      ephemeral: true
+    }).catch(() => {});
+    return true;
+  }
+
   if (interaction.customId === CUSTOM_IDS.communityCheckContinue) {
     await interaction.deferUpdate().catch(() => {});
     await interaction.message.edit({

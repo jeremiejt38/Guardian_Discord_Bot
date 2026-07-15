@@ -73,6 +73,7 @@ const CUSTOM_IDS = Object.freeze({
   next: 'setup:step:next',
   communityCheckContinue: 'setup:community:continue',
   communityCheckRetry: 'setup:community:retry',
+  communityCheckHelp: 'setup:community:help',
   gameDetectAdopt: 'setup:gamedetect:adopt',
   gameDetectSkip: 'setup:gamedetect:skip',
   gameLinkNext: 'setup:gamelink:next',
