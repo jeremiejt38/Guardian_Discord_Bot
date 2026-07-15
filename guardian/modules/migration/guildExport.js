@@ -35,7 +35,7 @@ function exportGuildData(guildId) {
     version: MIGRATION_VERSION,
     exportedAt: new Date().toISOString(),
     originalGuildId: guildId,
-    guildId: PLACEHOLDER_GUILD_ID,
+    guildId,
     tables: {}
   };
 
@@ -45,13 +45,7 @@ function exportGuildData(guildId) {
     const rows = db.prepare(`SELECT * FROM ${name} WHERE ${idColumn} = ?`).all(guildId);
     if (rows.length === 0) continue;
 
-    snapshot.tables[name] = rows.map((row) => {
-      const cleaned = { ...row };
-      if (idColumn in cleaned) {
-        cleaned[idColumn] = PLACEHOLDER_GUILD_ID;
-      }
-      return cleaned;
-    });
+    snapshot.tables[name] = rows;
   }
 
   return snapshot;

@@ -24,7 +24,7 @@ function importGuildData(snapshot, targetGuildId, options = {}) {
 
   const db = getDb();
   const existingTables = new Set(listTables(db));
-  const placeholder = snapshot.guildId || '__MIGRATION_GUILD_ID__';
+  const sourceGuildId = snapshot.guildId || snapshot.originalGuildId;
   const { deleteExisting = true } = options;
 
   const result = { importedTables: {}, totalRows: 0 };
@@ -55,7 +55,7 @@ function importGuildData(snapshot, targetGuildId, options = {}) {
       for (const row of rows) {
         const values = columns.map((col) => {
           let value = row[col];
-          if (idColumn && col === idColumn && value === placeholder) {
+          if (idColumn && col === idColumn && value === sourceGuildId && sourceGuildId !== targetGuildId) {
             value = targetGuildId;
           }
           return value;

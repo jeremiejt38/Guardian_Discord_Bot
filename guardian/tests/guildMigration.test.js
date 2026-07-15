@@ -30,7 +30,7 @@ function countRows(guildId, table) {
   }
 }
 
-test('exportGuildData captures guild data and replaces guild_id by placeholder', () => {
+test('exportGuildData captures guild data preserving the original guildId', () => {
   initFreshDb();
   const guildId = 'guild-source-1';
   seedTestData(guildId);
@@ -39,10 +39,10 @@ test('exportGuildData captures guild data and replaces guild_id by placeholder',
 
   assert.ok(validateSnapshot(snapshot), 'snapshot should be valid');
   assert.equal(snapshot.originalGuildId, guildId);
-  assert.equal(snapshot.guildId, '__MIGRATION_GUILD_ID__');
+  assert.equal(snapshot.guildId, guildId);
   assert.ok(snapshot.tables.guilds.length > 0, 'guilds should be exported');
   assert.ok(snapshot.tables.grades.length > 0, 'grades should be exported');
-  assert.equal(snapshot.tables.grades[0].guild_id, '__MIGRATION_GUILD_ID__');
+  assert.equal(snapshot.tables.grades[0].guild_id, guildId);
 });
 
 test('importGuildData restores data under a new guild id', () => {
@@ -62,9 +62,21 @@ test('importGuildData restores data under a new guild id', () => {
   assert.equal(countRows(sourceId, 'guild_config'), 1, 'source data should remain');
 });
 
+test('importGuildData works with the same guildId', () => {
+  initFreshDb();
+  const guildId = 'guild-same-4';
+  seedTestData(guildId);
+
+  const snapshot = exportGuildData(guildId);
+  const result = importGuildData(snapshot, guildId, { deleteExisting: true });
+
+  assert.equal(result.totalRows, 5, 'should import 5 rows');
+  assert.equal(countRows(guildId, 'guild_config'), 1);
+});
+
 test('encode/decode snapshot roundtrip is lossless', () => {
   initFreshDb();
-  const guildId = 'guild-enc-3';
+  const guildId = 'guild-enc-5';
   seedTestData(guildId);
 
   const encoded = encodeSnapshot(exportGuildData(guildId));
