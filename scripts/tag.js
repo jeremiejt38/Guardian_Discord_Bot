@@ -29,6 +29,7 @@ const {
   getLastTag,
   categorizeCommits,
   updateReadme,
+  REPO_ROOT,
   README_PATH,
   PKG_PATH,
 } = require('./release-helpers');
