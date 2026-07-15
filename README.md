@@ -4,7 +4,7 @@
 
 **All-in-one Discord community bot for gaming servers**
 
-[![Version](https://img.shields.io/badge/version-v0.28.1-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
+[![Version](https://img.shields.io/badge/version-v0.29.0-blue?style=flat-square)](https://github.com/jeremiejt38/Guardian_Discord_Bot/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-Proprietary-orange?style=flat-square)](LICENSE)
 
@@ -167,6 +167,8 @@ npm start
 
 | Version | Description |
 |---------|-------------|
+| **v0.29** | **premium**: invite link endpoint, expiration self-eject, stable migration modules · **migration**: add guild data export/import for free <-> premium migration · **i18n**: localize server guides based on guild language · **deploy**: add Hetzner update scripts for beta and stable instances · **env**: multi-env support with --env=dev|beta|prod loader · **migration**: stable CommonJS SQLite export/import, same-guildId support |
+| | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.28.1...v0.29.0) |
 | **v0.27** | **setup**: cache auto-detect channels, auto-map roles, pre-detect games · **setup**: ensureTextChannel cherche dans tout le guild + ensureCategory met à jour les perms + script rerun-setup.js · **botPanel**: steamKeyLabel trop long (>45 chars) + fallback si traduction absente · **serverMonitor**: passer client manquant à startServerMonitor + guild.channels.fetch() avant resolveServerListChannel · **setup**: guild.channels.fetch() avant cleanupSetupArea pour éviter cache périmé · **i18n**: ajouter topics manquants moderation et validation dans les 6 langues · **modules**: refonte channelsPanel — 6 modules, 1 row/module, description sous-texte · **serveursJeu**: flow modifier avec toggles + suppression par confirmation nom · **structure**: refacto channels modération + configuration · **tests**: corriger customId channels:toggle:serveurs → serverlist · **migrations**: migration 1.1.0 renommage channels bot→notifications, channels→modules, logs-mod→validation · **setup**: migration renommage channels bot→notifications, channels→modules |
 | | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.26.0...v0.27.1) |
 | **v0.26** | **Config panels rework** — `#config-jeux` : liste des jeux avec 4 statuts (texte/galerie/changelog/forum) + Steam AppID, 3 boutons Ajouter/Modifier/Supprimer, select paginé, modals nom/steamId, toggles inline, suppression avec confirmation · `#config-serveurs-jeu` : affichage statut temps réel (🟢🔴🟡) + dernière vérif, 3 boutons fixes, flow Ajouter (select jeux paginé → modal), Modifier (modal prérempli), Supprimer (confirmation) · DB migration v10 : `forum_enabled` + `channel_forum_id` · Talos daemon : récupération des jobs orphelins après crash | [Full diff](https://github.com/jeremiejt38/Guardian_Discord_Bot/compare/v0.25.0...v0.26.0) |
