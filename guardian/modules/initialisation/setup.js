@@ -1047,7 +1047,7 @@ async function handleSetupResetButton(interaction) {
     if (context === 'existing_server') {
       await interaction.message.edit({
         content: buildContextChoiceMessage(guildId, 'existing_server'),
-        components: [buildContextChoiceRow(guildId, 'existing_server')]
+        components: buildContextChoiceRow(guildId, 'existing_server', interaction.guild)
       });
       await interaction.deferUpdate().catch(() => {});
     } else {
