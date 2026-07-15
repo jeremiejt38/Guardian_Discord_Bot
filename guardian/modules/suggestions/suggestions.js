@@ -6,11 +6,20 @@
  */
 
 const { isPremiumFeatureEnabled } = require('../tier/premiumGateUI');
+const { getGuildSetting } = require('../config/settings');
+const { CHANNELS } = require('../../config');
+
+function isSuggestionThread(thread) {
+  const parent = thread.parent;
+  if (!parent) return false;
+  const suggestionsEnabled = getGuildSetting(thread.guildId, 'channels', 'suggestions_enabled', true);
+  if (!suggestionsEnabled) return false;
+  return parent.name?.toLowerCase() === CHANNELS.suggestions?.toLowerCase();
+}
 
 // @premium-start
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { CHANNELS, GRADE_NAMES } = require('../../config');
-const { getGuildSetting } = require('../config/settings');
+const { GRADE_NAMES } = require('../../config');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const logger = require('../logs/logger');
 
@@ -51,14 +60,6 @@ function buildStatusRow(threadId, currentStatus = 'pending') {
       .setDisabled(key === currentStatus);
   });
   return new ActionRowBuilder().addComponents(...buttons);
-}
-
-function isSuggestionThread(thread) {
-  const parent = thread.parent;
-  if (!parent) return false;
-  const suggestionsEnabled = getGuildSetting(thread.guildId, 'channels', 'suggestions_enabled', true);
-  if (!suggestionsEnabled) return false;
-  return parent.name?.toLowerCase() === CHANNELS.suggestions?.toLowerCase();
 }
 
 async function handleNewSuggestionThreadPremium(thread) {
@@ -146,6 +147,19 @@ async function handleSuggestionInteraction(interaction) {
 }
 
 module.exports = {
+  isSuggestionThread,
   handleNewSuggestionThread,
   handleSuggestionInteraction,
 };
+
+// @premium-start
+module.exports = {
+  ...module.exports,
+  IDS,
+  STATUSES,
+  STATUS_KEYS,
+  buildStatusRow,
+  buildStatusCustomId,
+  canManageSuggestions,
+};
+// @premium-end
