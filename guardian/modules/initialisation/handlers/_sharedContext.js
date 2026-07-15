@@ -84,6 +84,8 @@ const buildChannelAutoDetectComponents = () => _s.buildChannelAutoDetectComponen
 const addIgnoredChannelSlot = (guildId, k) => _s.addIgnoredChannelSlot(guildId, k);
 const getIgnoredChannelSlots = (guildId) => _s.getIgnoredChannelSlots(guildId);
 const buildChannelOptions = (guild, slot) => _s.buildChannelOptions(guild, slot);
+const buildStep3ChannelsContent = (guildId, guild) => _s.buildStep3ChannelsContent(guildId, guild, _ctx());
+const buildStep3ChannelsComponents = (guildId, guild) => _s.buildStep3ChannelsComponents(guildId, guild, _ctx());
 const getStep4Config = (guildId, guild) => _s.getStep4Config(guildId, guild);
 const setStep4Config = (guildId, c) => _s.setStep4Config(guildId, c);
 const cycleReviewerGrade = (g) => _s.cycleReviewerGrade(g);
@@ -106,6 +108,9 @@ const getDetectedGames = (guildId) => _gd.getDetectedGames(guildId);
 const setDetectedGames = (guildId, g) => _gd.setDetectedGames(guildId, g);
 const getGameLinkCursor = (guildId) => _gd.getGameLinkCursor(guildId);
 const setGameLinkCursor = (guildId, v) => _gd.setGameLinkCursor(guildId, v);
+const getGameReviewPage = (guildId) => _gd.getGameReviewPage(guildId);
+const setGameReviewPage = (guildId, v) => _gd.setGameReviewPage(guildId, v);
+const MAX_REVIEW_GAMES = _gd.MAX_REVIEW_GAMES;
 const getGameLinkActiveType = (guildId) => _gd.getGameLinkActiveType(guildId);
 const setGameLinkActiveType = (guildId, tp) => _gd.setGameLinkActiveType(guildId, tp);
 const detectExistingGameChannels = (guild) => _gd.detectExistingGameChannels(guild);
@@ -148,12 +153,14 @@ module.exports = {
   getCachedAutoDetectedChannels, invalidateAutoDetectedChannels,
   buildChannelAutoDetectContent, buildChannelAutoDetectComponents,
   addIgnoredChannelSlot, getIgnoredChannelSlots, buildChannelOptions,
+  buildStep3ChannelsContent, buildStep3ChannelsComponents,
   getStep4Config, setStep4Config, cycleReviewerGrade, getStep4VocalConfig,
   cycleVocalPrefix, formatDelay, getStep5Cursor, setStep5Cursor,
   getGamesPage, setGamesPage, ensureAtLeastOneSetupGame, getSteamCycleValue,
   cycleLogsLevel, getStep7Config, setStep7Config,
   buildCommunityCheckContent, buildCommunityCheckComponents, normalizeChannelName,
   getDetectedGames, setDetectedGames, getGameLinkCursor, setGameLinkCursor,
+  getGameReviewPage, setGameReviewPage, MAX_REVIEW_GAMES,
   getGameLinkActiveType, setGameLinkActiveType, detectExistingGameChannels,
   buildGameDetectContent, buildGameDetectComponents, buildGameReviewContent, buildGameReviewComponents,
   buildGameLinkContent, buildGameLinkComponents,
