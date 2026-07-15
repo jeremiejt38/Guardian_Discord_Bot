@@ -18,9 +18,15 @@ if (!DISCORD_TOKEN) {
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
 
+const isDev = process.env.NODE_ENV === 'development';
+
 for (const file of fs.readdirSync(commandsPath).filter((fileName) => fileName.endsWith('.js'))) {
   const command = require(path.join(commandsPath, file));
   if (command?.data) {
+    if (command.devOnly && !isDev) {
+      console.log(`Skipping dev-only command: ${command.data.name}`);
+      continue;
+    }
     commands.push(command.data.toJSON());
   }
 }
