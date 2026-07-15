@@ -745,7 +745,8 @@ async function repositionCategories(guild) {
     CATEGORIES.moderation
   ];
   const fixedEnd = [
-    CATEGORIES.configuration
+    CATEGORIES.configuration,
+    CATEGORIES.guides
   ];
 
   const allCategories = guild.channels.cache.filter((c) => c.type === 4);
