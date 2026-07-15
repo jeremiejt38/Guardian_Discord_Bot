@@ -681,5 +681,93 @@
     "permModerateMembers": "Mettre en sourdine (timeout)",
     "permManageMessages": "Gérer les messages",
     "permViewAuditLog": "Voir les logs d'audit"
+  },
+  "guides": {
+    "meta": {
+      "title": "Guides du serveur"
+    },
+    "gettingStarted": {
+      "title": "Démarrer sur ce serveur",
+      "welcome": "Bienvenue !",
+      "intro": "Tu viens de rejoindre **{{guildName}}**. Voici ce que tu dois savoir pour bien commencer.",
+      "readRulesTitle": "Lire le règlement",
+      "readRules": "Va dans **#regles** et accepte le règlement pour débloquer l'accès aux autres salons.",
+      "bePatientTitle": "Sois patient",
+      "bePatient": "Tu dois passer au moins **{{delay}} heures** sur le serveur avant de pouvoir demander le grade Membre.",
+      "becomeMemberTitle": "Devenir Membre",
+      "becomeMember": "Rends-toi dans **#devenir-membre** pour vérifier les prérequis et soumettre ta demande.",
+      "joinGamesTitle": "Rejoindre des salons de jeux",
+      "joinGames": "Une fois Membre, tu peux choisir tes jeux dans **#ma-gamelist**.",
+      "footer": "Ce guide est généré automatiquement par Guardian."
+    },
+    "membership": {
+      "title": "Devenir Membre",
+      "whatIsTitle": "Qu'est-ce que le grade Membre ?",
+      "whatIs": "Les Membres ont accès à tous les salons communautaires, peuvent poster des suggestions et participer aux votes.",
+      "prereqTitle": "Prérequis",
+      "prereqRules": "✅ Accepter le règlement dans **#regles**",
+      "prereqTime": "⏱️ Passer au moins **{{delay}} heures** sur le serveur",
+      "prereqBio": "📝 Remplir ta **présentation** (bio)",
+      "prereqSponsor": "🤝 Être parrainé par un Membre existant",
+      "howToTitle": "Comment postuler",
+      "howTo": [
+        "1. Va dans **#devenir-membre**",
+        "2. Clique sur **\"Je veux devenir Membre\"**",
+        "3. Vérifie que tous les prérequis sont remplis",
+        "4. Soumets ta demande — le staff l'examinera"
+      ],
+      "footer": "Ce guide est généré automatiquement par Guardian."
+    },
+    "sponsorship": {
+      "title": "Parrainage",
+      "whatIsTitle": "Qu'est-ce que le parrainage ?",
+      "whatIs": "Un Membre existant peut te recommander avant que le staff examine ta demande. Cela montre qu'une personne de la communauté te fait déjà confiance.",
+      "howGetTitle": "Comment obtenir un parrain",
+      "howGet": [
+        "Demande à un Membre existant de lancer `/parrainer @toi` sur le serveur",
+        "Une fois fait, ton parrainage apparaîtra dans tes prérequis dans **#devenir-membre**"
+      ],
+      "howSponsorTitle": "Comment parrainer quelqu'un",
+      "howSponsor": [
+        "Utilise la commande `/parrainer @utilisateur` où `@utilisateur` est la personne que tu veux recommander",
+        "Tu ne peux parrainer qu'une seule personne à la fois",
+        "Tu assumes la responsabilité de la personne que tu parraines"
+      ],
+      "footer": "Ce guide est généré automatiquement par Guardian."
+    },
+    "games": {
+      "title": "Salons de jeux",
+      "howTitle": "Comment ça marche ?",
+      "how": "Le serveur dispose de salons dédiés à des jeux spécifiques. Tu peux choisir les jeux qui t'intéressent pour afficher ou masquer leurs salons.",
+      "optInTitle": "S'abonner / se désabonner",
+      "optIn": [
+        "1. Va dans **#ma-gamelist**",
+        "2. Sélectionne les jeux que tu veux suivre",
+        "3. Les salons correspondants apparaîtront automatiquement dans ta barre latérale"
+      ],
+      "suggestTitle": "Suggérer un nouveau jeu",
+      "suggest": "Si un jeu manque, tu peux le demander avec le bouton dans **#ma-gamelist**. Le staff examinera la demande.",
+      "footer": "Ce guide est généré automatiquement par Guardian."
+    },
+    "commands": {
+      "title": "Commandes Guardian",
+      "memberTitle": "Commandes Membre",
+      "member": [
+        "`/parrainer @utilisateur` — Parrainer un invité pour l'obtention du grade Membre",
+        "`/score` — Voir ton score comportemental",
+        "`/profile` — Voir ton profil serveur"
+      ],
+      "staffTitle": "Commandes Staff",
+      "staff": [
+        "`/promote @utilisateur` — Promouvoir un membre au grade supérieur",
+        "`/warn @utilisateur` — Avertir un membre",
+        "`/kick @utilisateur` — Expulser un membre",
+        "`/ban @utilisateur` — Bannir un membre",
+        "`/historique @utilisateur` — Voir l'historique des sanctions"
+      ],
+      "configTitle": "Configuration",
+      "config": "Tous les paramètres de Guardian se gèrent via les salons de la catégorie **⚙️ Configuration**. Seuls les Managers et le Owner y ont accès.",
+      "footer": "Ce guide est généré automatiquement par Guardian."
+    }
   }
 }

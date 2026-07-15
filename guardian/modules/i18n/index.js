@@ -161,15 +161,22 @@ function tForLanguage(language, key, variables = {}) {
   const currentLanguage = normalizeLanguage(language);
   const fallbackLanguage = normalizeLanguage(DEFAULT_LANGUAGE);
 
-  const current = deepGet(locales[currentLanguage], key);
-  if (typeof current === 'string') {
-    return interpolate(current, variables);
-  }
+  const resolve = (dict) => {
+    const value = deepGet(dict, key);
+    if (typeof value === 'string') {
+      return interpolate(value, variables);
+    }
+    if (Array.isArray(value)) {
+      return value.map((entry) => (typeof entry === 'string' ? interpolate(entry, variables) : entry));
+    }
+    return undefined;
+  };
 
-  const fallback = deepGet(locales[fallbackLanguage], key);
-  if (typeof fallback === 'string') {
-    return interpolate(fallback, variables);
-  }
+  const current = resolve(locales[currentLanguage]);
+  if (current !== undefined) return current;
+
+  const fallback = resolve(locales[fallbackLanguage]);
+  if (fallback !== undefined) return fallback;
 
   return key;
 }
