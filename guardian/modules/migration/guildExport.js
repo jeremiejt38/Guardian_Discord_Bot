@@ -22,10 +22,7 @@ const MIGRATION_TABLES = [
 ];
 
 function listTables(db) {
-  return db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-    .all()
-    .map((row) => row.name);
+  return db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((row) => row.name);
 }
 
 function exportGuildData(guildId) {
@@ -41,10 +38,8 @@ function exportGuildData(guildId) {
 
   for (const { name, idColumn } of MIGRATION_TABLES) {
     if (!existingTables.has(name)) continue;
-
     const rows = db.prepare(`SELECT * FROM ${name} WHERE ${idColumn} = ?`).all(guildId);
     if (rows.length === 0) continue;
-
     snapshot.tables[name] = rows;
   }
 

@@ -11,22 +11,17 @@ function validateSnapshot(snapshot) {
 }
 
 function listTables(db) {
-  return db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-    .all()
-    .map((row) => row.name);
+  return db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((row) => row.name);
 }
 
 function importGuildData(snapshot, targetGuildId, options = {}) {
   if (!validateSnapshot(snapshot)) {
     throw new Error('Snapshot invalide');
   }
-
   const db = getDb();
   const existingTables = new Set(listTables(db));
   const sourceGuildId = snapshot.guildId || snapshot.originalGuildId;
   const { deleteExisting = true } = options;
-
   const result = { importedTables: {}, totalRows: 0 };
 
   db.exec('BEGIN IMMEDIATE');
@@ -34,23 +29,14 @@ function importGuildData(snapshot, targetGuildId, options = {}) {
     for (const [tableName, rows] of Object.entries(snapshot.tables)) {
       if (!Array.isArray(rows) || rows.length === 0) continue;
       if (!existingTables.has(tableName)) continue;
-
-      const columns = Object.keys(rows[0]).filter(
-        (col) => rows[0][col] !== undefined
-      );
+      const columns = Object.keys(rows[0]).filter((col) => rows[0][col] !== undefined);
       if (columns.length === 0) continue;
-
       const idColumn = columns.includes('guild_id') ? 'guild_id' : null;
-
       if (deleteExisting && idColumn === 'guild_id') {
         db.prepare(`DELETE FROM ${tableName} WHERE guild_id = ?`).run(targetGuildId);
       }
-
       const placeholders = columns.map(() => '?').join(',');
-      const insert = db.prepare(
-        `INSERT OR REPLACE INTO ${tableName} (${columns.join(',')}) VALUES (${placeholders})`
-      );
-
+      const insert = db.prepare(`INSERT OR REPLACE INTO ${tableName} (${columns.join(',')}) VALUES (${placeholders})`);
       let count = 0;
       for (const row of rows) {
         const values = columns.map((col) => {
@@ -63,21 +49,15 @@ function importGuildData(snapshot, targetGuildId, options = {}) {
         insert.run(...values);
         count += 1;
       }
-
       result.importedTables[tableName] = count;
       result.totalRows += count;
     }
-
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
   }
-
   return result;
 }
 
-module.exports = {
-  validateSnapshot,
-  importGuildData
-};
+module.exports = { validateSnapshot, importGuildData };

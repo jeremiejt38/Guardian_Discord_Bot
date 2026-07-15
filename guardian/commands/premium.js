@@ -1,13 +1,43 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require('discord.js');
 const { buildPremiumLockButton } = require('../modules/tier/premiumGateUI');
+const { buildPremiumInviteURL } = require('../modules/tier/premiumInvite');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('premium')
     .setDescription('Découvrir Guardian Premium')
+    .addSubcommand((sub) =>
+      sub
+        .setName('invite')
+        .setDescription('Obtenir le lien d\'invitation du bot Guardian Premium')
+    )
     .setDMPermission(true),
-  
+
   async execute(interaction) {
+    const subcommand = interaction.options.getSubcommand(false);
+
+    if (subcommand === 'invite') {
+      const inviteUrl = buildPremiumInviteURL(interaction.guildId);
+      if (!inviteUrl) {
+        await interaction.reply({
+          content: 'Lien d\'invitation premium indisponible. Contacte l\'administrateur.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      await interaction.reply({
+        content: [
+          '**Lien d\'invitation Guardian Premium**',
+          inviteUrl,
+          '',
+          '> Utilise ce lien pour ajouter le bot premium à ton serveur Discord.'
+        ].join('\n'),
+        ephemeral: true
+      });
+      return;
+    }
+
     const embed = new EmbedBuilder()
       .setTitle('Guardian Premium')
       .setDescription('Découvrez les fonctionnalités premium de Guardian :')

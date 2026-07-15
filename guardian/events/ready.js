@@ -24,6 +24,7 @@ const { notifyAllGuildsNewOptions } = require('../modules/migrations/newOptionsN
 const { initAlerts, alertGuildJoin, alertGuildLeave } = require('../modules/admin/adminAlerts');
 const { openOrRefreshPanel, pushPanelToBottom } = require('../modules/admin/adminPanel');
 const { checkMissingPermissions } = require('../modules/admin/permissionStartupCheck');
+const { startExpirationChecker } = require('../modules/tier/expirationChecker');
 
 module.exports = {
   name: 'clientReady',
@@ -128,6 +129,7 @@ module.exports = {
     startInviteExpulsionJob(client);
     startChangelogTimer();
     startServerMonitor(client, 60 * 1000);
+    startExpirationChecker(client);
     setInterval(() => runPassiveScoreRegen(client).catch((err) => logger.error('Passive regen error', err)), 60 * 60 * 1000);
     runPassiveScoreRegen(client).catch((err) => logger.error('Passive regen error', err));
   }

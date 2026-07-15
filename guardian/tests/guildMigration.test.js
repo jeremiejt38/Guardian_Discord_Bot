@@ -1,3 +1,5 @@
+process.env.DISCORD_TOKEN = process.env.DISCORD_TOKEN || 'test-token';
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { initDatabase, getDb } = require('../database/db');

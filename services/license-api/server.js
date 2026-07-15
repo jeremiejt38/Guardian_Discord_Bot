@@ -37,6 +37,7 @@ const {
   isLicenseValidForGuild,
   getLicenseForGuild,
 } = require('../../guardian/modules/tier/licenses');
+const { buildPremiumInviteURL } = require('../../guardian/modules/tier/premiumInvite');
 
 const PORT = process.env.LICENSE_API_PORT || 7799;
 const TOKEN = process.env.LICENSE_API_TOKEN;
@@ -140,6 +141,19 @@ const server = http.createServer(async (req, res) => {
       }
       const ok = revokeLicense(body.license_key);
       return sendJson(res, 200, { ok });
+    }
+
+    if (url.pathname === '/invite-url' && req.method === 'GET') {
+      const guildId = url.searchParams.get('guild_id') || null;
+      const inviteUrl = buildPremiumInviteURL(guildId);
+      if (!inviteUrl) {
+        return sendJson(res, 500, { error: 'PREMIUM_CLIENT_ID or CLIENT_ID not configured' });
+      }
+      return sendJson(res, 200, {
+        invite_url: inviteUrl,
+        guild_id: guildId,
+        permissions: 'administrator'
+      });
     }
 
     if (url.pathname === '/webhooks/payment' && req.method === 'POST') {
