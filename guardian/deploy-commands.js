@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const { REST, Routes } = require('discord.js');
-const { CLIENT_ID, DISCORD_TOKEN } = require('./config');
+const { loadEnv } = require('./modules/utils/envLoader');
+
+loadEnv();
+
+const CLIENT_ID = process.env.CLIENT_ID;
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
 if (!CLIENT_ID) {
   throw new Error('CLIENT_ID is required for slash command deployment.');
