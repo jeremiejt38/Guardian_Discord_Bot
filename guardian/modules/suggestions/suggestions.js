@@ -3,22 +3,15 @@
 /**
  * suggestions.js
  * Module de gestion du forum de suggestions avec statuts — feature premium.
- *
- * Fonctionnement :
- * - À la création d'un thread dans le forum suggestions → tag "En attente" ajouté auto
- * - Boutons de gestion du statut : En attente / En cours / Acceptée / Rejetée
- * - Réservé aux roles owner/manager pour changer le statut
- *
- * Usage :
- *   const { handleNewSuggestionThread, handleSuggestionInteraction } = require('./suggestions');
  */
+
+const { isPremiumFeatureEnabled } = require('../tier/premiumGateUI');
 
 // @premium-start
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { CHANNELS, GRADE_NAMES } = require('../../config');
 const { getGuildSetting } = require('../config/settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
-const { isPremium } = require('../tier/tier');
 const logger = require('../logs/logger');
 
 const STATUSES = Object.freeze({
@@ -34,22 +27,10 @@ const IDS = Object.freeze({
   statusPrefix: 'suggestions:status:',
 });
 
-/**
- * Construit le customId d'un bouton de statut.
- * @param {string} status
- * @param {string} threadId
- * @returns {string}
- */
 function buildStatusCustomId(status, threadId) {
   return `${IDS.statusPrefix}${status}:${threadId}`;
 }
 
-/**
- * Vérifie si un membre a le grade owner ou manager.
- * @param {import('discord.js').GuildMember} member
- * @param {string} guildId
- * @returns {boolean}
- */
 function canManageSuggestions(member, guildId) {
   const mappings = getGradeMappings(guildId);
   const ownerRoleId = mappings[GRADE_NAMES.owner];
@@ -60,12 +41,6 @@ function canManageSuggestions(member, guildId) {
   );
 }
 
-/**
- * Construit la rangée de boutons de statut pour un thread.
- * @param {string} threadId
- * @param {string} [currentStatus]
- * @returns {ActionRowBuilder}
- */
 function buildStatusRow(threadId, currentStatus = 'pending') {
   const buttons = STATUS_KEYS.map((key) => {
     const s = STATUSES[key];
@@ -78,11 +53,6 @@ function buildStatusRow(threadId, currentStatus = 'pending') {
   return new ActionRowBuilder().addComponents(...buttons);
 }
 
-/**
- * Vérifie si un thread appartient au forum suggestions du guild.
- * @param {import('discord.js').ThreadChannel} thread
- * @returns {boolean}
- */
 function isSuggestionThread(thread) {
   const parent = thread.parent;
   if (!parent) return false;
@@ -91,16 +61,8 @@ function isSuggestionThread(thread) {
   return parent.name?.toLowerCase() === CHANNELS.suggestions?.toLowerCase();
 }
 
-/**
- * Gère la création d'un nouveau thread dans le forum suggestions.
- * Envoie un message de contrôle avec les boutons de statut.
- * @param {import('discord.js').ThreadChannel} thread
- * @returns {Promise<void>}
- */
-async function handleNewSuggestionThread(thread) {
-  if (!isPremium(thread.guildId)) return;
+async function handleNewSuggestionThreadPremium(thread) {
   if (!isSuggestionThread(thread)) return;
-
   try {
     const row = buildStatusRow(thread.id, 'pending');
     await thread.send({
@@ -116,23 +78,8 @@ async function handleNewSuggestionThread(thread) {
   }
 }
 
-/**
- * Gère les interactions sur les boutons de statut des suggestions.
- * @param {import('discord.js').Interaction} interaction
- * @returns {Promise<boolean>}
- */
-async function handleSuggestionInteraction(interaction) {
-  if (!interaction.isButton()) return false;
-  if (!interaction.customId?.startsWith(IDS.statusPrefix)) return false;
-
-  const guildId = interaction.guildId;
-
-  if (!isPremium(guildId)) {
-    await interaction.reply({ content: '🔒 Cette feature est disponible en **Guardian Premium** uniquement.', ephemeral: true });
-    return true;
-  }
-
-  if (!canManageSuggestions(interaction.member, guildId)) {
+async function handleSuggestionInteractionPremium(interaction) {
+  if (!canManageSuggestions(interaction.member, interaction.guildId)) {
     await interaction.reply({ content: '❌ Seuls les modérateurs peuvent gérer les suggestions.', ephemeral: true });
     return true;
   }
@@ -175,15 +122,30 @@ async function handleSuggestionInteraction(interaction) {
 
   return true;
 }
+// @premium-end
+
+async function handleNewSuggestionThread(thread) {
+  if (!isPremiumFeatureEnabled(thread.guildId)) return;
+  // @premium-start
+  await handleNewSuggestionThreadPremium(thread);
+  // @premium-end
+}
+
+async function handleSuggestionInteraction(interaction) {
+  if (!interaction.isButton()) return false;
+  if (!interaction.customId?.startsWith('suggestions:status:')) return false;
+
+  if (!isPremiumFeatureEnabled(interaction.guildId)) {
+    await interaction.reply({ content: '🔒 Cette feature est disponible en **Guardian Premium** uniquement.', ephemeral: true });
+    return true;
+  }
+
+  // @premium-start
+  return await handleSuggestionInteractionPremium(interaction);
+  // @premium-end
+}
 
 module.exports = {
   handleNewSuggestionThread,
   handleSuggestionInteraction,
-  isSuggestionThread,
-  buildStatusRow,
-  canManageSuggestions,
-  STATUSES,
-  STATUS_KEYS,
-  IDS,
 };
-// @premium-end

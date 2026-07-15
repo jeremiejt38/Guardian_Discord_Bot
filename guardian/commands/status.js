@@ -3,7 +3,7 @@ const { getGuildSetting } = require('../modules/config/settings');
 const { getGradeMappings, ORDERED_GRADES } = require('../modules/initialisation/gradeMapping');
 const { getCurrentStep } = require('../modules/initialisation/setupGrades');
 const { CHANNEL_SLOTS } = require('../modules/initialisation/setupSteps');
-const { isPremium } = require('../modules/tier/tier');
+const { isPremiumFeatureEnabled } = require('../modules/tier/premiumGateUI');
 const { listSetupGames } = require('../modules/initialisation/setupGames');
 const { version } = require('../package.json');
 
@@ -36,7 +36,7 @@ module.exports = {
 		// Récupération des données
 		const gradeMappings = getGradeMappings(guildId);
 		const currentStep = getCurrentStep(guildId);
-		const isPremiumGuild = isPremium(guildId);
+		const isPremiumGuild = isPremiumFeatureEnabled(guildId);
 		const setupGames = listSetupGames(guildId);
 
 		// Construction de l'embed
