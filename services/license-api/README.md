@@ -1,12 +1,11 @@
 # Guardian License API
 
-API HTTP minimale pour gérer les licences Guardian Premium.
+API HTTP minimale pour gérer les licences Guardian Premium, avec intégration Stripe.
 
 ## Lancement
 
 ```bash
 cd services/license-api
-npm install  # ou npm ci si package-lock présent
 node server.js
 ```
 
@@ -23,6 +22,8 @@ Ajoute dans `guardian/.env` :
 ```env
 LICENSE_API_PORT=7799
 LICENSE_API_TOKEN=un-token-tres-secret
+STRIPE_SECRET_KEY=sk_live_...          # Clé secrète Stripe
+STRIPE_WEBHOOK_SECRET=whsec_...       # Secret du webhook endpoint Stripe
 ```
 
 ## Endpoints
@@ -30,13 +31,13 @@ LICENSE_API_TOKEN=un-token-tres-secret
 ### Health
 
 ```bash
-curl http://localhost:7799/health
+curl https://guardian.drac-lab.fr/health
 ```
 
 ### Créer une licence
 
 ```bash
-curl -X POST http://localhost:7799/licenses \
+curl -X POST https://guardian.drac-lab.fr/licenses \
   -H "Authorization: Bearer $LICENSE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"days": 365}'
@@ -55,7 +56,7 @@ Réponse :
 ### Lier une licence à une guilde
 
 ```bash
-curl -X POST http://localhost:7799/licenses/activate \
+curl -X POST https://guardian.drac-lab.fr/licenses/activate \
   -H "Authorization: Bearer $LICENSE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"license_key": "XXXXXX-XXXXXX-XXXXXX-XXXXXX", "guild_id": "123456789"}'
@@ -64,25 +65,55 @@ curl -X POST http://localhost:7799/licenses/activate \
 ### Vérifier une guilde
 
 ```bash
-curl http://localhost:7799/licenses/123456789 \
+curl https://guardian.drac-lab.fr/licenses/123456789 \
   -H "Authorization: Bearer $LICENSE_API_TOKEN"
 ```
 
-### Webhook de paiement
+### Webhook générique de paiement
 
 ```bash
-curl -X POST http://localhost:7799/webhooks/payment \
+curl -X POST https://guardian.drac-lab.fr/webhooks/payment \
   -H "Content-Type: application/json" \
   -d '{"secret": "un-token-tres-secret", "guild_id": "123456789", "days": 365}'
 ```
 
-## Intégration futur site web
+## Intégration Stripe
 
-Après un paiement Stripe/PayPal réussi, ton backend appelle :
+### 1. Créer un Checkout Session
+
+Ton site web appelle ton backend, qui appelle :
 
 ```bash
-POST /webhooks/payment
-{ "secret": "...", "guild_id": "...", "days": 365 }
+curl -X POST https://guardian.drac-lab.fr/stripe/checkout \
+  -H "Authorization: Bearer $LICENSE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "guild_id": "123456789",
+    "price_id": "price_xxx",
+    "days": 365,
+    "success_url": "https://ton-site.fr/success?guild_id=123456789",
+    "cancel_url": "https://ton-site.fr/cancel"
+  }'
 ```
 
-Puis affiche la clé à l'utilisateur ou l'envoie par DM Discord.
+Réponse :
+
+```json
+{
+  "session_id": "cs_xxx",
+  "url": "https://checkout.stripe.com/...",
+  "guild_id": "123456789"
+}
+```
+
+Redirige l'utilisateur vers `url`.
+
+### 2. Configurer le webhook Stripe
+
+Dans Stripe Dashboard → Developers → Webhooks, ajoute un endpoint :
+
+- **Endpoint URL** : `https://guardian.drac-lab.fr/webhooks/stripe`
+- **Events** : `checkout.session.completed`
+- Récupère le **Signing secret** (`whsec_...`) et mets-le dans `.env` (`STRIPE_WEBHOOK_SECRET`).
+
+Quand le paiement est validé, l'API crée automatiquement la licence et la lie à `guild_id`.
