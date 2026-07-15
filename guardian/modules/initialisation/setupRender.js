@@ -43,7 +43,7 @@ async function buildStepPayload(guildId, guild, step, ctx) {
     case 7: return { content: pad(s.buildStep7Content(guildId, ctx)), components: s.buildStep7Components(guildId, ctx) };
     case 8: {
       return {
-        content: pad(s.buildStep8DiscordContent(guildId, guild, ctx)),
+        content: pad(await s.buildStep8DiscordContent(guildId, guild, ctx)),
         components: await s.buildStep8DiscordComponents(guildId, guild, ctx)
       };
     }
@@ -57,16 +57,29 @@ async function renderStep(interaction, step, ctx) {
   const guildId = interaction.guildId;
   const guild = interaction.guild;
   try {
+    // S'assurer que l'interaction Discord est bien résolue après mise à jour
+    if (!interaction.deferred && !interaction.replied && typeof interaction.deferUpdate === 'function') {
+      await interaction.deferUpdate().catch(() => {});
+    }
     const payload = await buildStepPayload(guildId, guild, step, ctx);
-    await interaction.message.edit(payload);
-    await interaction.deferUpdate().catch(() => {});
+    if (interaction.deferred || interaction.replied) {
+      if (typeof interaction.editReply === 'function') await interaction.editReply(payload);
+      else if (interaction.message?.edit) await interaction.message.edit(payload);
+    } else if (typeof interaction.update === 'function') {
+      await interaction.update(payload);
+    } else if (interaction.message?.edit) {
+      await interaction.message.edit(payload);
+      await interaction.deferUpdate?.().catch(() => {});
+    } else if (interaction.channel?.send) {
+      await interaction.channel.send(payload);
+    } else {
+      logger.error('renderStep: no way to respond', { step });
+    }
   } catch (err) {
+    logger.error('renderStep failed', { step, error: err?.message });
     if (err.code === 10008 && interaction.channel?.send) {
       const payload = await buildStepPayload(guildId, guild, step, ctx);
-      await interaction.channel.send(payload);
-      await interaction.deferUpdate().catch(() => {});
-    } else {
-      logger.error('renderStep failed', { step, error: err?.message });
+      await interaction.channel.send(payload).catch((e) => logger.error('renderStep channel.send failed', { error: e?.message }));
     }
   }
 }

@@ -219,7 +219,7 @@ async function resumeWizard(interaction) {
   const { TOTAL_STEPS } = require('./setupConstants');
   const savedStep = Number(getGuildSetting(interaction.guildId, 'setup', 'step', 0));
   const step = (savedStep >= 1 && savedStep <= TOTAL_STEPS) ? savedStep : 1;
-  const payload = buildStepPayload(interaction.guildId, interaction.guild, step, _ctx());
+  const payload = await buildStepPayload(interaction.guildId, interaction.guild, step, _ctx());
   if (interaction.channel?.send) {
     await interaction.channel.send(payload);
   } else {
