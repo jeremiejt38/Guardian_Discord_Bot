@@ -334,7 +334,7 @@ async function addOnboardingDefaultChannels(guild, channelIds) {
     const existing = current.defaultChannels?.map((c) => c.id) ?? [];
     const merged = [...new Set([...existing, ...channelIds])];
 
-    await guild.client.rest.patch(`/guilds/${guild.id}/onboarding`, {
+    await guild.client.rest.put(`/guilds/${guild.id}/onboarding`, {
       body: { default_channel_ids: merged }
     });
     logger.info(`discordSettings: onboarding default_channel_ids updated for guild ${guild.id}`);

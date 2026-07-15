@@ -40,12 +40,14 @@ async function advanceToStep2AfterSecurity(interaction, guildId, buildStepPayloa
   const wizardMsg = msgs.find((m) => m.author.id === botId && m.components.length > 0)
     ?? msgs.find((m) => m.author.id === botId);
   if (wizardMsg) {
-    await wizardMsg.edit(buildStepPayloadFn(guildId, interaction.guild, nextStep)).catch((err) => {
+    const payload = await buildStepPayloadFn(guildId, interaction.guild, nextStep);
+    await wizardMsg.edit(payload).catch((err) => {
       logger.warn(`[security] failed to edit wizardMsg: ${err?.message}`);
     });
   } else {
     logger.warn('[security] no wizardMsg found, sending new');
-    await wizardChannel.send(buildStepPayloadFn(guildId, interaction.guild, nextStep)).catch(() => {});
+    const payload = await buildStepPayloadFn(guildId, interaction.guild, nextStep);
+    await wizardChannel.send(payload).catch(() => {});
   }
 }
 

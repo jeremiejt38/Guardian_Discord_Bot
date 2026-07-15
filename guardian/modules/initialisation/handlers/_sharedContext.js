@@ -65,7 +65,7 @@ function _ctx() {
 }
 
 const renderStep = (interaction, step) => _render.renderStep(interaction, step, _ctx());
-const buildStepPayload = (guildId, guild, step) => _render.buildStepPayload(guildId, guild, step, _ctx());
+const buildStepPayload = async (guildId, guild, step) => _render.buildStepPayload(guildId, guild, step, _ctx());
 const sendSetupMessage = (interaction, content) => _render.sendSetupMessage(interaction, content);
 const createRolesAutoHelper = (interaction, guild, guildId) => _gr.createRolesAutoHelper(interaction, guild, guildId, renderStep);
 const detectDuplicateGradeRoles = (guild) => _gr.detectDuplicateGradeRoles(guild);
@@ -114,7 +114,7 @@ const buildGameDetectComponents = (guild) => _gd.buildGameDetectComponents(guild
 const buildGameReviewContent = (guildId) => _gd.buildGameReviewContent(guildId);
 const buildGameReviewComponents = (guildId) => _gd.buildGameReviewComponents(guildId, CUSTOM_IDS);
 const buildGameLinkContent = (guildId) => _gd.buildGameLinkContent(guildId);
-const buildGameLinkComponents = (guildId, guild) => _gd.buildGameLinkComponents(guildId, guild, CUSTOM_IDS, buildNavRow);
+const buildGameLinkComponents = (guildId, guild) => _gd.buildGameLinkComponents(guildId, guild, buildNavRow, 6);
 const buildNotifyMembersContent = (guildId) => _notif.buildNotifyMembersContent(guildId);
 const buildNotifyMembersComponents = () => _notif.buildNotifyMembersComponents(CUSTOM_IDS);
 const sendInstallNotifyDm = (member, guildId) => _notif.sendInstallNotifyDm(member, guildId);

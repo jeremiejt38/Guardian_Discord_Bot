@@ -40,7 +40,7 @@ const GUIDE_DEFINITIONS = [
         t(guildId, 'guides.gettingStarted.joinGames'),
         '',
         `-# *${t(guildId, 'guides.gettingStarted.footer')}*`
-      ].join('\\n');
+      ].join('\n');
     }
   },
   {
@@ -67,13 +67,13 @@ const GUIDE_DEFINITIONS = [
         t(guildId, 'guides.membership.whatIs'),
         '',
         `## ${t(guildId, 'guides.membership.prereqTitle')}`,
-        prereqs.map((p) => `- ${p}`).join('\\n'),
+        prereqs.map((p) => `- ${p}`).join('\n'),
         '',
         `## ${t(guildId, 'guides.membership.howToTitle')}`,
-        t(guildId, 'guides.membership.howTo').join('\\n'),
+        t(guildId, 'guides.membership.howTo').join('\n'),
         '',
         `-# *${t(guildId, 'guides.membership.footer')}*`
-      ].join('\\n');
+      ].join('\n');
     }
   },
   {
@@ -88,13 +88,13 @@ const GUIDE_DEFINITIONS = [
       t(guildId, 'guides.sponsorship.whatIs'),
       '',
       `## ${t(guildId, 'guides.sponsorship.howGetTitle')}`,
-      t(guildId, 'guides.sponsorship.howGet').map((l) => `- ${l}`).join('\\n'),
+      t(guildId, 'guides.sponsorship.howGet').map((l) => `- ${l}`).join('\n'),
       '',
       `## ${t(guildId, 'guides.sponsorship.howSponsorTitle')}`,
-      t(guildId, 'guides.sponsorship.howSponsor').map((l) => `- ${l}`).join('\\n'),
+      t(guildId, 'guides.sponsorship.howSponsor').map((l) => `- ${l}`).join('\n'),
       '',
       `-# *${t(guildId, 'guides.sponsorship.footer')}*`
-    ].join('\\n')
+    ].join('\n')
   },
   {
     key: 'games',
@@ -108,13 +108,13 @@ const GUIDE_DEFINITIONS = [
       t(guildId, 'guides.games.how'),
       '',
       `## ${t(guildId, 'guides.games.optInTitle')}`,
-      t(guildId, 'guides.games.optIn').join('\\n'),
+      t(guildId, 'guides.games.optIn').join('\n'),
       '',
       `## ${t(guildId, 'guides.games.suggestTitle')}`,
       t(guildId, 'guides.games.suggest'),
       '',
       `-# *${t(guildId, 'guides.games.footer')}*`
-    ].join('\\n')
+    ].join('\n')
   },
   {
     key: 'commands',
@@ -125,16 +125,16 @@ const GUIDE_DEFINITIONS = [
       `# ⌨️ ${t(guildId, 'guides.commands.title')}`,
       '',
       `## ${t(guildId, 'guides.commands.memberTitle')}`,
-      t(guildId, 'guides.commands.member').map((l) => `- ${l}`).join('\\n'),
+      t(guildId, 'guides.commands.member').map((l) => `- ${l}`).join('\n'),
       '',
       `## ${t(guildId, 'guides.commands.staffTitle')}`,
-      t(guildId, 'guides.commands.staff').map((l) => `- ${l}`).join('\\n'),
+      t(guildId, 'guides.commands.staff').map((l) => `- ${l}`).join('\n'),
       '',
       `## ${t(guildId, 'guides.commands.configTitle')}`,
       t(guildId, 'guides.commands.config'),
       '',
       `-# *${t(guildId, 'guides.commands.footer')}*`
-    ].join('\\n')
+    ].join('\n')
   }
 ];
 
@@ -278,8 +278,8 @@ async function patchOnboardingDefaultChannels(guild, channelIds) {
     const existing = current.defaultChannels?.map((c) => c.id) ?? [];
     const merged = [...new Set([...existing, ...channelIds])];
 
-    await guild.client.rest.patch(`/guilds/${guild.id}/onboarding`, {
-      body: { default_channel_ids: merged }
+    await guild.client.rest.put(`/guilds/${guild.id}/onboarding`, {
+      body: { default_channel_ids: merged, enabled: true }
     });
 
     logger.info(`serverGuides: patched onboarding default_channel_ids for guild ${guild.id} — added ${channelIds.length} guide channels`);
@@ -295,7 +295,7 @@ async function notifyOwnerToAddGuides(guild, channels) {
   const owner = await guild.client.users.fetch(ownerId).catch(() => null);
   if (!owner) return;
 
-  const list = channels.map((c) => `- **#${c.name}** (<#${c.id}>)`).join('\\n');
+  const list = channels.map((c) => `- **#${c.name}** (<#${c.id}>)`).join('\n');
 
   await owner.send([
     `## 📚 Guardian — Guide channels created on **${guild.name}**`,
@@ -309,7 +309,7 @@ async function notifyOwnerToAddGuides(guild, channels) {
     '2. Add each channel listed above as a resource',
     '',
     '-# *This message was sent because Guardian could not automatically configure the Server Guide (insufficient permissions or unsupported server type).*'
-  ].join('\\n')).catch(() => {});
+  ].join('\n')).catch(() => {});
 }
 
 async function seedGuidesChannels(guild) {

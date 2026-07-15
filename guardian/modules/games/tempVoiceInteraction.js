@@ -15,6 +15,9 @@ const IDS = Object.freeze({
   gameSelect: 'tempvoice:select'
 });
 
+// Messages éphémères invitant l'utilisateur à rejoindre son vocal temporaire
+const pendingJoinMessages = new Map();
+
 const LEGACY_CREATE_IDS = ['init.createChannel', 'creer:open'];
 
 function getMemberGrade(guildId, userId) {
@@ -188,9 +191,21 @@ async function handleTempVoiceInteraction(interaction) {
     const requester = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
     if (requester?.voice?.channel) {
       await requester.voice.setChannel(created).catch(() => undefined);
+      await interaction.update({ content: `✅ ${t('tempVoice.created', { channel: created.name }, { guildId: interaction.guildId })}`, components: [] }).catch(() => {});
+    } else {
+      try {
+        const msg = await interaction.followUp({
+          content: `🎙️ ${t('tempVoice.joinPrompt', { channel: `<#${created.id}>` }, { guildId: interaction.guildId })}`,
+          ephemeral: true
+        });
+        pendingJoinMessages.set(`${interaction.user.id}:${created.id}`, msg);
+        await interaction.update({ content: '\u200b', components: [] }).catch(() => {});
+      } catch (err) {
+        logger.warn('tempVoice: failed to send join prompt', { error: err?.message });
+        await interaction.update({ content: `✅ ${t('tempVoice.created', { channel: created.name }, { guildId: interaction.guildId })}`, components: [] }).catch(() => {});
+      }
     }
 
-    await interaction.update({ content: '\u200b', components: [] }).catch(() => {});
     return true;
   }
 
@@ -200,5 +215,6 @@ async function handleTempVoiceInteraction(interaction) {
 module.exports = {
   IDS,
   ensureTempVoicePanelForGuild,
-  handleTempVoiceInteraction
+  handleTempVoiceInteraction,
+  pendingJoinMessages
 };

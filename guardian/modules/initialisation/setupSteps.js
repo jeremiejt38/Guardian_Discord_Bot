@@ -14,6 +14,7 @@ const {
   getGradeMappings,
 } = require('./gradeMapping');
 const { listSetupGames, addSetupGame } = require('./setupGames');
+const _gd = require('./setupGamesDetect');
 const { t } = require('../../locales');
 const { isPremiumFeatureEnabled, buildPremiumLockButton } = require('../tier/premiumGateUI');
 // @premium-start
@@ -335,7 +336,7 @@ function buildStep2Components(guildId, guild, { CUSTOM_IDS, buildNavRow }) {
 
 const CHANNEL_SLOTS = Object.freeze([
   { key: 'voiceGeneral',    label: 'Général',           desc: 'Salon vocal principal — Guardian y crée des rooms temporaires.',                                settingSection: 'channels', settingKey: 'voice_general_id',             emoji: '🔊', addedInVersion: '0.1.0' },
-  { key: 'voiceAfk',       label: 'Vocal AFK',          desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                     settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇', addedInVersion: '0.1.0' },
+  { key: 'voiceAfk',       label: 'Vocal AFK',          desc: 'Salon vocal AFK — les membres inactifs y sont déplacés automatiquement.',                     settingSection: 'channels', settingKey: 'voice_afk_id',                  emoji: '🔇', addedInVersion: '0.1.0', moduleFlag: 'afkEnabled' },
   { key: 'general',        label: '#général',            desc: 'Channel de discussion principale de la communauté.',                                          settingSection: 'channels', settingKey: 'general_channel_id',            emoji: '💬', addedInVersion: '0.1.0' },
   { key: 'rules',          label: '#règles',             desc: 'Channel où le règlement du serveur est affiché.',                                             settingSection: 'channels', settingKey: 'rules_channel_id',              emoji: '📜', communityOnly: true,  addedInVersion: '0.1.0' },
   { key: 'moderationLogs', label: '#logs-modération',   desc: 'Channel modérateurs — logs Guardian. Correspond au "Moderator Only" Discord.',                 settingSection: 'channels', settingKey: 'moderation_logs_channel_id',    emoji: '🛡️', communityOnly: true,  addedInVersion: '0.1.0' },
@@ -360,11 +361,15 @@ function isCommunityGuild(guild) {
   return guild?.features?.includes('COMMUNITY') ?? false;
 }
 
-function getActiveSlotsForInstall(_guildId, guild, CHANNEL_SLOTS_ARG, isCommunityGuildFn) {
+function getActiveSlotsForInstall(guildId, guild, CHANNEL_SLOTS_ARG, isCommunityGuildFn) {
   const slots = CHANNEL_SLOTS_ARG || CHANNEL_SLOTS;
   const communityCheck = isCommunityGuildFn || isCommunityGuild;
-  if (!guild || communityCheck(guild)) return slots;
-  return slots.filter((s) => !s.communityOnly);
+  const config = getStep2Config(guildId);
+  return slots.filter((s) => {
+    if (s.communityOnly && !communityCheck(guild)) return false;
+    if (s.moduleFlag && !config[s.moduleFlag]) return false;
+    return true;
+  });
 }
 function normalizeChannelName(name) {
   return name.toLowerCase()
@@ -534,6 +539,11 @@ function buildStep3ChannelsComponents(guildId, guild, { CUSTOM_IDS, CHANNEL_SLOT
     .setDisabled(hasNone)
     .addOptions(options);
 
+  const searchButton = new ButtonBuilder()
+    .setCustomId(`${CUSTOM_IDS.channelSearch}:${slot.key}`)
+    .setStyle(ButtonStyle.Secondary)
+    .setLabel('🔍 Rechercher');
+
   const isRequired = slot.key === 'general' || slot.key === 'voiceGeneral' || (slot.key === 'rules' && isCommunityGuild(guild));
   const isLastSlot = cursor >= slots.length - 1;
   const ignoredSlots = getIgnoredChannelSlots(guildId);
@@ -562,7 +572,8 @@ function buildStep3ChannelsComponents(guildId, guild, { CUSTOM_IDS, CHANNEL_SLOT
     );
   }
 
-  return [selectRow, navRow, buildNavRow(guildId, 3)];
+  const searchRow = new ActionRowBuilder().addComponents(searchButton);
+  return [selectRow, searchRow, navRow, buildNavRow(guildId, 3)];
 }
 
 // ─── Step 4 helpers (membres) ─────────────────────────────────────────────────
@@ -818,7 +829,29 @@ function getSteamCycleValue(value) {
   return sequence[idx < 0 ? 0 : (idx + 1) % sequence.length];
 }
 
-function buildStep6Content_Games(guildId, { TOTAL_STEPS }) {
+function getGamesSubstep(guildId) {
+  return getGuildSetting(guildId, 'setup', 'games_substep', null);
+}
+
+function setGamesSubstep(guildId, substep) {
+  setGuildSetting(guildId, 'setup', 'games_substep', substep);
+}
+
+function determineGamesSubstep(guildId, guild) {
+  const substep = getGamesSubstep(guildId);
+  if (substep) return substep;
+  // Par défaut : détection automatique au premier affichage de l'étape 6
+  if (guild) return 'detect';
+  return listSetupGames(guildId).length > 0 ? 'edit' : 'detect';
+}
+
+function safeGamesSubstepForRender(guildId, guild, ctx) {
+  const substep = determineGamesSubstep(guildId, guild);
+  if (substep === 'detect' && !guild) return 'edit';
+  return substep;
+}
+
+function buildStep6EditorContent(guildId, { TOTAL_STEPS }) {
   const games = listSetupGames(guildId);
   const lines = [
     `## ${t('setup.step6Title', {}, { guildId })} (6/${TOTAL_STEPS})`,
@@ -854,7 +887,7 @@ function buildStep6Content_Games(guildId, { TOTAL_STEPS }) {
   return lines.join('\n');
 }
 
-function buildStep6Components_Games(guildId, { CUSTOM_IDS, buildNavRow }) {
+function buildStep6EditorComponents(guildId, { CUSTOM_IDS, buildNavRow }) {
   const games = listSetupGames(guildId);
   const page = getGamesPage(guildId);
   const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
@@ -901,6 +934,22 @@ function buildStep6Components_Games(guildId, { CUSTOM_IDS, buildNavRow }) {
   }
   rows.push(buildNavRow(guildId, 6));
   return rows;
+}
+
+function buildStep6Content_Games(guildId, guild, ctx) {
+  const substep = safeGamesSubstepForRender(guildId, guild, ctx);
+  if (substep === 'detect') return _gd.buildGameDetectContent(guildId, guild, ctx.TOTAL_STEPS);
+  if (substep === 'review') return _gd.buildGameReviewContent(guildId);
+  if (substep === 'link') return _gd.buildGameLinkContent(guildId);
+  return buildStep6EditorContent(guildId, ctx);
+}
+
+function buildStep6Components_Games(guildId, guild, ctx) {
+  const substep = safeGamesSubstepForRender(guildId, guild, ctx);
+  if (substep === 'detect') return _gd.buildGameDetectComponents(guild);
+  if (substep === 'review') return _gd.buildGameReviewComponents(guildId);
+  if (substep === 'link') return _gd.buildGameLinkComponents(guildId, guild, ctx.buildNavRow, 6);
+  return buildStep6EditorComponents(guildId, ctx);
 }
 
 // ─── Step 7 helpers (modération) ─────────────────────────────────────────────
@@ -1110,7 +1159,7 @@ function buildCommunityCheckContent(guildId, guild, { TOTAL_STEPS }) {
   const req = (ok, label) => `${ok ? '✅' : '❌'} ${label}`;
 
   return [
-    `## ⚠️ Serveur classique détecté (${TOTAL_STEPS > 0 ? `${TOTAL_STEPS}/` : ''}${TOTAL_STEPS})`,
+    `## ⚠️ Serveur classique détecté (3/${TOTAL_STEPS})`,
     '',
     '> Ton serveur n\'est pas encore en mode **Communautaire**.',
     '> Certains salons Guardian sont exclusifs à ce mode et seront ignorés si tu continues sans l\'activer.',
@@ -1208,8 +1257,13 @@ module.exports = {
   setGamesPage,
   ensureAtLeastOneSetupGame,
   getSteamCycleValue,
+  getGamesSubstep,
+  setGamesSubstep,
+  determineGamesSubstep,
   buildStep6Content_Games,
   buildStep6Components_Games,
+  buildStep6EditorContent,
+  buildStep6EditorComponents,
   // Step 7
   LOGS_LEVELS,
   cycleLogsLevel,

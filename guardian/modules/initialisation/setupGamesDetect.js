@@ -4,6 +4,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } 
 const { CHANNELS, CATEGORIES } = require('../../config');
 const { matchGameFromChannelName, generateNonSteamId, isNonSteamId, GENERIC_CHANNEL_NAMES } = require('../games/steamGamesList');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
+const { CUSTOM_IDS, TOTAL_STEPS } = require('./setupConstants');
 
 // ── Détection jeux existants ──────────────────────────────────────────────────
 
@@ -103,10 +104,11 @@ function setGameLinkCursor(guildId, v) {
   setGuildSetting(guildId, 'setup', 'game_link_cursor', Math.max(0, v));
 }
 
-function buildGameDetectContent(guildId, guild, TOTAL_STEPS) {
+function buildGameDetectContent(guildId, guild, _TOTAL_STEPS) {
+  const stepTotal = _TOTAL_STEPS || TOTAL_STEPS;
   const games = detectExistingGameChannels(guild);
   const lines = [
-    `## 🎮 Jeux détectés (3/${TOTAL_STEPS})`,
+    `## 🎮 Jeux détectés (6/${stepTotal})`,
     '',
   ];
   if (games.length === 0) {
@@ -139,7 +141,7 @@ function buildGameDetectContent(guildId, guild, TOTAL_STEPS) {
   return lines.join('\n');
 }
 
-function buildGameDetectComponents(guild, CUSTOM_IDS) {
+function buildGameDetectComponents(guild) {
   const games = detectExistingGameChannels(guild);
   if (games.length === 0) {
     return [
@@ -177,7 +179,7 @@ function buildGameReviewContent(guildId) {
   return lines.join('\n');
 }
 
-function buildGameReviewComponents(guildId, CUSTOM_IDS) {
+function buildGameReviewComponents(guildId) {
   const games = getDetectedGames(guildId);
   const rows = [];
 
@@ -253,11 +255,11 @@ function buildGameLinkContent(guildId) {
   return lines.join('\n');
 }
 
-function buildGameLinkComponents(guildId, guild, CUSTOM_IDS, buildNavRow) {
+function buildGameLinkComponents(guildId, guild, buildNavRow, step = 6) {
   const games = getDetectedGames(guildId);
   const cursor = getGameLinkCursor(guildId);
   const game = games[cursor];
-  if (!game) return [buildNavRow(guildId, 3)];
+  if (!game) return buildNavRow ? [buildNavRow(guildId, step)] : [];
 
   const activeType = getGameLinkActiveType(guildId);
   const rows = [];

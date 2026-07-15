@@ -137,6 +137,13 @@ async function _handleNavAndTransitions(guildId, interaction) {
     }
 
     const nextStep = Math.min(currentStep + 1, TOTAL_STEPS);
+    if (nextStep === 6) {
+      setGuildSetting(guildId, 'setup', 'step', 6);
+      if (!getGuildSetting(guildId, 'setup', 'games_substep', null)) {
+        setGuildSetting(guildId, 'setup', 'games_substep', 'detect');
+      }
+      await renderStep(interaction, 6); return true;
+    }
     if (nextStep === 3 && interaction.guild) {
       await interaction.deferUpdate().catch(() => {});
       if (!isCommunityGuild(interaction.guild)) {
@@ -187,6 +194,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
     await interaction.deferUpdate().catch(() => {});
     const games = detectExistingGameChannels(interaction.guild);
     setDetectedGames(guildId, games);
+    if (getCurrentStep(guildId) === 6) {
+      setGuildSetting(guildId, 'setup', 'games_substep', 'review');
+      await renderStep(interaction, 6); return true;
+    }
     await interaction.message.edit({
       content: buildGameReviewContent(guildId) + '\n\u200b',
       components: buildGameReviewComponents(guildId)
@@ -202,6 +213,14 @@ async function _handleNavAndTransitions(guildId, interaction) {
     for (const g of games) {
       const existing = listSetupGames(guildId).find((sg) => sg.name.toLowerCase() === (g.steamName || g.baseName).toLowerCase());
       if (!existing) addSetupGame(guildId, { name: g.steamName || g.baseName, steam_app_id: g.steamAppId || null });
+    }
+    if (getCurrentStep(guildId) === 6) {
+      if (games.length === 0) {
+        setGuildSetting(guildId, 'setup', 'games_substep', 'edit');
+      } else {
+        setGuildSetting(guildId, 'setup', 'games_substep', 'link');
+      }
+      await renderStep(interaction, 6); return true;
     }
     if (games.length === 0) {
       setGuildSetting(guildId, 'setup', 'step', 3);
@@ -254,6 +273,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
       games.push({ baseName: name, channels: [], steamName: steamMatch?.name ?? null, steamAppId: steamMatch?.appid ?? null });
       setDetectedGames(guildId, games);
     }
+    if (getCurrentStep(guildId) === 6) {
+      setGuildSetting(guildId, 'setup', 'games_substep', 'review');
+      await renderStep(interaction, 6); return true;
+    }
     await interaction.message.edit({
       content: buildGameReviewContent(guildId) + '\n\u200b',
       components: buildGameReviewComponents(guildId)
@@ -267,6 +290,11 @@ async function _handleNavAndTransitions(guildId, interaction) {
     const games = getDetectedGames(guildId);
     games.splice(idx, 1);
     setDetectedGames(guildId, games);
+    if (getCurrentStep(guildId) === 6) {
+      if (games.length === 0) setGuildSetting(guildId, 'setup', 'games_substep', 'detect');
+      else setGuildSetting(guildId, 'setup', 'games_substep', 'review');
+      await renderStep(interaction, 6); return true;
+    }
     await interaction.message.edit({
       content: buildGameReviewContent(guildId) + '\n\u200b',
       components: buildGameReviewComponents(guildId)
@@ -276,6 +304,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
   if (interaction.customId === CUSTOM_IDS.gameDetectSkip) {
     await interaction.deferUpdate().catch(() => {});
+    if (getCurrentStep(guildId) === 6) {
+      setGuildSetting(guildId, 'setup', 'games_substep', 'edit');
+      await renderStep(interaction, 6); return true;
+    }
     setGuildSetting(guildId, 'setup', 'step', 3);
     setChannelCursor(guildId, 0);
     const detected = getCachedAutoDetectedChannels(guildId, interaction.guild, CHANNEL_SLOTS);
@@ -318,6 +350,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
     const currentActive = getGameLinkActiveType(guildId);
     setGameLinkActiveType(guildId, currentActive === selectedType ? null : selectedType);
     await interaction.deferUpdate().catch(() => {});
+    if (getCurrentStep(guildId) === 6) {
+      setGuildSetting(guildId, 'setup', 'games_substep', 'link');
+      await renderStep(interaction, 6); return true;
+    }
     await interaction.message.edit({
       content: buildGameLinkContent(guildId) + '\n\u200b',
       components: buildGameLinkComponents(guildId, interaction.guild)
@@ -364,6 +400,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
       }
     }
     await interaction.deferUpdate().catch(() => {});
+    if (getCurrentStep(guildId) === 6) {
+      setGuildSetting(guildId, 'setup', 'games_substep', 'link');
+      await renderStep(interaction, 6); return true;
+    }
     await interaction.message.edit({
       content: buildGameLinkContent(guildId) + '\n\u200b',
       components: buildGameLinkComponents(guildId, interaction.guild)
@@ -378,11 +418,19 @@ async function _handleNavAndTransitions(guildId, interaction) {
     setGameLinkActiveType(guildId, null);
     if (cursor < games.length - 1) {
       setGameLinkCursor(guildId, cursor + 1);
+      if (getCurrentStep(guildId) === 6) {
+        setGuildSetting(guildId, 'setup', 'games_substep', 'link');
+        await renderStep(interaction, 6); return true;
+      }
       await interaction.message.edit({
         content: buildGameLinkContent(guildId) + '\n\u200b',
         components: buildGameLinkComponents(guildId, interaction.guild)
       }).catch(() => {});
     } else {
+      if (getCurrentStep(guildId) === 6) {
+        setGuildSetting(guildId, 'setup', 'games_substep', 'edit');
+        await renderStep(interaction, 6); return true;
+      }
       setGuildSetting(guildId, 'setup', 'step', 3);
       setChannelCursor(guildId, 0);
       const detectedGL = getCachedAutoDetectedChannels(guildId, interaction.guild, CHANNEL_SLOTS);
@@ -479,6 +527,11 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
   if (interaction.customId === CUSTOM_IDS.notifyMembersYes || interaction.customId === CUSTOM_IDS.notifyMembersNo) {
     await interaction.deferUpdate().catch(() => {});
+    await interaction.message?.edit({
+      content: '## ⏳ Installation en cours\n\nMerci de patienter pendant que Guardian finalise la configuration de ton serveur.',
+      components: []
+    }).catch(() => {});
+
     if (interaction.customId === CUSTOM_IDS.notifyMembersYes && interaction.guild) {
       const members = await interaction.guild.members.fetch().catch(() => null);
       if (members) {
@@ -491,19 +544,43 @@ async function _handleNavAndTransitions(guildId, interaction) {
         logger.info(`Guild ${guildId}: install notify DMs sent to ${sent} members`);
       }
     }
+
+    const user = await interaction.client.users.fetch(interaction.user.id).catch(() => null);
+    if (user) {
+      await user.send(`✅ La configuration de **${interaction.guild?.name || 'ton serveur'}** est en cours de finalisation par Guardian. Tu recevras une confirmation quand c'est terminé.`).catch(() => {});
+    }
+
     const { completeGuildSetup } = require('../setup');
     const { recordInstallVersion } = require('../../migrations/channelMigrations');
     const { saveConfigBackup } = require('../../config/configBackup');
     const { version } = require('../../../package.json');
+    let setupChannel = interaction.channel;
     try {
       await completeGuildSetup(interaction.guild);
       recordInstallVersion(guildId, version);
       await saveConfigBackup(interaction.guild);
-      if (interaction.channel?.send) {
-        await interaction.channel.send({ content: t('setup.finalized', {}, { guildId }) });
+      if (setupChannel?.send) {
+        await setupChannel.send({ content: t('setup.finalized', {}, { guildId }) });
+      }
+      if (user) {
+        await user.send(`🎉 Guardian est installé sur **${interaction.guild?.name || 'ton serveur'}** !`).catch(() => {});
       }
     } catch (error) {
       logger.error('Failed to complete guild setup after notify', error);
+      if (setupChannel?.send) {
+        await setupChannel.send({ content: '❌ Une erreur est survenue pendant la finalisation. Vérifie les permissions et réessaie.' });
+      }
+      if (user) {
+        await user.send(`❌ La finalisation de Guardian sur **${interaction.guild?.name || 'ton serveur'}** a échoué.`).catch(() => {});
+      }
+      return true;
+    }
+
+    // Supprimer le channel setup 10s après finalisation
+    if (setupChannel?.deletable) {
+      setTimeout(() => {
+        setupChannel.delete('Setup finalisé').catch((err) => logger.warn('Failed to delete setup channel', err));
+      }, 10000);
     }
     return true;
   }
