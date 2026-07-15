@@ -3,7 +3,7 @@ set -e
 
 cd /opt/guardian
 git fetch origin
-git reset --hard origin/main
+git pull origin main --ff-only
 
 cd guardian
 npm ci --omit=dev

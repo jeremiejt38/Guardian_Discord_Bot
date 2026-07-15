@@ -3,7 +3,7 @@ set -e
 
 cd /opt/guardian-beta
 git fetch origin
-git reset --hard origin/beta
+git pull origin beta --ff-only
 
 cd guardian
 npm ci --omit=dev
