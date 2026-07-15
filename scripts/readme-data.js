@@ -17,7 +17,7 @@ const TAGLINE = 'Member management, games, temporary voice channels, moderation 
 // ── Features table ───────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { emoji: '🧙', module: 'Setup wizard',       desc: 'Guided 8-step configuration directly inside Discord' },
+  { emoji: '🧙', module: 'Setup wizard',       desc: 'Guided 9-step configuration directly inside Discord' },
   { emoji: '👥', module: 'Members',             desc: 'Invite → Member onboarding (3 modes: Classic / Strict / Direct), sponsorship, behavior score, rules acceptance' },
   { emoji: '🎮', module: 'Games',               desc: 'Per-game opt-in, dedicated channels (chat / gallery / updates), Steam & RAWG.io integration' },
   { emoji: '🔊', module: 'Temporary voice',     desc: 'On-demand creation, auto-deletion, prefix/suffix/limit' },
@@ -28,6 +28,12 @@ const FEATURES = [
   { emoji: '🔄', module: 'Migrations',          desc: 'Versioned DB & Discord migrations — zero data loss on upgrades' },
   { emoji: '📚', module: 'Server guides',       desc: 'Auto-generated read-only guide channels (getting started, promotion, games, commands)' },
   { emoji: '🌐', module: 'i18n',                desc: 'French, English, Spanish, Portuguese, Italian, German support' },
+  { emoji: '🔒', module: 'Unlimited games',     desc: 'More than 15 games per server (Premium)' },
+  { emoji: '🔒', module: 'Steam changelogs',   desc: 'Automatic Steam patch notes in a dedicated channel (Premium)' },
+  { emoji: '🔒', module: 'Custom welcome',     desc: 'Personalized welcome DM with variables (Premium)' },
+  { emoji: '🔒', module: 'Voice customization', desc: 'Custom prefix / suffix / member limit per temporary room (Premium)' },
+  { emoji: '🔒', module: 'Suggestions forum',   desc: 'Structured suggestion system with statuses (Premium)' },
+  { emoji: '🔒', module: 'Game server list',   desc: 'Community-approved server listing channel (Premium)' },
 ];
 
 // ── Environment variables ─────────────────────────────────────────────────────
@@ -68,6 +74,30 @@ const TESTS = {
 // links: array of { label, url } or just strings (commit hashes)
 
 const CHANGELOG = [
+  {
+    version: 'v0.29',
+    title: 'Deployment & Hetzner updates',
+    desc: 'Hetzner deployment scripts with `git pull --ff-only`, Guides category placed below Configuration category',
+    links: ['012d043'],
+  },
+  {
+    version: 'v0.28',
+    title: 'Migration & premium locking',
+    desc: 'Guild data export/import for free ↔ premium migration, stable CommonJS SQLite export/import, `/premium` info command, `/license` locked in free build',
+    links: ['73a5fd0', 'aeec7d2', '6fd5b27'],
+  },
+  {
+    version: 'v0.27',
+    title: 'Permission check, admin recap & commands',
+    desc: 'Permission startup check via DM, `/status` guild command, `/setup resume`, Recap tab in bot admin panel',
+    links: ['127b066'],
+  },
+  {
+    version: 'v0.24 – v0.26',
+    title: 'Stabilization & free/premium split',
+    desc: 'Free build gating, release automation, E2E tests, bug fixes',
+    links: [{ label: 'Full releases on GitHub', url: `${GITHUB_BASE}/releases` }],
+  },
   {
     version: 'v0.23',
     title: 'Community onboarding & invite modes',
@@ -196,8 +226,6 @@ const ROADMAP_POST_V1 = [
     version: 'v1.2',
     title: 'UX & Commands',
     features: [
-      { label: '`/setup resume`',           desc: 'Resume the wizard from any step via slash command' },
-      { label: '`/status` (guild)',          desc: 'Display current server config state without opening the wizard' },
       { label: 'Error watchdog counter',    desc: 'Track `uncaughtException` count in bot admin panel Status view' },
     ],
   },

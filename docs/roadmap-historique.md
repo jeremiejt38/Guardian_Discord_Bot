@@ -1,6 +1,6 @@
 # Roadmap Guardian_Discord_Bot
 
-_Mise à jour : 2026-07-03_
+_Mise à jour : 2026-07-15_
 
 ## Vue d’ensemble des issues
 - Issues **fermées** : **44**
@@ -55,6 +55,19 @@ Basé sur Epic Q/R.
 Statut:
 - 🔄 Tests unitaires ciblés encore ouverts (#71, #72, #73)
 - 🔄 Module Rich Presence optionnel ouvert (#74)
+
+## Phase 7 — Commands & admin recap (v0.27)
+- ✅ Permission startup check via DM
+- ✅ `/status` guild command
+- ✅ `/setup resume`
+- ✅ Recap tab in bot admin panel
+
+## Phase 8 — Free/premium split & deployment (v0.28 – v0.29)
+- ✅ Free/premium build gating (`/premium`, `/license` locking)
+- ✅ Guild data export/import for migration
+- ✅ Stable CommonJS SQLite export/import
+- ✅ Hetzner deployment scripts
+- ✅ Multi-env support (`--env=dev|beta|prod`)
 
 ## Backlog prioritaire (prochaines étapes recommandées)
 1. Corriger/ajouter le module logger manquant.
