@@ -52,9 +52,7 @@ const { findGuildTextChannelByName } = require('../modules/utils/channels');
 const { handleInteractionError } = require('../modules/utils/discordErrors');
 const { checkRateLimit } = require('../modules/utils/rateLimit');
 const { handlePremiumGateClick } = require('../modules/tier/premiumGate');
-// @premium-start
 const { handleSuggestionInteraction } = require('../modules/suggestions/suggestions');
-// @premium-end
 const logger = require('../modules/logs/logger');
 
 const commandCooldowns = new Map();
@@ -97,12 +95,10 @@ module.exports = {
       return;
     }
 
-    // @premium-start
     if (interaction.isButton() && interaction.customId?.startsWith('suggestions:status:')) {
       const handled = await handleSuggestionInteraction(interaction);
       if (handled) return;
     }
-    // @premium-end
 
     if (interaction.isButton() && interaction.customId?.startsWith('bot:admin:bootstrap:')) {
       const action = interaction.customId.split(':')[3];

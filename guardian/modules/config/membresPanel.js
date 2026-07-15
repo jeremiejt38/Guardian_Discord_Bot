@@ -15,9 +15,8 @@ const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
 const { seedJoinServerChannel } = require('../members/joinServerChannel');
+const { isPremiumFeatureEnabled, buildPremiumLockButton } = require('../tier/premiumGateUI');
 // @premium-start
-const { isPremium } = require('../tier/tier');
-const { buildPremiumLockButton } = require('../tier/premiumGate');
 const { getWelcomeMessage, setWelcomeMessage } = require('../members/welcomeMessage');
 // @premium-end
 
@@ -33,10 +32,8 @@ const IDS = Object.freeze({
   editExpulsion: 'membres:expulsion:edit',
   expulsionModal: 'membres:expulsion:modal',
   toggleExpulsion: 'membres:expulsion:toggle',
-  // @premium-start
   editWelcomeDm: 'membres:welcomedm:edit',
   welcomeDmModal: 'membres:welcomedm:modal',
-  // @premium-end
 });
 
 function hasManagerGrade(member, guildId) {
@@ -78,11 +75,9 @@ function buildRows(guildId) {
   const bio = getGuildSetting(guildId, 'members', 'bio_required', false);
   const sponsor = getGuildSetting(guildId, 'members', 'sponsorship_required', false);
   const expulsion = getGuildSetting(guildId, 'members', 'expulsion_enabled', true);
-  // @premium-start
-  const welcomeDmBtn = isPremium(guildId)
+  const welcomeDmBtn = isPremiumFeatureEnabled(guildId)
     ? new ButtonBuilder().setCustomId(IDS.editWelcomeDm).setLabel('✉️ DM Bienvenue custom').setStyle(ButtonStyle.Primary)
     : buildPremiumLockButton('welcome_dm', 'DM Bienvenue custom');
-  // @premium-end
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(IDS.editDelay).setLabel(t(guildId, 'config.membres.editDelay')).setStyle(ButtonStyle.Primary),

@@ -170,10 +170,10 @@ const ROADMAP_V1 = {
     { done: true,  label: '`/ping`',                             desc: 'Check bot responsiveness and display latency',                                                      doneVersion: 'v0.22.0' },
     { done: true,  label: 'Slash command cooldown',              desc: 'Global rate limiting on slash commands',                                                             doneVersion: 'v0.22.0' },
     { done: true,  label: 'Discord forum support',               desc: 'Forum Channels for suggestions and reports',                                                         doneVersion: 'v0.23.x' },
-    { done: false, label: 'Permission check on startup',         desc: 'Warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing' },
-    { done: false, label: '`/status`',                           desc: 'Display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.' },
-    { done: false, label: 'Bot admin panel — Recap tab',         desc: '5th tab in admin DM panel showing aggregated anonymous stats for the past 30 days across all guilds (new members, active games, moderation incidents count). On-demand only, no automatic DM spam.' },
-    { done: false, label: '`/setup resume`',                     desc: 'Resume the wizard from anywhere via slash command' },
+    { done: true,  label: 'Permission check on startup',         desc: 'Warn bot admin via DM if `ManageChannels`/`ManageRoles` missing in a guild instead of silently failing',                          doneVersion: 'v0.27.2' },
+    { done: true,  label: '`/status`',                           desc: 'Display current server configuration state (modules, channels, members) without opening wizard. Guild admins only, never bot admin.', doneVersion: 'v0.27.2' },
+    { done: true,  label: 'Bot admin panel — Recap tab',         desc: '5th tab in admin DM panel showing aggregated anonymous stats for the past 30 days across all guilds (new members, active games, moderation incidents count). On-demand only, no automatic DM spam.', doneVersion: 'v0.27.2' },
+    { done: true,  label: '`/setup resume`',                     desc: 'Resume the wizard from anywhere via slash command',                                                                                doneVersion: 'v0.27.2' },
   ],
 };
 

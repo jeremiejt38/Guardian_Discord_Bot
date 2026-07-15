@@ -9,13 +9,10 @@
  *
  * La fonction handlePremiumGateClick doit rester accessible en mode free
  * (c'est elle qui affiche le message quand l'utilisateur clique 🔒).
- * Le reste du module est premium-only.
  */
 
-const { ButtonBuilder, ButtonStyle } = require('discord.js');
 const { replyEphemeral } = require('../utils/interactions');
-
-const GATE_PREFIX = 'premium:gate:';
+const { buildPremiumLockButton, GATE_PREFIX } = require('./premiumGateUI');
 
 /**
  * Noms affichables des features premium (pour le message du gate).
@@ -64,22 +61,6 @@ async function handlePremiumGateClick(interaction) {
   return true;
 }
 
-// @premium-start
-/**
- * Crée un bouton 🔒 visible, cliquable, qui déclenche le premium gate.
- * @param {string} featureKey - Clé de la feature (cf. PREMIUM_FEATURE_LABELS)
- * @param {string} label - Label affiché sur le bouton
- * @param {ButtonStyle} [style=ButtonStyle.Secondary]
- * @returns {ButtonBuilder}
- */
-function buildPremiumLockButton(featureKey, label, style = ButtonStyle.Secondary) {
-  return new ButtonBuilder()
-    .setCustomId(`${GATE_PREFIX}${featureKey}`)
-    .setLabel(`🔒 ${label}`)
-    .setStyle(style)
-    .setDisabled(false);
-}
-
 module.exports = {
   GATE_PREFIX,
   PREMIUM_FEATURE_LABELS,
@@ -87,4 +68,3 @@ module.exports = {
   handlePremiumGateClick,
   buildPremiumLockButton,
 };
-// @premium-end

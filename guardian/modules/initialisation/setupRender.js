@@ -12,6 +12,8 @@ const { replyEphemeral } = require('../utils/interactions');
 const { getGradeMappings } = require('./gradeMapping');
 const { autoMapRolesByName } = require('./detectInstallContext');
 const { detectExistingGameChannels, setDetectedGames } = require('./setupGamesDetect');
+const { isPremiumFeatureEnabled, buildPremiumLockButton } = require('../tier/premiumGateUI');
+const { ActionRowBuilder } = require('discord.js');
 const logger = require('../logs/logger');
 
 // ─── sendSetupMessage ─────────────────────────────────────────────────────────
@@ -39,9 +41,20 @@ function buildStepPayload(guildId, guild, step, ctx) {
     case 5: return { content: pad(s.buildStep5VocalContent(guildId, ctx)), components: s.buildStep5VocalComponents(guildId, ctx) };
     case 6: return { content: pad(s.buildStep6Content_Games(guildId, ctx)), components: s.buildStep6Components_Games(guildId, ctx) };
     case 7: return { content: pad(s.buildStep7Content(guildId, ctx)), components: s.buildStep7Components(guildId, ctx) };
-    // @premium-start
-    case 8: return { content: pad('## \ud83d\udd27 Param\u00e8tres Discord avanc\u00e9s (8/9)\n*Chargement...*'), components: [] };
-    // @premium-end
+    case 8: {
+      if (isPremiumFeatureEnabled(guildId)) {
+        return {
+          content: pad(s.buildStep8DiscordContent(guildId, guild, ctx)),
+          components: s.buildStep8DiscordComponents(guildId, guild, ctx)
+        };
+      }
+      return {
+        content: pad('## 🔧 Paramètres Discord avancés (8/9)\n🔒 Ces options sont réservées à **Guardian Premium**.'),
+        components: [new ActionRowBuilder().addComponents(
+          buildPremiumLockButton('discord_settings', 'Débloquer les paramètres avancés')
+        )]
+      };
+    }
     default: return { content: pad(s.buildStep9Summary(guildId, ctx)), components: s.buildStep9Components(guildId, ctx) };
   }
 }
@@ -51,22 +64,27 @@ function buildStepPayload(guildId, guild, step, ctx) {
 async function renderStep(interaction, step, ctx) {
   const guildId = interaction.guildId;
   const guild = interaction.guild;
-  // @premium-start
   if (step === 8) {
     try {
       await interaction.deferUpdate().catch(() => {});
-      const s = require('./setupSteps');
-      const content = await s.buildStep8DiscordContent(guildId, guild, ctx);
-      const components = await s.buildStep8DiscordComponents(guildId, guild, ctx);
-      await interaction.message.edit({ content: content + '\n\u200b', components }).catch(async () => {
-        await interaction.channel?.send({ content: content + '\n\u200b', components }).catch(() => {});
-      });
+      if (isPremiumFeatureEnabled(guildId)) {
+        const s = require('./setupSteps');
+        const content = await s.buildStep8DiscordContent(guildId, guild, ctx);
+        const components = await s.buildStep8DiscordComponents(guildId, guild, ctx);
+        await interaction.message.edit({ content: content + '\n\u200b', components }).catch(async () => {
+          await interaction.channel?.send({ content: content + '\n\u200b', components }).catch(() => {});
+        });
+      } else {
+        const payload = buildStepPayload(guildId, guild, step, ctx);
+        await interaction.message.edit(payload).catch(async () => {
+          await interaction.channel?.send(payload).catch(() => {});
+        });
+      }
     } catch (err) {
       logger.error('renderStep 8 failed', err);
     }
     return;
   }
-  // @premium-end
   const payload = buildStepPayload(guildId, guild, step, ctx);
   try {
     await interaction.message.edit(payload);

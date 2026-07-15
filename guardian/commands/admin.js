@@ -3,6 +3,7 @@ const { isBotAdmin } = require('../modules/admin/botUpdater');
 const { openOrRefreshPanel } = require('../modules/admin/adminPanel');
 // @premium-start
 const { activatePremium, deactivatePremium, checkTier, getPremiumExpiry } = require('../modules/tier/tier');
+const { createLicense } = require('../modules/tier/licenses');
 // @premium-end
 
 module.exports = {
@@ -27,6 +28,19 @@ module.exports = {
               { name: 'Free', value: 'free' }
             )
         )
+        .addIntegerOption((opt) =>
+          opt
+            .setName('days')
+            .setDescription('Durée en jours (laisser vide = permanent)')
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(3650)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('license')
+        .setDescription('Génère une clé de licence Guardian Premium')
         .addIntegerOption((opt) =>
           opt
             .setName('days')
@@ -73,6 +87,22 @@ module.exports = {
           ephemeral: true,
         });
       }
+      return;
+    }
+
+    if (sub === 'license') {
+      const days = interaction.options.getInteger('days') ?? null;
+      const { key, expiresAt } = createLicense(days);
+      const expiryStr = expiresAt ? `expire le **${new Date(expiresAt).toLocaleDateString('fr-FR')}**` : '**permanente**';
+      await interaction.reply({
+        content: [
+          `\`\`\``, // séparation pour éviter le formattage
+          key,
+          `\`\`\``,
+          `Clé générée (${expiryStr}). Tu peux la donner à ton client.`,
+        ].join('\n'),
+        ephemeral: true,
+      });
       return;
     }
     // @premium-end

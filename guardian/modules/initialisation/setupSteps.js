@@ -15,6 +15,7 @@ const {
 } = require('./gradeMapping');
 const { listSetupGames, addSetupGame } = require('./setupGames');
 const { t } = require('../../locales');
+const { isPremiumFeatureEnabled, buildPremiumLockButton } = require('../tier/premiumGateUI');
 // @premium-start
 const {
   AFK_TIMEOUT_LABELS,
@@ -268,17 +269,19 @@ function buildStep2Content(guildId, guild, { TOTAL_STEPS, onOff: _onOff }) {
     `📚 **Guides** — ${dot(c.guidesEnabled)}`,
     '> Génère une catégorie de guides de serveur (démarrage, promotion, parrainage, jeux, commandes).',
     '',
-    // @premium-start
-    '### ⚙️ Paramètres Discord',
-    `🔇 **Canal AFK** — ${afkChannelMention} — délai : **${afkTimeoutLabel}**`,
-    '> Guardian applique ce délai dans les paramètres Discord. Change le délai avec le bouton ci-dessous.',
-    '',
-    `📣 **Notifications système** — ${syschanLabel} *(${syschanCurrent})*`,
-    '> Messages Discord de bienvenue/boost. Choisir le canal ou désactiver.',
-    '',
-    `🌐 **Langue du serveur** — ${localeStatus}`,
-    '> Si différentes, Guardian peut synchroniser la langue Discord avec ton choix Guardian.'
-    // @premium-end
+    isPremiumFeatureEnabled(guildId)
+      ? [
+          '### ⚙️ Paramètres Discord',
+          `🔇 **Canal AFK** — ${afkChannelMention} — délai : **${afkTimeoutLabel}**`,
+          '> Guardian applique ce délai dans les paramètres Discord. Change le délai avec le bouton ci-dessous.',
+          '',
+          `📣 **Notifications système** — ${syschanLabel} *(${syschanCurrent})*`,
+          '> Messages Discord de bienvenue/boost. Choisir le canal ou désactiver.',
+          '',
+          `🌐 **Langue du serveur** — ${localeStatus}`,
+          '> Si différentes, Guardian peut synchroniser la langue Discord avec ton choix Guardian.'
+        ].join('\n')
+      : '### 🔒 Paramètres Discord avancés\nCes options sont réservées à **Guardian Premium**.\nCliquez sur le bouton ci-dessous pour en savoir plus.'
   ].join('\n');
 }
 
@@ -300,25 +303,31 @@ function buildStep2Components(guildId, guild, { CUSTOM_IDS, buildNavRow }) {
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleGuides).setStyle(c.guidesEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
       .setLabel('📚 Guides')
   );
-  // @premium-start
-  const afkCfg = getAfkConfig(guildId, guild);
-  const afkTimeoutLabel = AFK_TIMEOUT_LABELS[afkCfg.timeout] ?? `${afkCfg.timeout}s`;
-  const syschanChoice = getGuildSetting(guildId, 'discord', 'system_channel_choice', 'keep');
-  const locale = getLocaleConfig(guildId, guild);
-  const discordRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleAfkTimeout)
-      .setStyle(ButtonStyle.Secondary)
-      .setLabel(`⏱️ AFK: ${afkTimeoutLabel}`)
-      .setDisabled(!c.afkEnabled),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleSystemChannel)
-      .setStyle(ButtonStyle.Secondary)
-      .setLabel(`📣 Notifs: ${SYSCHANNEL_LABELS[syschanChoice] ?? '📌 Garder'}`),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.syncLocale)
-      .setStyle(locale.inSync ? ButtonStyle.Success : ButtonStyle.Primary)
-      .setLabel(locale.inSync ? '🌐 Langue ✅' : '🌐 Sync langue')
-      .setDisabled(locale.inSync)
-  );
-  // @premium-end
+  const discordRow = isPremiumFeatureEnabled(guildId)
+    ? (() => {
+        // @premium-start
+        const afkCfg = getAfkConfig(guildId, guild);
+        const afkTimeoutLabel = AFK_TIMEOUT_LABELS[afkCfg.timeout] ?? `${afkCfg.timeout}s`;
+        const syschanChoice = getGuildSetting(guildId, 'discord', 'system_channel_choice', 'keep');
+        const locale = getLocaleConfig(guildId, guild);
+        return new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleAfkTimeout)
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel(`⏱️ AFK: ${afkTimeoutLabel}`)
+            .setDisabled(!c.afkEnabled),
+          new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleSystemChannel)
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel(`📣 Notifs: ${SYSCHANNEL_LABELS[syschanChoice] ?? '📌 Garder'}`),
+          new ButtonBuilder().setCustomId(CUSTOM_IDS.syncLocale)
+            .setStyle(locale.inSync ? ButtonStyle.Success : ButtonStyle.Primary)
+            .setLabel(locale.inSync ? '🌐 Langue ✅' : '🌐 Sync langue')
+            .setDisabled(locale.inSync)
+        );
+        // @premium-end
+      })()
+    : new ActionRowBuilder().addComponents(
+        buildPremiumLockButton('discord_settings', 'Paramètres Discord avancés')
+      );
   return [row, row2, discordRow, buildNavRow(guildId, 2)];
 }
 
@@ -621,18 +630,27 @@ function buildStep4Content(guildId, guild, { TOTAL_STEPS, gradeLabel, onOff }) {
     '> Message envoyé en privé à chaque nouveau membre qui rejoint le serveur.',
     (() => { const p = c.joinServerPresentation; const prev = p ? `"${p.slice(0, 60)}${p.length > 60 ? '…' : ''}"` : '*non défini*'; return `🌟 **Présentation #rejoindre-notre-serveur** : ${prev}`; })(),
     '> Texte personnalisé affiché dans le channel de recrutement des invités.',
-    // @premium-start
-    ...(isCommunity ? [
-      '',
-      '### ⚙️ Paramètres Discord (serveur Community)',
-      `📜 **Canal règles** — ${rulesChMention}`,
-      '> Canal désigné comme canal des règles dans les paramètres Discord.',
-      `📡 **Canal mises à jour** — ${pubUpdMention}`,
-      '> Canal public updates communautaires Discord.',
-      `📝 **Description du serveur** — ${descPreview}`,
-      '> Texte affiché dans le profil public du serveur Discord.',
-    ] : [])
-    // @premium-end
+    ...(isCommunity
+      ? (isPremiumFeatureEnabled(guildId)
+          // @premium-start
+          ? [
+              '',
+              '### ⚙️ Paramètres Discord (serveur Community)',
+              `📜 **Canal règles** — ${rulesChMention}`,
+              '> Canal désigné comme canal des règles dans les paramètres Discord.',
+              `📡 **Canal mises à jour** — ${pubUpdMention}`,
+              '> Canal public updates communautaires Discord.',
+              `📝 **Description du serveur** — ${descPreview}`,
+              '> Texte affiché dans le profil public du serveur Discord.',
+            ]
+          // @premium-end
+          : [
+              '',
+              '### 🔒 Paramètres Discord (serveur Community)',
+              '> Réservés à **Guardian Premium**.',
+              '> Utilisez le bouton ci-dessous pour en savoir plus.'
+            ])
+      : [])
   ].join('\n');
 }
 
@@ -663,19 +681,24 @@ function buildStep4Components(guildId, guild, { CUSTOM_IDS, gradeLabel, buildNav
       .setLabel('🌟 Présentation #rejoindre')
   );
   const rows = [toggles, delay, expulsion, welcomeBtn];
-  // @premium-start
-  const isCommunity4 = Boolean(c._isCommunity);
-  if (isCommunity4) {
-    rows.push(new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.applyRulesChannel).setStyle(ButtonStyle.Primary)
-        .setLabel('📜 Appliquer canal règles'),
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.applyPublicUpdates).setStyle(ButtonStyle.Primary)
-        .setLabel('📡 Appliquer canal updates'),
-      new ButtonBuilder().setCustomId(CUSTOM_IDS.editServerDescription).setStyle(ButtonStyle.Secondary)
-        .setLabel('📝 Description serveur')
-    ));
+  if (c._isCommunity) {
+    if (isPremiumFeatureEnabled(guildId)) {
+      // @premium-start
+      rows.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(CUSTOM_IDS.applyRulesChannel).setStyle(ButtonStyle.Primary)
+          .setLabel('📜 Appliquer canal règles'),
+        new ButtonBuilder().setCustomId(CUSTOM_IDS.applyPublicUpdates).setStyle(ButtonStyle.Primary)
+          .setLabel('📡 Appliquer canal updates'),
+        new ButtonBuilder().setCustomId(CUSTOM_IDS.editServerDescription).setStyle(ButtonStyle.Secondary)
+          .setLabel('📝 Description serveur')
+      ));
+      // @premium-end
+    } else {
+      rows.push(new ActionRowBuilder().addComponents(
+        buildPremiumLockButton('discord_settings', 'Paramètres Discord Community')
+      ));
+    }
   }
-  // @premium-end
   rows.push(buildNavRow(guildId, 4));
   return rows;
 }
@@ -921,8 +944,8 @@ function buildStep7Content(guildId, { TOTAL_STEPS, onOff }) {
     `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
     t('setup.step7Instructions', {}, { guildId }),
     '',
-    `⚖️ **Score comportemental** — ${onOff(c.behaviorScoreEnabled)}`,
-    '> Note chaque membre selon ses messages, sanctions et ancienneté.',
+    `⚖️ **Score comportemental** — ${isPremiumFeatureEnabled(guildId) ? onOff(c.behaviorScoreEnabled) : '🔒 Premium'}`,
+    '> Note chaque membre selon ses messages, sanctions et ancienneté. Réservé à Guardian Premium.',
     '',
     `🛡️ **Anti-spam** — max ${c.spamThreshold} msg / 3s`,
     '> Messages supprimés automatiquement si le seuil est dépassé.',
@@ -941,8 +964,10 @@ function buildStep7Content(guildId, { TOTAL_STEPS, onOff }) {
 function buildStep7Components(guildId, { CUSTOM_IDS, buildNavRow }) {
   const c = getStep7Config(guildId);
   const scoreRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(c.behaviorScoreEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel('⚖️ Score comport.'),
+    isPremiumFeatureEnabled(guildId)
+      ? new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(c.behaviorScoreEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+          .setLabel('⚖️ Score comport.')
+      : buildPremiumLockButton('behavior_sanctions', 'Score comportemental'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBlacklistWarn).setStyle(ButtonStyle.Secondary)
       .setLabel(`🚫 Blacklist: ${c.blacklistWarn ? 'Warn' : 'Silent'}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleLogsLevel).setStyle(ButtonStyle.Secondary)

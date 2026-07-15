@@ -6,10 +6,7 @@ const { findTextChannelByName } = require('../utils/channels');
 const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
-// @premium-start
-const { isPremium } = require('../tier/tier');
-const { buildPremiumLockButton } = require('../tier/premiumGate');
-// @premium-end
+const { isPremiumFeatureEnabled, buildPremiumLockButton } = require('../tier/premiumGateUI');
 
 const MODULES = [
   {
@@ -64,7 +61,7 @@ function buildPanelContent(guildId) {
   for (const mod of MODULES) {
     const val = getGuildSetting(guildId, 'channels', mod.key, mod.default);
     const state = val ? '🟢' : '🔴';
-    const premium = mod.premiumFeature && !isPremium(guildId) ? ' 🔒' : '';
+    const premium = mod.premiumFeature && !isPremiumFeatureEnabled(guildId) ? ' 🔒' : '';
     lines.push(`${state} **${mod.label}**${premium}`);
     lines.push(`  -# *${mod.desc}*`);
   }
@@ -74,14 +71,12 @@ function buildPanelContent(guildId) {
 function buildAllRows(guildId) {
   const rows = [];
   for (const mod of MODULES) {
-    // @premium-start
-    if (mod.premiumFeature && !isPremium(guildId)) {
+    if (mod.premiumFeature && !isPremiumFeatureEnabled(guildId)) {
       rows.push(new ActionRowBuilder().addComponents(
         buildPremiumLockButton(mod.premiumFeature, mod.label)
       ));
       continue;
     }
-    // @premium-end
     const val = getGuildSetting(guildId, 'channels', mod.key, mod.default);
     const btn = new ButtonBuilder()
       .setCustomId(mod.toggleId)

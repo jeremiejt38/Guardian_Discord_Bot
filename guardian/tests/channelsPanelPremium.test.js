@@ -17,7 +17,7 @@ function makeTempDb() {
 }
 
 const { ButtonStyle } = require('discord.js');
-const { GATE_PREFIX } = require('../modules/tier/premiumGate');
+const { GATE_PREFIX } = require('../modules/tier/premiumGateUI');
 
 test('channelsPanel buildRows — retourne cadenas pour suggestions et server_list en free', () => {
   const tempDbPath = makeTempDb();
