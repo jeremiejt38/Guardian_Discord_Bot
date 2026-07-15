@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { linkLicenseToGuild, isLicenseValidForGuild } = require('../modules/tier/licenses');
+const { isPremiumFeatureEnabled } = require('../modules/tier/premiumGateUI');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,6 +16,15 @@ module.exports = {
       return interaction.reply({ content: 'Tu dois avoir la permission Gérer le serveur.', ephemeral: true });
     }
 
+    if (!isPremiumFeatureEnabled(interaction.guildId)) {
+      return interaction.reply({
+        content: '🔒 Cette fonctionnalité est réservée à Guardian Premium. Contactez le développeur pour obtenir une licence.',
+        ephemeral: true
+      });
+    }
+
+    // @premium-start
+    const { linkLicenseToGuild } = require('../modules/tier/licenses');
     const key = interaction.options.getString('key');
     try {
       linkLicenseToGuild(key, interaction.guildId);
@@ -23,5 +32,6 @@ module.exports = {
     } catch (err) {
       return interaction.reply({ content: `❌ ${err.message}`, ephemeral: true });
     }
+    // @premium-end
   },
 };
