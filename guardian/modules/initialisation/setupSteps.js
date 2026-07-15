@@ -944,8 +944,8 @@ function buildStep7Content(guildId, { TOTAL_STEPS, onOff }) {
     `## ${t('setup.step7Title', {}, { guildId })} (7/${TOTAL_STEPS})`,
     t('setup.step7Instructions', {}, { guildId }),
     '',
-    `⚖️ **Score comportemental** — ${onOff(c.behaviorScoreEnabled)}`,
-    '> Note chaque membre selon ses messages, sanctions et ancienneté.',
+    `⚖️ **Score comportemental** — ${isPremiumFeatureEnabled(guildId) ? onOff(c.behaviorScoreEnabled) : '🔒 Premium'}`,
+    '> Note chaque membre selon ses messages, sanctions et ancienneté. Réservé à Guardian Premium.',
     '',
     `🛡️ **Anti-spam** — max ${c.spamThreshold} msg / 3s`,
     '> Messages supprimés automatiquement si le seuil est dépassé.',
@@ -964,8 +964,10 @@ function buildStep7Content(guildId, { TOTAL_STEPS, onOff }) {
 function buildStep7Components(guildId, { CUSTOM_IDS, buildNavRow }) {
   const c = getStep7Config(guildId);
   const scoreRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(c.behaviorScoreEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
-      .setLabel('⚖️ Score comport.'),
+    isPremiumFeatureEnabled(guildId)
+      ? new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBehaviorScore).setStyle(c.behaviorScoreEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+          .setLabel('⚖️ Score comport.')
+      : buildPremiumLockButton('behavior_sanctions', 'Score comportemental'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleBlacklistWarn).setStyle(ButtonStyle.Secondary)
       .setLabel(`🚫 Blacklist: ${c.blacklistWarn ? 'Warn' : 'Silent'}`),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cycleLogsLevel).setStyle(ButtonStyle.Secondary)
