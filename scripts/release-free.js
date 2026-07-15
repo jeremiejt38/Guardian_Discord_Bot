@@ -36,7 +36,20 @@ const FREE_OUT_DIR = path.resolve(REPO_ROOT, 'dist/guardian-free');
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_FREE_TOKEN = process.env.GITHUB_FREE_RELEASE_TOKEN;
 
+function runOrLog(dryRun, cmd, label) {
+  if (dryRun) {
+    console.log(`[dry-run] ${label ?? cmd}`);
+    return '';
+  }
+  return run(cmd);
+}
+
 async function main() {
+  const dryRun = process.argv.includes('--dry-run');
+  if (dryRun) {
+    console.log('📦 DRY RUN — no files will be written and no release will be published\n');
+  }
+
   const currentBranch = run('git rev-parse --abbrev-ref HEAD', { silent: true });
   if (currentBranch !== 'main') {
     console.error(`❌ release-free must be run from 'main' branch (current: '${currentBranch}').`);
@@ -79,16 +92,23 @@ async function main() {
     '3. `npm install && npm start`'
   ].join('\n');
 
-  if (GITHUB_TOKEN) {
-    console.log('📡 Creating premium GitHub release...');
-    await createGithubRelease(GITHUB_REPO, GITHUB_TOKEN, tag, releaseBody, pkg.prerelease ?? false);
+  if (dryRun || GITHUB_TOKEN) {
+    if (dryRun) console.log('[dry-run] would create premium GitHub release');
+    else {
+      console.log('📡 Creating premium GitHub release...');
+      await createGithubRelease(GITHUB_REPO, GITHUB_TOKEN, tag, releaseBody, pkg.prerelease ?? false);
+    }
   } else {
     console.warn('⚠️  GITHUB_TOKEN not set — skipping premium GitHub release.');
   }
 
   console.log('\n🔨 Building free bundle...');
-  fs.rmSync(FREE_OUT_DIR, { recursive: true, force: true });
-  run(`node "${FREE_BUILD_SCRIPT}" --out "${FREE_OUT_DIR}"`);
+  if (!dryRun) {
+    fs.rmSync(FREE_OUT_DIR, { recursive: true, force: true });
+    run(`node "${FREE_BUILD_SCRIPT}" --out "${FREE_OUT_DIR}"`);
+  } else {
+    console.log(`[dry-run] would run: node "${FREE_BUILD_SCRIPT}" --out "${FREE_OUT_DIR}"`);
+  }
 
   if (!GITHUB_FREE_TOKEN) {
     console.warn('\n⚠️  GITHUB_FREE_RELEASE_TOKEN absent — étape free ignorée.');
@@ -97,8 +117,13 @@ async function main() {
   }
 
   console.log('\n🚀 Publishing free release...');
-  const zipPath = buildFreeZip(version, FREE_OUT_DIR);
-  await publishFreeRelease(tag, releaseBody, zipPath, lastTag, pkg.prerelease ?? false);
+  const zipPath = dryRun ? '<dry-run>/guardian-free.zip' : buildFreeZip(version, FREE_OUT_DIR);
+  if (dryRun) {
+    console.log(`[dry-run] would build zip: ${zipPath}`);
+    console.log('[dry-run] would publish free release and push source bundle to free repo');
+  } else {
+    await publishFreeRelease(tag, releaseBody, zipPath, lastTag, pkg.prerelease ?? false);
+  }
 
   console.log(`\n🎉 Free release ${tag} complete!\n`);
 }
