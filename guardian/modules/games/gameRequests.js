@@ -123,7 +123,8 @@ async function createGameChannelBetweenCategories(guild, gameName, gameRoleId) {
   const textChannel = await guild.channels.create({
     name: normalized,
     type: ChannelType.GuildText,
-    parent: category.id
+    parent: category.id,
+    topic: `Discussion, organisation et partage autour de ${gameName}.`
   });
 
   if (modCat && configCat) {

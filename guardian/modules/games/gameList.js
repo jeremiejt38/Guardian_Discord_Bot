@@ -70,26 +70,32 @@ async function ensureCategory(guild, gameName, permissionOverwrites, existingId)
   });
 }
 
-async function ensureTextChannel(guild, parentId, channelName, permissionOverwrites, existingId) {
+async function ensureTextChannel(guild, parentId, channelName, permissionOverwrites, existingId, topic) {
   const existingById = existingId ? guild.channels.cache.get(existingId) : null;
   if (existingById?.type === ChannelType.GuildText) {
-    await existingById.edit({ parent: parentId, permissionOverwrites });
+    const editPayload = { parent: parentId, permissionOverwrites };
+    if (topic) editPayload.topic = topic;
+    await existingById.edit(editPayload);
     return existingById;
   }
 
   const existingByName = findGuildTextChannelByName(guild, channelName, parentId)
     ?? findGuildTextChannelByName(guild, channelName);
   if (existingByName) {
-    await existingByName.edit({ parent: parentId, permissionOverwrites });
+    const editPayload = { parent: parentId, permissionOverwrites };
+    if (topic) editPayload.topic = topic;
+    await existingByName.edit(editPayload);
     return existingByName;
   }
 
-  return guild.channels.create({
+  const createPayload = {
     name: channelName,
     type: ChannelType.GuildText,
     parent: parentId,
     permissionOverwrites
-  });
+  };
+  if (topic) createPayload.topic = topic;
+  return guild.channels.create(createPayload);
 }
 
 function getGamesLayoutMode(guildId) {
@@ -178,19 +184,22 @@ async function provisionGameStructure(guild, game) {
   let textChannelId = game.channel_text_id || null;
   if (textEnabled) {
     const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.text;
-    const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id);
+    const textTopic = `Discussion, organisation et partage autour de ${game.name}.`;
+    const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id, textTopic);
     textChannelId = textChannel.id;
   }
 
   let galerieChannelId = game.channel_galerie_id || null;
   if (Number(game.galerie_enabled) === 1) {
     const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.galerie;
+    const galerieTopic = `Screenshots, clips et contenu visuel de ${game.name}.`;
     const galerieChannel = await ensureTextChannel(
       guild,
       parentId,
       `${slug}-galerie`,
       permissions,
-      game.channel_galerie_id
+      game.channel_galerie_id,
+      galerieTopic
     );
     galerieChannelId = galerieChannel.id;
   }
@@ -198,12 +207,14 @@ async function provisionGameStructure(guild, game) {
   let changelogChannelId = game.channel_changelog_id || null;
   if (Number(game.changelog_enabled) === 1) {
     const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.changelog;
+    const changelogTopic = `Mises à jour et actualités Steam de ${game.name}.`;
     const changelogChannel = await ensureTextChannel(
       guild,
       parentId,
       `${slug}-changelogs`,
       permissions,
-      game.channel_changelog_id
+      game.channel_changelog_id,
+      changelogTopic
     );
     changelogChannelId = changelogChannel.id;
   }

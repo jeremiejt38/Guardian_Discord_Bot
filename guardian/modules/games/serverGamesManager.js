@@ -194,7 +194,8 @@ async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, ch
   const text = await guild.channels.create({
     name: normalized,
     type: ChannelType.GuildText,
-    parent: category.id
+    parent: category.id,
+    topic: `Discussion, organisation et partage autour de ${gameName}.`
   });
 
   let galerie = null;
@@ -202,7 +203,8 @@ async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, ch
     galerie = await guild.channels.create({
       name: `${normalized}-galerie`.slice(0, 100),
       type: ChannelType.GuildText,
-      parent: category.id
+      parent: category.id,
+      topic: `Screenshots, clips et contenu visuel de ${gameName}.`
     });
   }
 
@@ -211,7 +213,8 @@ async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, ch
     changelog = await guild.channels.create({
       name: `${normalized}-changelogs`.slice(0, 100),
       type: ChannelType.GuildText,
-      parent: category.id
+      parent: category.id,
+      topic: `Mises à jour et actualités Steam de ${gameName}.`
       // Read-only for members; bot still has ManageChannel permission.
     });
 
