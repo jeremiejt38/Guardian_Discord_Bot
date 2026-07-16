@@ -185,11 +185,12 @@ async function handleJeuxInteraction(interaction) {
     const games = getGamesForGuild(guildId);
     if (games.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.jeux.noGames')); return true; }
     const options = games.slice(0, 25).map((g) => ({ label: g.name.slice(0, 100), value: String(g.game_id) }));
-    await replyEphemeral(interaction, {
+    await interaction.reply({
       content: 'Quel jeu souhaitez-vous modifier ?',
       components: [new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder().setCustomId(IDS.selectEdit).setPlaceholder('Choisir un jeu…').addOptions(options)
-      )]
+      )],
+      ephemeral: true
     });
     return true;
   }
@@ -198,7 +199,11 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(interaction.values[0]);
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
-    await replyEphemeral(interaction, { content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, game) });
+    await interaction.reply({
+      content: `**${game.name}** — que souhaitez-vous modifier ?`,
+      components: buildGameEditRows(gameId, game),
+      ephemeral: true
+    });
     return true;
   }
 
@@ -303,11 +308,12 @@ async function handleJeuxInteraction(interaction) {
     const games = getGamesForGuild(guildId);
     if (games.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.jeux.noGames')); return true; }
     const options = games.slice(0, 25).map((g) => ({ label: g.name.slice(0, 100), value: String(g.game_id) }));
-    await replyEphemeral(interaction, {
+    await interaction.reply({
       content: 'Quel jeu souhaitez-vous supprimer ?',
       components: [new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder().setCustomId(IDS.selectDelete).setPlaceholder('Choisir un jeu…').addOptions(options)
-      )]
+      )],
+      ephemeral: true
     });
     return true;
   }
@@ -316,11 +322,12 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(interaction.values[0]);
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
-    await replyEphemeral(interaction, {
+    await interaction.reply({
       content: `⚠️ Confirmer la suppression de **${game.name}** ? Cette action est irréversible.`,
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`${IDS.confirmDelete}${gameId}`).setLabel('🗑️ Confirmer suppression').setStyle(ButtonStyle.Danger)
-      )]
+      )],
+      ephemeral: true
     });
     return true;
   }
