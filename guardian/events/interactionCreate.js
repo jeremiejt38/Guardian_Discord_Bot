@@ -37,9 +37,13 @@ const {
   handleSetupLanguageSelection,
   SETUP_CLEAN_SERVER_BUTTON_ID,
   SETUP_CLEAN_MODAL_ID,
+  SETUP_CLEAN_VOCALS_BUTTON_ID,
+  SETUP_CLEAN_ROLES_BUTTON_ID,
   SETUP_FRESH_START_BUTTON_ID,
   handleSetupCleanServerButton,
-  handleSetupCleanModal
+  handleSetupCleanModal,
+  handleSetupCleanVocalsButton,
+  handleSetupCleanRolesButton
 } = require('../modules/initialisation/setup');
 const { handleSetupInteraction, startWizardInChannel } = require('../modules/initialisation/setupFlow');
 const { handleAddServerButton, handleServerModalSubmit, memberCanManageServers } = require('../modules/servers/interaction');
@@ -352,6 +356,16 @@ module.exports = {
 
     if (interaction.isButton() && interaction.customId === SETUP_CLEAN_SERVER_BUTTON_ID) {
       await handleSetupCleanServerButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_CLEAN_VOCALS_BUTTON_ID) {
+      await handleSetupCleanVocalsButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId === SETUP_CLEAN_ROLES_BUTTON_ID) {
+      await handleSetupCleanRolesButton(interaction);
       return;
     }
 
