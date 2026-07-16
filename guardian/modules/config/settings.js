@@ -2,6 +2,7 @@ const { setConfig, getConfig } = require('../../database/db');
 const { CHANNELS } = require('../../config');
 const { t } = require('../i18n');
 const { findChannelByName } = require('../utils/channels');
+const { buildOpenButtonRow } = require('../games/gameList');
 
 function setGuildSetting(guildId, moduleName, key, value) {
   setConfig(guildId, moduleName, key, value);
@@ -11,13 +12,13 @@ function getGuildSetting(guildId, moduleName, key, fallback = null) {
   return getConfig(guildId, moduleName, key, fallback);
 }
 
-async function ensureChannelMessage(channel, content) {
+async function ensureChannelMessage(channel, content, components = null) {
   if (!channel?.isTextBased?.()) {
     return;
   }
 
   if (!channel.lastMessageId) {
-    await channel.send(content);
+    await channel.send({ content, components });
   }
 }
 
@@ -31,7 +32,8 @@ async function ensureMemberGameInterfaces(guild) {
   );
   await ensureChannelMessage(
     gameListChannel,
-    t(guild.id, 'settings.gameListHint')
+    t(guild.id, 'settings.gameListHint'),
+    [buildOpenButtonRow(guild.id)]
   );
 }
 
