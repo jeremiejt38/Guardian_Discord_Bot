@@ -52,6 +52,7 @@ const CUSTOM_IDS = Object.freeze({
   toggleGameGallery: 'setup:games:gallery:toggle',
   toggleGameChangelog: 'setup:games:changelog:toggle',
   toggleGameText: 'setup:games:text:toggle',
+  toggleGameLayoutMode: 'setup:games:layout:toggle',
   addGameConfirmModal: 'setup:games:add:confirm:modal',
   cycleInviteMode: 'setup:grade:invite:cycle',
   toggleBehaviorScore: 'setup:modules:behavior:toggle',

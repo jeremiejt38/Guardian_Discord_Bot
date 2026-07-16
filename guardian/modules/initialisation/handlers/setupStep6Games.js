@@ -21,7 +21,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, StringSelect
   addIgnoredChannelSlot, getIgnoredChannelSlots, buildChannelOptions,
   getStep4Config, setStep4Config, cycleReviewerGrade, getStep4VocalConfig,
   cycleVocalPrefix, formatDelay, getStep5Cursor, setStep5Cursor,
-  getGamesPage, setGamesPage, ensureAtLeastOneSetupGame, getSteamCycleValue,
+  getGamesPage, setGamesPage, getGamesLayoutMode, setGamesLayoutMode, ensureAtLeastOneSetupGame, getSteamCycleValue,
   cycleLogsLevel, getStep7Config, setStep7Config,
   buildCommunityCheckContent, buildCommunityCheckComponents, normalizeChannelName,
   getDetectedGames, setDetectedGames, getGameLinkCursor, setGameLinkCursor,
@@ -252,6 +252,21 @@ async function _handleStep6(guildId, interaction) {
     db.prepare('DELETE FROM games WHERE guild_id = ?').run(guildId);
     setGuildSetting(guildId, 'setup', 'detected_games', null);
     setGamesPage(guildId, 0);
+    setEditorSubstep(); await renderStep(interaction, 6); return true;
+  }
+
+  if (interaction.customId === CUSTOM_IDS.toggleGameLayoutMode) {
+    const { rebuildGameLayout } = require('../../games/gameList');
+    const current = getGamesLayoutMode(guildId);
+    const next = current === 'by-game' ? 'by-type' : 'by-game';
+    try {
+      await interaction.deferUpdate().catch(() => {});
+      await rebuildGameLayout(interaction.guild, next).catch((err) => {
+        logger.error('toggleGameLayoutMode: rebuildGameLayout failed', { error: err?.message, guildId });
+      });
+    } catch (err) {
+      logger.error('toggleGameLayoutMode error', { error: err?.message, guildId });
+    }
     setEditorSubstep(); await renderStep(interaction, 6); return true;
   }
 
