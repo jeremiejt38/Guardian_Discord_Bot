@@ -13,6 +13,7 @@ const { upsertStatusEmbed } = require('../modules/config/botPanel');
 const { getGuildSetting, setGuildSetting } = require('../modules/config/settings');
 const { setConfig, getConfig } = require('../database/db');
 const { runChannelMigrations } = require('../modules/migrations/channelMigrations');
+const { runVersionedMigrations } = require('../modules/migrations/versionedMigrations');
 const { restoreConfigFromBackup, saveConfigBackup } = require('../modules/config/configBackup');
 const { getInstallContext } = require('../modules/initialisation/detectInstallContext');
 const { CATEGORIES, CHANNELS } = require('../config');
@@ -100,6 +101,7 @@ module.exports = {
         await seedGuildMessages(guild).catch(() => undefined);
 
         await runChannelMigrations(guild);
+        await runVersionedMigrations(guild).catch((err) => logger.error(`Failed versioned migrations for guild ${guild.id}`, err));
 
         const lastVersion = getGuildSetting(guild.id, 'bot', 'last_version', null);
         if (lastVersion !== version) {
