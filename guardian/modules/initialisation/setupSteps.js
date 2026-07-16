@@ -8,6 +8,7 @@ const {
 } = require('discord.js');
 const { GRADE_NAMES, CHANNELS } = require('../../config');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
+const logger = require('../logs/logger');
 const {
   ORDERED_GRADES,
   REQUIRED_GRADES,
@@ -481,6 +482,9 @@ function buildChannelOptions(guild, slot) {
     .sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name))
     .slice(0, 25)
     .map(({ c }) => ({ label: `${c.name}`.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
+  if (channels.length === 0) {
+    logger.warn('[buildChannelOptions] no options', { guildId: guild?.id, slotKey: slot.key, filteredCount: allChannels.length, scoredCount: scored.length });
+  }
   return channels.length > 0 ? channels : [{ label: 'Aucun channel compatible', value: 'none', description: 'Guardian en créera un automatiquement' }];
 }
 

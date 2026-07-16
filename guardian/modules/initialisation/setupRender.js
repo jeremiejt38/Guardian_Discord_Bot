@@ -62,7 +62,12 @@ async function renderStep(interaction, step, ctx) {
       await interaction.deferUpdate().catch(() => {});
     }
     if (step === 3 && guild && typeof guild.channels?.fetch === 'function') {
-      try { await guild.channels.fetch(); } catch { /* ignore */ }
+      try {
+        await guild.channels.fetch();
+        logger.info('[renderStep] channels fetched', { guildId, cacheSize: guild.channels.cache.size });
+      } catch (err) {
+        logger.warn('[renderStep] channels fetch failed', { guildId, error: err?.message });
+      }
     }
     const payload = await buildStepPayload(guildId, guild, step, ctx);
     if (interaction.deferred || interaction.replied) {
