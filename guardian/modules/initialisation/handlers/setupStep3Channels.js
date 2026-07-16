@@ -59,8 +59,13 @@ function _searchChannelOptions(guild, slot, query) {
   return scored
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name))
-    .slice(0, 25)
     .map(({ c }) => ({ label: `${c.name}`.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
+}
+
+const channelSearchCache = new Map();
+
+function _searchCacheKey(guildId, userId, slotKey) {
+  return `${guildId}:${userId}:${slotKey}`;
 }
 
 async function _handleStep3(guildId, interaction) {
@@ -173,17 +178,41 @@ async function _handleStep3(guildId, interaction) {
       await renderStep(interaction, 3);
       return true;
     }
-    const select = new StringSelectMenuBuilder()
-      .setCustomId(`${CUSTOM_IDS.channelSearchSelect}:${slotKey}`)
-      .setPlaceholder(`Résultats pour "${query.slice(0, 80)}"`)
-      .setMinValues(1).setMaxValues(1)
-      .addOptions(results);
-    await interaction.reply({ content: `**${results.length}** salon(s) trouvé(s), choisis :`, components: [new ActionRowBuilder().addComponents(select)], ephemeral: true }).catch(() => {});
+
+    const { buildPaginatedSelect } = require('../../utils/paginatedSelect');
+    const baseCustomId = `${CUSTOM_IDS.channelSearchSelect}:${slotKey}`;
+    channelSearchCache.set(_searchCacheKey(guildId, interaction.user.id, slotKey), results);
+    const { rows } = buildPaginatedSelect(
+      results,
+      baseCustomId,
+      `Résultats pour "${query.slice(0, 80)}"`,
+      0,
+      { minValues: 1, maxValues: 1 }
+    );
+    await interaction.reply({ content: `**${results.length}** salon(s) trouvé(s), choisis :`, components: rows, ephemeral: true }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.isButton() && interaction.customId.startsWith(`${CUSTOM_IDS.channelSearchSelect}:`) && interaction.customId.includes(':page:')) {
+    const parts = interaction.customId.split(':');
+    const slotKey = parts[1];
+    const targetPage = Number(parts[parts.length - 1]);
+    const slot = CHANNEL_SLOTS.find((s) => s.key === slotKey);
+    if (!slot || Number.isNaN(targetPage)) { await interaction.deferUpdate().catch(() => {}); return true; }
+    const results = channelSearchCache.get(_searchCacheKey(guildId, interaction.user.id, slotKey));
+    if (!results || results.length === 0) {
+      await interaction.update({ content: 'La recherche a expiré, recommence.', components: [] }).catch(() => {});
+      return true;
+    }
+    const { buildPaginatedSelect } = require('../../utils/paginatedSelect');
+    const baseCustomId = `${CUSTOM_IDS.channelSearchSelect}:${slotKey}`;
+    const { rows } = buildPaginatedSelect(results, baseCustomId, `Résultats`, targetPage, { minValues: 1, maxValues: 1 });
+    await interaction.update({ content: `**${results.length}** salon(s) trouvé(s), choisis :`, components: rows });
     return true;
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith(`${CUSTOM_IDS.channelSearchSelect}:`)) {
-    const slotKey = interaction.customId.split(':').pop();
+    const slotKey = interaction.customId.split(':')[1];
     const slot = CHANNEL_SLOTS.find((s) => s.key === slotKey);
     if (slot && interaction.values?.[0] && interaction.values[0] !== 'none') {
       setGuildSetting(guildId, slot.settingSection, slot.settingKey, interaction.values[0]);

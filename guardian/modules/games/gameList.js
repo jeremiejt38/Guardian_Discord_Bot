@@ -9,7 +9,6 @@ const {
   EmbedBuilder
 } = require('discord.js');
 const { findCategoryByName, findGuildTextChannelByName } = require('../utils/channels');
-const { replyEphemeral } = require('../utils/interactions');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { t } = require('../i18n');
 const logger = require('../logs/logger');
@@ -349,29 +348,35 @@ function buildGamesEmbed(guildId, userId) {
     .setDescription(lines);
 }
 
-function buildGameSelectRow(guildId, userId) {
+function buildGameSelectRow(guildId, userId, page = 0) {
   const games = getGuildGames(guildId);
   const selectedIds = new Set(getMemberGames(guildId, userId).map((row) => String(row.game_id)));
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId('gamelist:select')
-    .setPlaceholder(t(guildId, 'games.selectPlaceholder'))
-    .setMinValues(0)
-    .setMaxValues(Math.max(games.length, 1));
+  const { buildPaginatedSelect } = require('../utils/paginatedSelect');
 
   if (games.length === 0) {
-    menu.addOptions([{ label: t(guildId, 'games.noneAvailable'), value: 'none' }]).setMaxValues(1);
-  } else {
-    menu.addOptions(
-      games.slice(0, 25).map((game) => ({
-        label: game.name.slice(0, 100),
-        value: String(game.game_id),
-        default: selectedIds.has(String(game.game_id))
-      }))
-    );
-    menu.setMaxValues(Math.min(games.length, 25));
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId('gamelist:select:0')
+      .setPlaceholder(t(guildId, 'games.selectPlaceholder'))
+      .setMinValues(0)
+      .setMaxValues(1)
+      .addOptions([{ label: t(guildId, 'games.noneAvailable'), value: 'none' }]);
+    return [new ActionRowBuilder().addComponents(menu)];
   }
 
-  return new ActionRowBuilder().addComponents(menu);
+  const options = games.map((game) => ({
+    label: game.name,
+    value: String(game.game_id),
+    default: selectedIds.has(String(game.game_id))
+  }));
+
+  const { rows } = buildPaginatedSelect(
+    options,
+    'gamelist:select',
+    t(guildId, 'games.selectPlaceholder'),
+    page,
+    { minValues: 0, maxValues: Math.min(options.length, 25) }
+  );
+  return rows;
 }
 
 function buildOpenButtonRow(guildId = null) {
@@ -383,93 +388,12 @@ function buildOpenButtonRow(guildId = null) {
   );
 }
 
-function buildCreateChannelSelectRow(guildId, page = 0) {
-  const games = getGuildGames(guildId);
-  const start = page * 25;
-  const slice = games.slice(start, start + 25);
-
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId(`creer:select:${page}`)
-    .setPlaceholder(t(guildId, 'games.selectPlaceholder'))
-    .setMinValues(1)
-    .setMaxValues(1);
-
-  if (slice.length === 0) {
-    menu.addOptions([{ label: t(guildId, 'games.noneAvailable'), value: 'none' }]).setMaxValues(1);
-  } else {
-    menu.addOptions(
-      slice.map((game) => ({ label: game.name.slice(0, 100), value: String(game.game_id) }))
-    );
-  }
-
-  return new ActionRowBuilder().addComponents(menu);
-}
-
-async function handleCreateOpen(interaction) {
+async function handleOpenGameList(interaction, page = 0) {
   const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
-  const selectRow = buildCreateChannelSelectRow(interaction.guildId, 0);
-  const nav = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('creer:next:0').setLabel('Suivant').setStyle(ButtonStyle.Secondary)
-  );
-  await interaction.reply({ embeds: [embed], components: [selectRow, nav], ephemeral: true });
-}
-
-async function handleCreateSelection(interaction) {
-  const custom = interaction.customId; // creer:select:page
-  const parts = custom.split(':');
-  const page = Number(parts[2] || 0);
-  const value = interaction.values[0];
-  if (value === 'none') {
-    await interaction.update({ content: t(interaction.guildId, 'games.noneAvailable'), components: [] });
-    return;
-  }
-
-  const gameId = Number(value);
-  const db = getDb();
-  const game = db.prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(interaction.guildId, gameId);
-  if (!game) {
-    await interaction.update({ content: t(interaction.guildId, 'games.noneAvailable'), components: [] });
-    return;
-  }
-
-  const btnRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`creer:validate:${game.game_id}`).setLabel(t(interaction.guildId, 'games.createValidate')).setStyle(ButtonStyle.Success)
-  );
-
-  await interaction.update({ content: `Créer channel vocal pour **${game.name}** ?`, components: [btnRow] });
-}
-
-async function handleCreateValidate(interaction) {
-  const parts = interaction.customId.split(':');
-  const gameId = Number(parts[2]);
-  const db = getDb();
-  const game = db.prepare('SELECT game_id, name FROM games WHERE guild_id = ? AND game_id = ?').get(interaction.guildId, gameId);
-  if (!game) {
-    await replyEphemeral(interaction, t(interaction.guildId, 'games.noneAvailable'));
-    return;
-  }
-
-  // create temporary voice channel with game name, append number if exists
-  const desiredName = game.name;
-  const existing = interaction.guild.channels.cache.filter((c) => c.type === ChannelType.GuildVoice && c.name.startsWith(desiredName));
-  let name = desiredName;
-  if (existing.size > 0) {
-    name = `${desiredName} ${existing.size + 1}`;
-  }
-
-  const { createTemporaryVoice, trackTempVoice } = require('../games/gamesVocal');
-  const channel = await createTemporaryVoice(interaction.guild, name);
-  trackTempVoice(channel.id, interaction.guildId, game.game_id, interaction.user.id);
-
-  await replyEphemeral(interaction, t(interaction.guildId, 'games.createdVoice', { name }));
-}
-
-async function handleOpenGameList(interaction) {
-  const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
-  const selectRow = buildGameSelectRow(interaction.guildId, interaction.user.id);
+  const rows = buildGameSelectRow(interaction.guildId, interaction.user.id, page);
   await interaction.reply({
     embeds: [embed],
-    components: [selectRow],
+    components: rows,
     ephemeral: true
   });
 }
@@ -479,12 +403,23 @@ async function handleGameListSelection(interaction) {
   const selectedIds = values.map((value) => Number.parseInt(value, 10)).filter((value) => Number.isFinite(value));
   setMemberGames(interaction.guildId, interaction.user.id, selectedIds);
 
+  const { parsePaginatedCustomId } = require('../utils/paginatedSelect');
+  const { page } = parsePaginatedCustomId(interaction.customId);
   const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
-  const selectRow = buildGameSelectRow(interaction.guildId, interaction.user.id);
+  const rows = buildGameSelectRow(interaction.guildId, interaction.user.id, page);
   await interaction.update({
     embeds: [embed],
-    components: [selectRow]
+    components: rows
   });
+}
+
+async function handleGameListPage(interaction) {
+  const { parsePaginatedCustomId } = require('../utils/paginatedSelect');
+  const { targetPage } = parsePaginatedCustomId(interaction.customId);
+  if (targetPage === null || Number.isNaN(targetPage)) return;
+  const embed = buildGamesEmbed(interaction.guildId, interaction.user.id);
+  const rows = buildGameSelectRow(interaction.guildId, interaction.user.id, targetPage);
+  await interaction.update({ embeds: [embed], components: rows });
 }
 
 module.exports = {
@@ -498,5 +433,6 @@ module.exports = {
   setMemberGames,
   buildOpenButtonRow,
   handleOpenGameList,
-  handleGameListSelection
+  handleGameListSelection,
+  handleGameListPage
 };

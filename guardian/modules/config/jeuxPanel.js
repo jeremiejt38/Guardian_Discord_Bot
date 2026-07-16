@@ -208,7 +208,7 @@ function buildLinkContent(game, state, guild) {
   return lines.join('\n');
 }
 
-function buildLinkComponents(interaction, game, state) {
+function buildLinkComponents(interaction, game, state, page = 0) {
   const guild = interaction.guild;
   const rows = [];
   const typeButtons = GAMELINK_LINKABLE_TYPES.map((type) => {
@@ -226,10 +226,9 @@ function buildLinkComponents(interaction, game, state) {
     const type = state.activeType;
     const allowedTypes = [ChannelType.GuildText, ChannelType.GuildAnnouncement];
     const usedIds = getUsedChannelIdsForType(guild.id, game.game_id, type);
-    const candidates = Array.from(guild.channels.cache.values())
+    let candidates = Array.from(guild.channels.cache.values())
       .filter((c) => allowedTypes.includes(c.type) && !usedIds.has(c.id))
       .sort((a, b) => a.name.localeCompare(b.name))
-      .slice(0, 24)
       .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
 
     if (state[type]) {
@@ -237,12 +236,16 @@ function buildLinkComponents(interaction, game, state) {
     }
 
     if (candidates.length > 0) {
-      rows.push(new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(`${IDS.linkChannel}${game.game_id}:${type}`)
-          .setPlaceholder(`${GAMELINK_TYPE_LABELS[type].icon} Choisir le channel ${GAMELINK_TYPE_LABELS[type].label}`)
-          .addOptions(candidates)
-      ));
+      const { buildPaginatedSelect } = require('../utils/paginatedSelect');
+      const baseCustomId = `${IDS.linkChannel}${game.game_id}:${type}`;
+      const { rows: selectRows } = buildPaginatedSelect(
+        candidates,
+        baseCustomId,
+        `${GAMELINK_TYPE_LABELS[type].icon} Choisir le channel ${GAMELINK_TYPE_LABELS[type].label}`,
+        page,
+        { minValues: 1, maxValues: 1 }
+      );
+      rows.push(...selectRows);
     }
   }
 
@@ -294,22 +297,42 @@ async function handleJeuxInteraction(interaction) {
     return true;
   }
 
+function buildPaginatedGameSelect(games, baseCustomId, placeholder, page = 0) {
+  const { buildPaginatedSelect } = require('../utils/paginatedSelect');
+  const options = games.map((g) => ({ label: g.name, value: String(g.game_id) }));
+  const { rows } = buildPaginatedSelect(options, baseCustomId, placeholder, page, { minValues: 1, maxValues: 1 });
+  return rows;
+}
+
+async function handleGameSelectPage(interaction, baseCustomId, placeholder) {
+  const { parsePaginatedCustomId } = require('../utils/paginatedSelect');
+  const { targetPage } = parsePaginatedCustomId(interaction.customId);
+  if (targetPage === null || Number.isNaN(targetPage)) return true;
+  const games = getGamesForGuild(interaction.guildId);
+  await interaction.update({
+    content: placeholder,
+    components: buildPaginatedGameSelect(games, baseCustomId, placeholder, targetPage)
+  });
+  return true;
+}
+
   // ── Modifier un jeu ─────────────────────────────────────────────────────
   if (interaction.isButton() && customId === IDS.editMenu) {
     const games = getGamesForGuild(guildId);
     if (games.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.jeux.noGames')); return true; }
-    const options = games.slice(0, 25).map((g) => ({ label: g.name.slice(0, 100), value: String(g.game_id) }));
     await interaction.reply({
       content: 'Quel jeu souhaitez-vous modifier ?',
-      components: [new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder().setCustomId(IDS.selectEdit).setPlaceholder('Choisir un jeu…').addOptions(options)
-      )],
+      components: buildPaginatedGameSelect(games, IDS.selectEdit, 'Choisir un jeu…', 0),
       ephemeral: true
     });
     return true;
   }
 
-  if (interaction.isStringSelectMenu() && customId === IDS.selectEdit) {
+  if (interaction.isButton() && customId.startsWith(`${IDS.selectEdit}:page:`)) {
+    return handleGameSelectPage(interaction, IDS.selectEdit, 'Quel jeu souhaitez-vous modifier ?');
+  }
+
+  if (interaction.isStringSelectMenu() && customId.startsWith(`${IDS.selectEdit}:`)) {
     const gameId = Number(interaction.values[0]);
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
@@ -334,7 +357,7 @@ async function handleJeuxInteraction(interaction) {
     });
     await interaction.reply({
       content: buildLinkContent(game, gameLinkStates.get(key), interaction.guild),
-      components: buildLinkComponents(interaction, game, gameLinkStates.get(key)),
+      components: buildLinkComponents(interaction, game, gameLinkStates.get(key), 0),
       ephemeral: true
     });
     return true;
@@ -353,7 +376,25 @@ async function handleJeuxInteraction(interaction) {
     gameLinkStates.set(key, state);
     await interaction.editReply({
       content: buildLinkContent(game, state, interaction.guild),
-      components: buildLinkComponents(interaction, game, state)
+      components: buildLinkComponents(interaction, game, state, 0)
+    }).catch(() => {});
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.linkChannel) && customId.includes(':page:')) {
+    const parts = customId.slice(IDS.linkChannel.length).split(':');
+    const gameId = Number(parts[0]);
+    const type = parts[1];
+    const targetPage = Number(parts[parts.length - 1]);
+    const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (!game || Number.isNaN(targetPage)) { await interaction.deferUpdate().catch(() => {}); return true; }
+    const key = getLinkStateKey(guildId, interaction.user.id, gameId);
+    const state = gameLinkStates.get(key) || { text: null, galerie: null, changelog: null, activeType: type };
+    state.activeType = type;
+    await interaction.deferUpdate().catch(() => {});
+    await interaction.editReply({
+      content: buildLinkContent(game, state, interaction.guild),
+      components: buildLinkComponents(interaction, game, state, targetPage)
     }).catch(() => {});
     return true;
   }
@@ -362,6 +403,7 @@ async function handleJeuxInteraction(interaction) {
     const parts = customId.slice(IDS.linkChannel.length).split(':');
     const gameId = Number(parts[0]);
     const type = parts[1];
+    const currentPage = Number(parts[2] || 0);
     const value = interaction.values[0];
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
@@ -386,7 +428,7 @@ async function handleJeuxInteraction(interaction) {
     await refreshJeuxPanel(interaction.guild);
     await interaction.editReply({
       content: buildLinkContent(updatedGame, state, interaction.guild),
-      components: buildLinkComponents(interaction, updatedGame, state)
+      components: buildLinkComponents(interaction, updatedGame, state, currentPage)
     }).catch(() => {});
     return true;
   }
@@ -512,18 +554,19 @@ async function handleJeuxInteraction(interaction) {
   if (interaction.isButton() && customId === IDS.deleteMenu) {
     const games = getGamesForGuild(guildId);
     if (games.length === 0) { await replyEphemeral(interaction, t(guildId, 'config.jeux.noGames')); return true; }
-    const options = games.slice(0, 25).map((g) => ({ label: g.name.slice(0, 100), value: String(g.game_id) }));
     await interaction.reply({
       content: 'Quel jeu souhaitez-vous supprimer ?',
-      components: [new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder().setCustomId(IDS.selectDelete).setPlaceholder('Choisir un jeu…').addOptions(options)
-      )],
+      components: buildPaginatedGameSelect(games, IDS.selectDelete, 'Choisir un jeu…', 0),
       ephemeral: true
     });
     return true;
   }
 
-  if (interaction.isStringSelectMenu() && customId === IDS.selectDelete) {
+  if (interaction.isButton() && customId.startsWith(`${IDS.selectDelete}:page:`)) {
+    return handleGameSelectPage(interaction, IDS.selectDelete, 'Quel jeu souhaitez-vous supprimer ?');
+  }
+
+  if (interaction.isStringSelectMenu() && customId.startsWith(`${IDS.selectDelete}:`)) {
     const gameId = Number(interaction.values[0]);
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }

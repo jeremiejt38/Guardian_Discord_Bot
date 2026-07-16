@@ -75,25 +75,39 @@ function getNextVoiceName(guild, prefix, gameName, suffix) {
   return `${buildName(prefix, gameName, suffix, 0)}-${Date.now().toString().slice(-4)}`;
 }
 
-function buildGameSelect(guildId, games) {
+function buildGameSelect(guildId, games, page = 0) {
   const chatOption = {
     label: t('tempVoice.chatOption', {}, { guildId }) || '💬 Chat — salon sans jeu',
     value: 'chat',
     description: 'Créer un vocal sans jeu spécifique'
   };
-  const gameOptions = games.slice(0, 24).map((game) => ({
-    label: game.name.slice(0, 100),
+  const gameOptions = games.map((game) => ({
+    label: game.name,
     value: String(game.game_id)
   }));
 
-  return new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId(IDS.gameSelect)
-      .setPlaceholder(t('tempVoice.selectPlaceholder', {}, { guildId }))
-      .setMinValues(1)
-      .setMaxValues(1)
-      .addOptions([chatOption, ...gameOptions])
+  const { buildPaginatedSelect } = require('../utils/paginatedSelect');
+  const options = [chatOption, ...gameOptions];
+  const { rows } = buildPaginatedSelect(
+    options,
+    IDS.gameSelect,
+    t('tempVoice.selectPlaceholder', {}, { guildId }),
+    page,
+    { minValues: 1, maxValues: 1 }
   );
+  return rows;
+}
+
+async function handleTempVoicePage(interaction) {
+  const { parsePaginatedCustomId } = require('../utils/paginatedSelect');
+  const { targetPage } = parsePaginatedCustomId(interaction.customId);
+  if (targetPage === null || Number.isNaN(targetPage)) return true;
+  const games = getGuildGames(interaction.guildId);
+  await interaction.update({
+    content: t('tempVoice.selectPrompt', {}, { guildId: interaction.guildId }),
+    components: buildGameSelect(interaction.guildId, games, targetPage)
+  });
+  return true;
 }
 
 async function ensureTempVoicePanelForGuild(guild) {
@@ -141,13 +155,17 @@ async function handleTempVoiceInteraction(interaction) {
 
     await interaction.reply({
       content: t('tempVoice.selectPrompt', {}, { guildId: interaction.guildId }),
-      components: [buildGameSelect(interaction.guildId, games)],
+      components: buildGameSelect(interaction.guildId, games, 0),
       ephemeral: true
     });
     return true;
   }
 
-  if (interaction.isStringSelectMenu() && interaction.customId === IDS.gameSelect) {
+  if (interaction.isButton() && interaction.customId.startsWith(`${IDS.gameSelect}:page:`)) {
+    return handleTempVoicePage(interaction);
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith(`${IDS.gameSelect}:`)) {
     if (!canCreateTempVoice(interaction.guildId, interaction.user.id, interaction.member)) {
       await interaction.update({
         content: t('tempVoice.forbiddenInvite', {}, { guildId: interaction.guildId }),
