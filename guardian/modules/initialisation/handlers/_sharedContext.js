@@ -96,6 +96,8 @@ const getStep5Cursor = (guildId) => _s.getStep5Cursor(guildId);
 const setStep5Cursor = (guildId, c) => _s.setStep5Cursor(guildId, c);
 const getGamesPage = (guildId) => _s.getGamesPage(guildId);
 const setGamesPage = (guildId, p) => _s.setGamesPage(guildId, p);
+const getGamesLayoutMode = (guildId) => _s.getGamesLayoutMode(guildId);
+const setGamesLayoutMode = (guildId, m) => _s.setGamesLayoutMode(guildId, m);
 const ensureAtLeastOneSetupGame = (guildId) => _s.ensureAtLeastOneSetupGame(guildId);
 const getSteamCycleValue = (v) => _s.getSteamCycleValue(v);
 const cycleLogsLevel = (c) => _s.cycleLogsLevel(c);
@@ -156,7 +158,7 @@ module.exports = {
   buildStep3ChannelsContent, buildStep3ChannelsComponents,
   getStep4Config, setStep4Config, cycleReviewerGrade, getStep4VocalConfig,
   cycleVocalPrefix, formatDelay, getStep5Cursor, setStep5Cursor,
-  getGamesPage, setGamesPage, ensureAtLeastOneSetupGame, getSteamCycleValue,
+  getGamesPage, setGamesPage, getGamesLayoutMode, setGamesLayoutMode, ensureAtLeastOneSetupGame, getSteamCycleValue,
   cycleLogsLevel, getStep7Config, setStep7Config,
   buildCommunityCheckContent, buildCommunityCheckComponents, normalizeChannelName,
   getDetectedGames, setDetectedGames, getGameLinkCursor, setGameLinkCursor,

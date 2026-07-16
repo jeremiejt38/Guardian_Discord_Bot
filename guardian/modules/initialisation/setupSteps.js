@@ -816,6 +816,16 @@ function setGamesPage(guildId, page) {
   return safe;
 }
 
+function getGamesLayoutMode(guildId) {
+  return getGuildSetting(guildId, 'games', 'layout_mode', 'by-type');
+}
+
+function setGamesLayoutMode(guildId, mode) {
+  const valid = mode === 'by-game' ? 'by-game' : 'by-type';
+  setGuildSetting(guildId, 'games', 'layout_mode', valid);
+  return valid;
+}
+
 function ensureAtLeastOneSetupGame(guildId) {
   const games = listSetupGames(guildId);
   if (games.length > 0) return games;
@@ -853,8 +863,14 @@ function safeGamesSubstepForRender(guildId, guild, ctx) {
 
 function buildStep6EditorContent(guildId, { TOTAL_STEPS }) {
   const games = listSetupGames(guildId);
+  const layoutMode = getGamesLayoutMode(guildId);
+  const layoutLabel = layoutMode === 'by-game'
+    ? '📁 Une catégorie par jeu (tous les channels du jeu regroupés)'
+    : '🗂️ Une catégorie par type de channel (texte / galerie / updates)';
   const lines = [
     `## ${t('setup.step6Title', {}, { guildId })} (6/${TOTAL_STEPS})`,
+    '',
+    `**Mode d'organisation :** ${layoutLabel}`,
     '',
     '🎮 **Pourquoi une liste de jeux ?**',
     '> Guardian utilise cette liste pour créer automatiquement les channels liés à chaque jeu :',
@@ -893,13 +909,18 @@ function buildStep6EditorComponents(guildId, { CUSTOM_IDS, buildNavRow }) {
   const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
   const pageGames = games.slice(page * GAMES_PAGE_SIZE, (page + 1) * GAMES_PAGE_SIZE);
   const rows = [];
+  const layoutMode = getGamesLayoutMode(guildId);
 
   const addRowButtons = [
     new ButtonBuilder().setCustomId(CUSTOM_IDS.addGame).setStyle(ButtonStyle.Primary).setLabel('➕ Ajouter un jeu'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.gamePagePrev).setStyle(ButtonStyle.Secondary)
       .setLabel('◀').setDisabled(page === 0),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.gamePageNext).setStyle(ButtonStyle.Secondary)
-      .setLabel(`▶ (${page + 1}/${totalPages})`).setDisabled(page >= totalPages - 1)
+      .setLabel(`▶ (${page + 1}/${totalPages})`).setDisabled(page >= totalPages - 1),
+    new ButtonBuilder()
+      .setCustomId(CUSTOM_IDS.toggleGameLayoutMode)
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel(layoutMode === 'by-game' ? '🗂️ Par type' : '📁 Par jeu')
   ];
   if (games.length > 0) {
     addRowButtons.push(new ButtonBuilder().setCustomId(CUSTOM_IDS.clearAllGames).setStyle(ButtonStyle.Danger).setLabel('🧹 Tout effacer'));

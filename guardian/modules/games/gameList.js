@@ -10,8 +10,15 @@ const {
 } = require('discord.js');
 const { findCategoryByName, findGuildTextChannelByName } = require('../utils/channels');
 const { replyEphemeral } = require('../utils/interactions');
+const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { t } = require('../i18n');
 const logger = require('../logs/logger');
+
+const GAME_TYPE_CATEGORIES = {
+  text: '🎮 Jeux — Texte',
+  galerie: '🖼️ Jeux — Galerie',
+  changelog: '📢 Jeux — Updates'
+};
 
 function toChannelSlug(name) {
   return String(name || 'jeu')
@@ -85,6 +92,18 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
   });
 }
 
+function getGamesLayoutMode(guildId) {
+  return getGuildSetting(guildId, 'games', 'layout_mode', 'by-type');
+}
+
+function getTypeCategoryIds(guildId) {
+  return getGuildSetting(guildId, 'games', 'type_category_ids', {});
+}
+
+function setTypeCategoryIds(guildId, ids) {
+  setGuildSetting(guildId, 'games', 'type_category_ids', ids);
+}
+
 function buildGamePermissions(guild, gameRoleId, moderationRoleIds) {
   const permissions = [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }];
 
@@ -105,26 +124,70 @@ function buildGamePermissions(guild, gameRoleId, moderationRoleIds) {
   return permissions;
 }
 
+async function ensureTypeCategories(guild, permissions) {
+  const stored = getTypeCategoryIds(guild.id);
+  const ids = {};
+
+  for (const type of Object.keys(GAME_TYPE_CATEGORIES)) {
+    const name = GAME_TYPE_CATEGORIES[type];
+    const existingById = stored[type] ? guild.channels.cache.get(stored[type]) : null;
+    if (existingById?.type === ChannelType.GuildCategory) {
+      await existingById.edit({ permissionOverwrites: permissions });
+      ids[type] = existingById.id;
+      continue;
+    }
+
+    const existingByName = findCategoryByName(guild, name);
+    if (existingByName) {
+      await existingByName.edit({ permissionOverwrites: permissions });
+      ids[type] = existingByName.id;
+      continue;
+    }
+
+    const created = await guild.channels.create({
+      name,
+      type: ChannelType.GuildCategory,
+      permissionOverwrites: permissions
+    });
+    ids[type] = created.id;
+  }
+
+  setTypeCategoryIds(guild.id, ids);
+  return ids;
+}
+
 async function provisionGameStructure(guild, game) {
   const db = getDb();
   const moderationRoleIds = getModerationRoleIds(guild.id);
   const gameRole = await ensureGameRole(guild, game);
   const permissions = buildGamePermissions(guild, gameRole?.id, moderationRoleIds);
   const slug = toChannelSlug(game.name);
+  const layoutMode = getGamesLayoutMode(guild.id);
 
-  const category = await ensureCategory(guild, game.name, permissions, game.category_id);
+  let categoryId = game.category_id || null;
+  let typeCategoryIds = null;
+
+  if (layoutMode === 'by-game') {
+    const category = await ensureCategory(guild, game.name, permissions, game.category_id);
+    categoryId = category.id;
+  } else {
+    typeCategoryIds = await ensureTypeCategories(guild, permissions);
+  }
+
   const textEnabled = game.text_channel_enabled === undefined || Number(game.text_channel_enabled) !== 0;
   let textChannelId = game.channel_text_id || null;
   if (textEnabled) {
-    const textChannel = await ensureTextChannel(guild, category.id, slug, permissions, game.channel_text_id);
+    const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.text;
+    const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id);
     textChannelId = textChannel.id;
   }
 
   let galerieChannelId = game.channel_galerie_id || null;
   if (Number(game.galerie_enabled) === 1) {
+    const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.galerie;
     const galerieChannel = await ensureTextChannel(
       guild,
-      category.id,
+      parentId,
       `${slug}-galerie`,
       permissions,
       game.channel_galerie_id
@@ -134,9 +197,10 @@ async function provisionGameStructure(guild, game) {
 
   let changelogChannelId = game.channel_changelog_id || null;
   if (Number(game.changelog_enabled) === 1) {
+    const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.changelog;
     const changelogChannel = await ensureTextChannel(
       guild,
-      category.id,
+      parentId,
       `${slug}-changelogs`,
       permissions,
       game.channel_changelog_id
@@ -150,13 +214,47 @@ async function provisionGameStructure(guild, game) {
      WHERE guild_id = ? AND game_id = ?`
   ).run(
     gameRole?.id || null,
-    category.id,
+    layoutMode === 'by-game' ? categoryId : null,
     textChannelId,
     galerieChannelId,
     changelogChannelId,
     guild.id,
     game.game_id
   );
+}
+
+function setGamesLayoutMode(guildId, mode) {
+  const valid = mode === 'by-game' ? 'by-game' : 'by-type';
+  setGuildSetting(guildId, 'games', 'layout_mode', valid);
+  return valid;
+}
+
+async function rebuildGameLayout(guild, newMode) {
+  setGamesLayoutMode(guild.id, newMode);
+  if (newMode === 'by-game') {
+    const stored = getTypeCategoryIds(guild.id);
+    for (const id of Object.values(stored)) {
+      const cat = guild.channels.cache.get(id);
+      if (cat?.type === ChannelType.GuildCategory) {
+        await cat.delete('Guardian: passage en mode categorie par jeu').catch(() => {});
+      }
+    }
+    setTypeCategoryIds(guild.id, {});
+  } else {
+    const db = getDb();
+    const games = db.prepare('SELECT game_id FROM games WHERE guild_id = ?').all(guild.id);
+    for (const game of games) {
+      const row = db.prepare('SELECT category_id FROM games WHERE guild_id = ? AND game_id = ?').get(guild.id, game.game_id);
+      if (row?.category_id) {
+        const cat = guild.channels.cache.get(row.category_id);
+        if (cat?.type === ChannelType.GuildCategory) {
+          await cat.delete('Guardian: passage en mode categorie par type').catch(() => {});
+        }
+      }
+    }
+    db.prepare('UPDATE games SET category_id = NULL WHERE guild_id = ?').run(guild.id);
+  }
+  await provisionGuildGameStructures(guild);
 }
 
 async function provisionGuildGameStructures(guild) {
@@ -354,6 +452,8 @@ async function handleGameListSelection(interaction) {
 module.exports = {
   provisionGameStructure,
   provisionGuildGameStructures,
+  rebuildGameLayout,
+  setGamesLayoutMode,
   getGuildGames,
   getMemberGames,
   setMemberGames,
