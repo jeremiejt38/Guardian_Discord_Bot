@@ -10,7 +10,7 @@ const { handleRolesInteraction } = require('../modules/config/rolesPanel');
 const { handleBotInteraction } = require('../modules/config/botPanel');
 const { handleGuardianInteraction } = require('../modules/config/guardianPanel');
 const { handleHistoriquePagination } = require('../commands/historique');
-const { handleOpenGameList, handleGameListSelection } = require('../modules/games/gameList');
+const { handleOpenGameList, handleGameListSelection, handleGameListPage } = require('../modules/games/gameList');
 const { handleGamesInteraction } = require('../modules/games/optInInteraction');
 const { handleServerGamesInteraction } = require('../modules/games/serverGamesManager');
 const { handleGameRequestInteraction } = require('../modules/games/gameRequests');
@@ -277,6 +277,11 @@ module.exports = {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId.startsWith('gamelist:select:page:')) {
+      await handleGameListPage(interaction);
+      return;
+    }
+
     if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) {
       if (
         interaction.customId === PROMOTION_IDS.request ||
@@ -384,7 +389,7 @@ module.exports = {
       return;
     }
 
-    if (interaction.isStringSelectMenu() && interaction.customId === 'gamelist:select') {
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('gamelist:select:')) {
       await handleGameListSelection(interaction);
       return;
     }
