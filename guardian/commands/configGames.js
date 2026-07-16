@@ -8,7 +8,7 @@ const {
   findSetupGameByName,
   updateSetupGame
 } = require('../modules/initialisation/setupGames');
-const { provisionGameStructure, rebuildGameLayout } = require('../modules/games/gameList');
+const { provisionGameStructure, provisionGuildGameStructures, rebuildGameLayout } = require('../modules/games/gameList');
 const { getGradeMappings } = require('../modules/initialisation/gradeMapping');
 const { getGuildSetting } = require('../modules/config/settings');
 const logger = require('../modules/logs/logger');
