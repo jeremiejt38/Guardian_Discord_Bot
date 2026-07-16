@@ -8,9 +8,10 @@ const {
   findSetupGameByName,
   updateSetupGame
 } = require('../modules/initialisation/setupGames');
-const { provisionGameStructure } = require('../modules/games/gameList');
+const { provisionGameStructure, rebuildGameLayout } = require('../modules/games/gameList');
 const { getGradeMappings } = require('../modules/initialisation/gradeMapping');
 const { getGuildSetting } = require('../modules/config/settings');
+const logger = require('../modules/logs/logger');
 
 function isManagerOrOwner(interaction) {
   const guildId = interaction.guildId;
@@ -81,6 +82,19 @@ module.exports = {
         )
         .addStringOption((opt) =>
           opt.setName('steam_id').setDescription(describe('commands.configGames.optionSteamIdDesc')).setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub.setName('set-layout')
+        .setDescription(describe('commands.configGames.subSetLayout'))
+        .addStringOption((opt) =>
+          opt.setName('mode')
+            .setDescription(describe('commands.configGames.optionLayoutModeDesc'))
+            .setRequired(true)
+            .addChoices(
+              { name: 'Par jeu (catégorie par jeu)', value: 'by-game' },
+              { name: 'Par type (catégorie texte/galerie/updates)', value: 'by-type' }
+            )
         )
     ),
 
@@ -157,6 +171,16 @@ module.exports = {
         return replyEphemeral(interaction, t(guildId, 'commands.configGames.steamUpdated', { name: game.name, appId: steamId }));
       }
       return replyEphemeral(interaction, t(guildId, 'commands.configGames.steamCleared', { name: game.name }));
+    }
+
+    if (sub === 'set-layout') {
+      const mode = interaction.options.getString('mode', true);
+      await interaction.deferReply({ ephemeral: true }).catch(() => {});
+      await rebuildGameLayout(interaction.guild, mode).catch((err) => {
+        logger.error('config-games set-layout failed', { error: err?.message, guildId, mode });
+      });
+      const label = mode === 'by-game' ? 'catégorie par jeu' : 'catégorie par type';
+      return interaction.editReply({ content: `✅ Organisation des channels de jeux changée en **${label}**.` });
     }
   }
 };
