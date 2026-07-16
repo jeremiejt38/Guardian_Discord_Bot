@@ -46,6 +46,10 @@ const IDS = Object.freeze({
   linkType:      'jeux:link:type:',
   linkChannel:   'jeux:link:channel:',
   linkDone:      'jeux:link:done:',
+  defaultText:   'jeux:default:text',
+  defaultGalerie:'jeux:default:galerie',
+  defaultChangelog:'jeux:default:changelog',
+  defaultForum:  'jeux:default:forum',
 });
 
 function hasManagerGrade(member, guildId) {
@@ -111,8 +115,21 @@ function buildChangelogsRow(guildId) {
   );
 }
 
+function buildGameDefaultsRow(guildId) {
+  const text = getGuildSetting(guildId, 'games', 'default_text_channel_enabled', false);
+  const galerie = getGuildSetting(guildId, 'games', 'default_galerie_enabled', false);
+  const changelog = getGuildSetting(guildId, 'games', 'default_changelog_enabled', false);
+  const forum = getGuildSetting(guildId, 'games', 'default_forum_enabled', false);
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(IDS.defaultText).setLabel(`💬 Texte: ${text ? 'ON' : 'OFF'}`).setStyle(text ? ButtonStyle.Success : ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(IDS.defaultGalerie).setLabel(`🖼️ Galerie: ${galerie ? 'ON' : 'OFF'}`).setStyle(galerie ? ButtonStyle.Success : ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(IDS.defaultChangelog).setLabel(`📢 Changelog: ${changelog ? 'ON' : 'OFF'}`).setStyle(changelog ? ButtonStyle.Success : ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(IDS.defaultForum).setLabel(`🗂️ Forum: ${forum ? 'ON' : 'OFF'}`).setStyle(forum ? ButtonStyle.Success : ButtonStyle.Secondary)
+  );
+}
+
 function buildComponents(guildId) {
-  return [buildMainPanelRow(guildId), buildChangelogsRow(guildId)];
+  return [buildMainPanelRow(guildId), buildChangelogsRow(guildId), buildGameDefaultsRow(guildId)];
 }
 
 async function seedJeuxPanel(guild) {
@@ -206,12 +223,12 @@ function buildLinkComponents(interaction, game, state) {
 
   if (state.activeType) {
     const type = state.activeType;
-    const allowedTypes = type === 'forum' ? [ChannelType.GuildForum] : [ChannelType.GuildText, ChannelType.GuildAnnouncement];
+    const allowedTypes = [ChannelType.GuildText, ChannelType.GuildAnnouncement];
     const usedIds = getUsedChannelIdsForType(guild.id, game.game_id, type);
-    const candidates = guild.channels.cache
+    const candidates = Array.from(guild.channels.cache.values())
       .filter((c) => allowedTypes.includes(c.type) && !usedIds.has(c.id))
       .sort((a, b) => a.name.localeCompare(b.name))
-      .slice(0, 25)
+      .slice(0, 24)
       .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
 
     if (state[type]) {
@@ -263,7 +280,13 @@ async function handleJeuxInteraction(interaction) {
   if (interaction.isModalSubmit() && customId === IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
     const steamAppId = interaction.fields.getTextInputValue('steam_app_id').trim() || null;
-    getDb().prepare('INSERT INTO games (guild_id, name, steam_app_id, galerie_enabled, changelog_enabled, text_channel_enabled, forum_enabled) VALUES (?, ?, ?, 0, 0, 0, 0)').run(guildId, name, steamAppId);
+    const defaultText = getGuildSetting(guildId, 'games', 'default_text_channel_enabled', false) ? 1 : 0;
+    const defaultGalerie = getGuildSetting(guildId, 'games', 'default_galerie_enabled', false) ? 1 : 0;
+    const defaultChangelog = getGuildSetting(guildId, 'games', 'default_changelog_enabled', false) ? 1 : 0;
+    const defaultForum = getGuildSetting(guildId, 'games', 'default_forum_enabled', false) ? 1 : 0;
+    getDb().prepare('INSERT INTO games (guild_id, name, steam_app_id, galerie_enabled, changelog_enabled, text_channel_enabled, forum_enabled) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      guildId, name, steamAppId, defaultGalerie, defaultChangelog, defaultText, defaultForum
+    );
     await logConfigChange(interaction.guild, interaction.user.id, 'game.add', null, { name, steamAppId });
     await refreshJeuxPanel(interaction.guild);
     await replyEphemeral(interaction, `✅ Jeu **${name}** ajouté.`);
@@ -432,6 +455,7 @@ async function handleJeuxInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.text_channel_enabled`, game.text_channel_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (newVal) await provisionGameStructure(interaction.guild, updated).catch((err) => logger.warn(`jeuxPanel: provisionGameStructure failed — ${err.message}`));
     await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
@@ -446,6 +470,7 @@ async function handleJeuxInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.galerie_enabled`, game.galerie_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (newVal) await provisionGameStructure(interaction.guild, updated).catch((err) => logger.warn(`jeuxPanel: provisionGameStructure failed — ${err.message}`));
     await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
@@ -460,6 +485,7 @@ async function handleJeuxInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.changelog_enabled`, game.changelog_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (newVal) await provisionGameStructure(interaction.guild, updated).catch((err) => logger.warn(`jeuxPanel: provisionGameStructure failed — ${err.message}`));
     await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
@@ -560,6 +586,43 @@ async function handleJeuxInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, 'changelogs.frequency_minutes', old, minutes);
     await refreshJeuxPanel(interaction.guild);
     await replyEphemeral(interaction, t(guildId, 'config.changelogs.frequencyUpdated', { minutes: String(minutes) }));
+    return true;
+  }
+
+  // ── Paramètres par défaut à l'ajout d'un jeu ─────────────────────────────
+  if (interaction.isButton() && customId === IDS.defaultText) {
+    const current = getGuildSetting(guildId, 'games', 'default_text_channel_enabled', false);
+    setGuildSetting(guildId, 'games', 'default_text_channel_enabled', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'games.default_text_channel_enabled', current, !current);
+    await refreshJeuxPanel(interaction.guild);
+    await replyEphemeral(interaction, `💬 Texte par défaut : **${!current ? 'ON' : 'OFF'}**`);
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.defaultGalerie) {
+    const current = getGuildSetting(guildId, 'games', 'default_galerie_enabled', false);
+    setGuildSetting(guildId, 'games', 'default_galerie_enabled', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'games.default_galerie_enabled', current, !current);
+    await refreshJeuxPanel(interaction.guild);
+    await replyEphemeral(interaction, `🖼️ Galerie par défaut : **${!current ? 'ON' : 'OFF'}**`);
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.defaultChangelog) {
+    const current = getGuildSetting(guildId, 'games', 'default_changelog_enabled', false);
+    setGuildSetting(guildId, 'games', 'default_changelog_enabled', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'games.default_changelog_enabled', current, !current);
+    await refreshJeuxPanel(interaction.guild);
+    await replyEphemeral(interaction, `📢 Changelog par défaut : **${!current ? 'ON' : 'OFF'}**`);
+    return true;
+  }
+
+  if (interaction.isButton() && customId === IDS.defaultForum) {
+    const current = getGuildSetting(guildId, 'games', 'default_forum_enabled', false);
+    setGuildSetting(guildId, 'games', 'default_forum_enabled', !current);
+    await logConfigChange(interaction.guild, interaction.user.id, 'games.default_forum_enabled', current, !current);
+    await refreshJeuxPanel(interaction.guild);
+    await replyEphemeral(interaction, `🗂️ Forum par défaut : **${!current ? 'ON' : 'OFF'}**`);
     return true;
   }
 
