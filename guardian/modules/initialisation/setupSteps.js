@@ -679,11 +679,9 @@ function buildStep4Components(guildId, guild, { CUSTOM_IDS, gradeLabel, buildNav
     new ButtonBuilder().setCustomId(CUSTOM_IDS.cyclePromotionReviewerGrade).setStyle(ButtonStyle.Secondary)
       .setLabel(`🔍 Réviseur: ${gradeLabel(c.reviewerGrade)}`)
   );
-  const delay = new ActionRowBuilder().addComponents(
+  const delayAndExpulsion = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ -12h'),
-    new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ +12h')
-  );
-  const expulsion = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(CUSTOM_IDS.increasePromotionDelay).setStyle(ButtonStyle.Secondary).setLabel('⏱️ +12h'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.toggleInviteExpulsion).setStyle(c.inviteExpulsionEnabled ? ButtonStyle.Success : ButtonStyle.Secondary)
       .setLabel('🚪 Expulsion'),
     new ButtonBuilder().setCustomId(CUSTOM_IDS.decreaseInviteExpulsionDays).setStyle(ButtonStyle.Secondary).setLabel('📅 -1j'),
@@ -695,7 +693,7 @@ function buildStep4Components(guildId, guild, { CUSTOM_IDS, gradeLabel, buildNav
     new ButtonBuilder().setCustomId(CUSTOM_IDS.editJoinPresentation).setStyle(ButtonStyle.Secondary)
       .setLabel('🌟 Présentation #rejoindre')
   );
-  const rows = [toggles, delay, expulsion, welcomeBtn];
+  const rows = [toggles, delayAndExpulsion, welcomeBtn];
   if (c._isCommunity) {
     if (isPremiumFeatureEnabled(guildId)) {
       // @premium-start
