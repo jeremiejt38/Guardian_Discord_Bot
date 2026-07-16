@@ -322,14 +322,15 @@ async function handleJeuxInteraction(interaction) {
     const type = parts[1];
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
     const key = getLinkStateKey(guildId, interaction.user.id, gameId);
     const state = gameLinkStates.get(key) || { text: null, galerie: null, changelog: null, activeType: null };
     state.activeType = state.activeType === type ? null : type;
     gameLinkStates.set(key, state);
-    await interaction.update({
+    await interaction.editReply({
       content: buildLinkContent(game, state, interaction.guild),
       components: buildLinkComponents(interaction, game, state)
-    });
+    }).catch(() => {});
     return true;
   }
 
@@ -340,6 +341,7 @@ async function handleJeuxInteraction(interaction) {
     const value = interaction.values[0];
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
 
     const key = getLinkStateKey(guildId, interaction.user.id, gameId);
     const state = gameLinkStates.get(key) || { text: null, galerie: null, changelog: null, activeType: type };
@@ -358,10 +360,10 @@ async function handleJeuxInteraction(interaction) {
     }
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.${column}`, game[column], linkedId);
     await refreshJeuxPanel(interaction.guild);
-    await interaction.update({
+    await interaction.editReply({
       content: buildLinkContent(updatedGame, state, interaction.guild),
       components: buildLinkComponents(interaction, updatedGame, state)
-    });
+    }).catch(() => {});
     return true;
   }
 
@@ -369,9 +371,10 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(customId.slice(IDS.linkDone.length));
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
     const key = getLinkStateKey(guildId, interaction.user.id, gameId);
     gameLinkStates.delete(key);
-    await interaction.update({ content: `✅ Lien des channels terminé pour **${game.name}**.`, components: [] });
+    await interaction.editReply({ content: `✅ Lien des channels terminé pour **${game.name}**.`, components: [] }).catch(() => {});
     return true;
   }
 
@@ -423,12 +426,13 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(customId.slice(IDS.toggleText.length));
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
     const newVal = game.text_channel_enabled ? 0 : 1;
     getDb().prepare('UPDATE games SET text_channel_enabled = ? WHERE game_id = ?').run(newVal, gameId);
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.text_channel_enabled`, game.text_channel_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
-    await interaction.update({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) });
+    await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
 
@@ -436,12 +440,13 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(customId.slice(IDS.toggleGalerie.length));
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
     const newVal = game.galerie_enabled ? 0 : 1;
     getDb().prepare('UPDATE games SET galerie_enabled = ? WHERE game_id = ?').run(newVal, gameId);
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.galerie_enabled`, game.galerie_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
-    await interaction.update({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) });
+    await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
 
@@ -449,12 +454,13 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(customId.slice(IDS.toggleChangelog.length));
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
     const newVal = game.changelog_enabled ? 0 : 1;
     getDb().prepare('UPDATE games SET changelog_enabled = ? WHERE game_id = ?').run(newVal, gameId);
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.changelog_enabled`, game.changelog_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
-    await interaction.update({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) });
+    await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
 
@@ -462,12 +468,13 @@ async function handleJeuxInteraction(interaction) {
     const gameId = Number(customId.slice(IDS.toggleForum.length));
     const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
     if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    await interaction.deferUpdate().catch(() => {});
     const newVal = game.forum_enabled ? 0 : 1;
     getDb().prepare('UPDATE games SET forum_enabled = ? WHERE game_id = ?').run(newVal, gameId);
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.forum_enabled`, game.forum_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
-    await interaction.update({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) });
+    await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }
 
