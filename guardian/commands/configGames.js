@@ -96,6 +96,10 @@ module.exports = {
               { name: 'Par type (catégorie texte/galerie/updates)', value: 'by-type' }
             )
         )
+    )
+    .addSubcommand((sub) =>
+      sub.setName('refresh')
+        .setDescription('Rafraîchir les channels de jeux existants (topics, permissions, placement)')
     ),
 
   async execute(interaction) {
@@ -181,6 +185,14 @@ module.exports = {
       });
       const label = mode === 'by-game' ? 'catégorie par jeu' : 'catégorie par type';
       return interaction.editReply({ content: `✅ Organisation des channels de jeux changée en **${label}**.` });
+    }
+
+    if (sub === 'refresh') {
+      await interaction.deferReply({ ephemeral: true }).catch(() => {});
+      await provisionGuildGameStructures(interaction.guild).catch((err) => {
+        logger.error('config-games refresh failed', { error: err?.message, guildId });
+      });
+      return interaction.editReply({ content: '✅ Channels de jeux rafraîchis (topics, permissions et placement mis à jour).' });
     }
   }
 };
