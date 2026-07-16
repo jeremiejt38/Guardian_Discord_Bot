@@ -174,9 +174,9 @@ async function handleTempVoiceInteraction(interaction) {
       gameName = game.name;
     }
 
-    const prefix = getGuildSetting(interaction.guildId, 'vocaux', 'name_prefix', '🎮');
-    const suffix = isChat ? '' : getGuildSetting(interaction.guildId, 'vocaux', 'name_suffix', 'Partie');
-    const userLimit = Math.max(0, Number(getGuildSetting(interaction.guildId, 'vocaux', 'max_members', 0)));
+    const prefix = getGuildSetting(interaction.guildId, 'vocal', 'prefix', '🎮');
+    const suffix = isChat ? '' : getGuildSetting(interaction.guildId, 'vocal', 'suffix', '— Partie');
+    const userLimit = Math.max(0, Number(getGuildSetting(interaction.guildId, 'vocal', 'member_limit', 0)));
     const category = interaction.guild.channels.cache.find(
       (channel) => channel.type === ChannelType.GuildCategory && channel.name === CATEGORIES.vocaux
     );
