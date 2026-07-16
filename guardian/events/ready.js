@@ -20,6 +20,7 @@ const { findCategoryByName, findGuildTextChannelByName } = require('../modules/u
 const logger = require('../modules/logs/logger');
 const { version } = require('../package.json');
 const { notifyBotAdminUpdate, getBotAdminId, bootstrapAdminIfNeeded } = require('../modules/admin/botUpdater');
+const { sendAdminDmMessage } = require('../modules/admin/adminPanel');
 const { notifyAllGuildsNewOptions } = require('../modules/migrations/newOptionsNotifier');
 const { initAlerts, alertGuildJoin, alertGuildLeave } = require('../modules/admin/adminAlerts');
 const { openOrRefreshPanel, pushPanelToBottom } = require('../modules/admin/adminPanel');
@@ -78,9 +79,16 @@ module.exports = {
                 `> Pour finaliser l'installation, reprends la configuration là où tu t'es arrêté.`,
                 setupLink ? `\n🔗 **[Reprendre la configuration](${setupLink})**` : `\n> Rends-toi dans le channel **#${CHANNELS.setup}** sur ton serveur.`
               ].join('\n');
-              await ownerUser.send(msg).catch(() =>
-                logger.warn(`Ready: could not send setup_incomplete DM to ${ownerId} for guild ${guild.id}`)
-              );
+              const isAdmin = ownerId === getBotAdminId();
+              if (isAdmin) {
+                await sendAdminDmMessage(client, { content: msg }).catch(() =>
+                  logger.warn(`Ready: could not send setup_incomplete admin DM to ${ownerId} for guild ${guild.id}`)
+                );
+              } else {
+                await ownerUser.send(msg).catch(() =>
+                  logger.warn(`Ready: could not send setup_incomplete DM to ${ownerId} for guild ${guild.id}`)
+                );
+              }
               logger.info(`Guild ${guild.id}: setup_incomplete DM sent to ${ownerId}`);
             }
           }
@@ -113,7 +121,6 @@ module.exports = {
     if (isUpdate) {
       setConfig(GLOBAL, 'bot', 'last_version', version);
       await notifyBotAdminUpdate(client, lastGlobalVersion, version).catch(() => {});
-      await pushPanelToBottom(client).catch(() => {});
     } else if (!lastGlobalVersion) {
       setConfig(GLOBAL, 'bot', 'last_version', version);
     }
