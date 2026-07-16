@@ -61,6 +61,9 @@ async function renderStep(interaction, step, ctx) {
     if (!interaction.deferred && !interaction.replied && typeof interaction.deferUpdate === 'function') {
       await interaction.deferUpdate().catch(() => {});
     }
+    if (step === 3 && guild && typeof guild.channels?.fetch === 'function') {
+      try { await guild.channels.fetch(); } catch { /* ignore */ }
+    }
     const payload = await buildStepPayload(guildId, guild, step, ctx);
     if (interaction.deferred || interaction.replied) {
       if (typeof interaction.editReply === 'function') await interaction.editReply(payload);

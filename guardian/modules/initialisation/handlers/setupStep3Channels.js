@@ -139,7 +139,7 @@ async function _handleStep3(guildId, interaction) {
     }
   }
 
-  if (interaction.customId.startsWith(`${CUSTOM_IDS.channelSearch}:`)) {
+  if (interaction.isButton() && interaction.customId.startsWith(`${CUSTOM_IDS.channelSearch}:`) && !interaction.customId.startsWith(`${CUSTOM_IDS.channelSearchSelect}:`)) {
     const slotKey = interaction.customId.split(':').pop();
     const slot = CHANNEL_SLOTS.find((s) => s.key === slotKey);
     if (!slot) { await interaction.deferUpdate().catch(() => {}); return true; }
@@ -195,7 +195,7 @@ async function _handleStep3(guildId, interaction) {
 
   if (interaction.isButton() && interaction.customId.startsWith(`${CUSTOM_IDS.channelSearchSelect}:`) && interaction.customId.includes(':page:')) {
     const parts = interaction.customId.split(':');
-    const slotKey = parts[1];
+    const slotKey = parts[parts.length - 3];
     const targetPage = Number(parts[parts.length - 1]);
     const slot = CHANNEL_SLOTS.find((s) => s.key === slotKey);
     if (!slot || Number.isNaN(targetPage)) { await interaction.deferUpdate().catch(() => {}); return true; }
@@ -212,7 +212,8 @@ async function _handleStep3(guildId, interaction) {
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith(`${CUSTOM_IDS.channelSearchSelect}:`)) {
-    const slotKey = interaction.customId.split(':')[1];
+    const parts = interaction.customId.split(':');
+    const slotKey = parts[parts.length - 2];
     const slot = CHANNEL_SLOTS.find((s) => s.key === slotKey);
     if (slot && interaction.values?.[0] && interaction.values[0] !== 'none') {
       setGuildSetting(guildId, slot.settingSection, slot.settingKey, interaction.values[0]);

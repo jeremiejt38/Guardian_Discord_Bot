@@ -191,6 +191,21 @@ async function provisionGameStructure(guild, game) {
   const gameTopics = buildGameChannelTopics(game.name);
   const textEnabled = game.text_channel_enabled === undefined || Number(game.text_channel_enabled) !== 0;
   let textChannelId = game.channel_text_id || null;
+
+  // Si un channel texte existe déjà (même non géré par Guardian), on applique tout de même son topic.
+  if (!textEnabled && gameTopics.text) {
+    const existingTextById = textChannelId ? guild.channels.cache.get(textChannelId) : null;
+    const existingTextByName = findGuildTextChannelByName(guild, slug);
+    const existingText = existingTextById ?? existingTextByName;
+    if (existingText?.type === ChannelType.GuildText) {
+      try {
+        await existingText.edit({ topic: gameTopics.text });
+      } catch (error) {
+        logger.warn('provisionGameStructure could not update topic on existing text channel', { guildId: guild.id, gameId: game.game_id, channelId: existingText.id, error: error.message });
+      }
+    }
+  }
+
   if (textEnabled) {
     try {
       const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.text;

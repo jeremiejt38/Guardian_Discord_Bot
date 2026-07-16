@@ -308,7 +308,7 @@ module.exports = {
     }
 
     if (interaction.isButton() || interaction.isStringSelectMenu()) {
-      if (interaction.customId === 'games:manage' || interaction.customId === 'games:select') {
+      if (interaction.customId === 'games:manage' || interaction.customId.startsWith('games:select')) {
         const handled = await handleGamesInteraction(interaction);
         if (handled) return;
       }
@@ -319,7 +319,7 @@ module.exports = {
         interaction.customId === 'servergames:add' ||
         interaction.customId === 'servergames:remove' ||
         interaction.customId === 'servergames:add:modal' ||
-        interaction.customId === 'servergames:remove:select'
+        interaction.customId.startsWith('servergames:remove:select')
       ) {
         const handled = await handleServerGamesInteraction(interaction);
         if (handled) return;
