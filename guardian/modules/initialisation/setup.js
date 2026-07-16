@@ -22,6 +22,7 @@ const {
   tForLanguage
 } = require('../i18n');
 const { markGuildInstalled } = require('./checkInstall');
+const { seedGuildMessages } = require('./seeds');
 const { getInstallContext, autoMapRolesByName } = require('./detectInstallContext');
 const { provisionGuildGameStructures, buildOpenButtonRow } = require('../games/gameList');
 const {
@@ -1324,6 +1325,7 @@ async function completeGuildSetup(guild) {
     `completeGuildSetup:cleanupSetupArea:${guild.id}`,
     { silent: true }
   );
+  await seedGuildMessages(guild).catch((err) => logger.error(`completeGuildSetup: seedGuildMessages failed for ${guild.id}`, err));
 }
 
 async function handleSetupForceExistingButton(interaction) {
