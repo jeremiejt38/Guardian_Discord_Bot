@@ -17,6 +17,7 @@ const { replyEphemeral } = require('../utils/interactions');
 const { memberHasAnyRole } = require('../utils/roles');
 const { t } = require('../../locales');
 const logger = require('../logs/logger');
+const { buildGameChannelTopics } = require('./gameList');
 
 const IDS = Object.freeze({
   addButton: 'servergames:add',
@@ -179,6 +180,7 @@ function buildGameCategoryOverwrites(guild, gameRoleId) {
 
 async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, changelogEnabled) {
   const normalized = normalizeChannelName(gameName);
+  const topics = buildGameChannelTopics(gameName);
 
   const role = await guild.roles.create({
     name: gameName.slice(0, 100),
@@ -195,7 +197,7 @@ async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, ch
     name: normalized,
     type: ChannelType.GuildText,
     parent: category.id,
-    topic: `Discussion, organisation et partage autour de ${gameName}.`
+    topic: topics.text
   });
 
   let galerie = null;
@@ -204,7 +206,7 @@ async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, ch
       name: `${normalized}-galerie`.slice(0, 100),
       type: ChannelType.GuildText,
       parent: category.id,
-      topic: `Screenshots, clips et contenu visuel de ${gameName}.`
+      topic: topics.galerie
     });
   }
 
@@ -214,7 +216,7 @@ async function createDiscordResourcesForGame(guild, gameName, galerieEnabled, ch
       name: `${normalized}-changelogs`.slice(0, 100),
       type: ChannelType.GuildText,
       parent: category.id,
-      topic: `Mises à jour et actualités Steam de ${gameName}.`
+      topic: topics.changelog
       // Read-only for members; bot still has ManageChannel permission.
     });
 

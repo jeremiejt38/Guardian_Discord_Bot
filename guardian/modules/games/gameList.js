@@ -20,6 +20,14 @@ const GAME_TYPE_CATEGORIES = {
   changelog: '📢 Jeux — Updates'
 };
 
+function buildGameChannelTopics(gameName) {
+  return {
+    text: `💬 Discussion et organisation autour de ${gameName}`,
+    galerie: `🖼️ Screenshots et contenu visuel de ${gameName}`,
+    changelog: `📢 Mises à jour Steam de ${gameName}`
+  };
+}
+
 function toChannelSlug(name) {
   return String(name || 'jeu')
     .normalize('NFD')
@@ -180,26 +188,25 @@ async function provisionGameStructure(guild, game) {
     typeCategoryIds = await ensureTypeCategories(guild, permissions);
   }
 
+  const gameTopics = buildGameChannelTopics(game.name);
   const textEnabled = game.text_channel_enabled === undefined || Number(game.text_channel_enabled) !== 0;
   let textChannelId = game.channel_text_id || null;
   if (textEnabled) {
     const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.text;
-    const textTopic = `Discussion, organisation et partage autour de ${game.name}.`;
-    const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id, textTopic);
+    const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id, gameTopics.text);
     textChannelId = textChannel.id;
   }
 
   let galerieChannelId = game.channel_galerie_id || null;
   if (Number(game.galerie_enabled) === 1) {
     const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.galerie;
-    const galerieTopic = `Screenshots, clips et contenu visuel de ${game.name}.`;
     const galerieChannel = await ensureTextChannel(
       guild,
       parentId,
       `${slug}-galerie`,
       permissions,
       game.channel_galerie_id,
-      galerieTopic
+      gameTopics.galerie
     );
     galerieChannelId = galerieChannel.id;
   }
@@ -207,14 +214,13 @@ async function provisionGameStructure(guild, game) {
   let changelogChannelId = game.channel_changelog_id || null;
   if (Number(game.changelog_enabled) === 1) {
     const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.changelog;
-    const changelogTopic = `Mises à jour et actualités Steam de ${game.name}.`;
     const changelogChannel = await ensureTextChannel(
       guild,
       parentId,
       `${slug}-changelogs`,
       permissions,
       game.channel_changelog_id,
-      changelogTopic
+      gameTopics.changelog
     );
     changelogChannelId = changelogChannel.id;
   }
@@ -465,6 +471,7 @@ module.exports = {
   provisionGuildGameStructures,
   rebuildGameLayout,
   setGamesLayoutMode,
+  buildGameChannelTopics,
   getGuildGames,
   getMemberGames,
   setMemberGames,

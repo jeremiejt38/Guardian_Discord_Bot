@@ -190,6 +190,7 @@ async function createCommunityGuides(guild) {
       });
     } else {
       await ch.permissionOverwrites.set(readOnlyPerms).catch(() => {});
+      await ch.edit({ topic: `${def.emoji} ${def.title(guildId)} — Guardian Guide` }).catch(() => {});
     }
 
     if (ch) {
@@ -227,6 +228,7 @@ async function createForumGuides(guild) {
         });
       } else {
         await ch.permissionOverwrites.set(readOnlyPerms).catch(() => {});
+        await ch.edit({ topic: `${def.emoji} ${def.title(guildId)} — Guardian Guide` }).catch(() => {});
       }
       if (ch) {
         const content = def.buildContent(guild, guildId);
@@ -254,6 +256,7 @@ async function createForumGuides(guild) {
       });
     } else {
       await forum.permissionOverwrites.set(readOnlyPerms).catch(() => {});
+      await forum.edit({ topic: `${def.emoji} ${def.title(guildId)} — Guardian Guide` }).catch(() => {});
     }
 
     if (forum) {
