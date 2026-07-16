@@ -83,6 +83,7 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
     const editPayload = { parent: parentId, permissionOverwrites };
     if (topic) editPayload.topic = topic;
     await existingById.edit(editPayload);
+    logger.info('ensureTextChannel updated existing by id', { guildId: guild.id, channelId: existingById.id, name: channelName, topic: topic || null, hasTopicChanged: existingById.topic !== topic });
     return existingById;
   }
 
@@ -92,6 +93,7 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
     const editPayload = { parent: parentId, permissionOverwrites };
     if (topic) editPayload.topic = topic;
     await existingByName.edit(editPayload);
+    logger.info('ensureTextChannel updated existing by name', { guildId: guild.id, channelId: existingByName.id, name: channelName, topic: topic || null, hasTopicChanged: existingByName.topic !== topic });
     return existingByName;
   }
 
@@ -102,7 +104,9 @@ async function ensureTextChannel(guild, parentId, channelName, permissionOverwri
     permissionOverwrites
   };
   if (topic) createPayload.topic = topic;
-  return guild.channels.create(createPayload);
+  const created = await guild.channels.create(createPayload);
+  logger.info('ensureTextChannel created', { guildId: guild.id, channelId: created.id, name: channelName, topic: topic || null });
+  return created;
 }
 
 function getGamesLayoutMode(guildId) {
@@ -189,6 +193,7 @@ async function provisionGameStructure(guild, game) {
   }
 
   const gameTopics = buildGameChannelTopics(game.name);
+  logger.info('provisionGameStructure topics', { guildId: guild.id, gameId: game.game_id, text: gameTopics.text, galerie: gameTopics.galerie, changelog: gameTopics.changelog });
   const textEnabled = game.text_channel_enabled === undefined || Number(game.text_channel_enabled) !== 0;
   let textChannelId = game.channel_text_id || null;
 
