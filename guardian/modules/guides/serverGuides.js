@@ -278,9 +278,13 @@ async function patchOnboardingDefaultChannels(guild, channelIds) {
     const current = await guild.fetchOnboarding().catch(() => null);
     if (!current) return false;
 
-    const existing = current.defaultChannels?.map((c) => c.id) ?? [];
+    const existing = (current.defaultChannels || []).filter(Boolean).map((c) => c.id);
     const validIds = [];
     const everyone = guild.roles.everyone;
+    if (!everyone) {
+      logger.warn(`serverGuides: everyone role missing for guild ${guild.id}`);
+      return false;
+    }
 
     for (const id of [...new Set(channelIds)]) {
       const channel = guild.channels.cache.get(id);

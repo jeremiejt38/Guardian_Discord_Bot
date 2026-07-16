@@ -331,9 +331,14 @@ async function addOnboardingDefaultChannels(guild, channelIds) {
     const current = await guild.fetchOnboarding().catch(() => null);
     if (!current) return { ok: false, error: 'Onboarding non disponible (serveur non Community ?)' };
 
-    const existing = current.defaultChannels?.map((c) => c.id) ?? [];
+    const existing = (current.defaultChannels || []).filter(Boolean).map((c) => c.id);
     const validIds = [];
     const skipped = [];
+    const everyone = guild.roles.everyone;
+    if (!everyone) {
+      logger.warn(`discordSettings: everyone role missing for guild ${guild.id}`);
+      return { ok: false, error: 'Rôle everyone introuvable' };
+    }
 
     for (const id of [...new Set(channelIds)]) {
       const channel = guild.channels.cache.get(id);
@@ -342,7 +347,6 @@ async function addOnboardingDefaultChannels(guild, channelIds) {
         continue;
       }
 
-      const everyone = guild.roles.everyone;
       const perms = channel.permissionsFor(everyone);
       if (perms?.has(PermissionFlagsBits.ViewChannel)) {
         validIds.push(id);

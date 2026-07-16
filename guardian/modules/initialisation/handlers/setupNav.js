@@ -573,8 +573,9 @@ async function _handleNavAndTransitions(guildId, interaction) {
 
   if (interaction.customId === CUSTOM_IDS.notifyMembersYes || interaction.customId === CUSTOM_IDS.notifyMembersNo) {
     await interaction.deferUpdate().catch(() => {});
+    setGuildSetting(guildId, 'setup', 'finalizing', true);
     await interaction.message?.edit({
-      content: '## ⏳ Installation en cours\n\nMerci de patienter pendant que Guardian finalise la configuration de ton serveur.',
+      content: '## ⏳ Installation en cours\n\nMerci de patienter pendant que Guardian finalise la configuration de ton serveur.\n\n> Cette opération peut prendre plusieurs minutes selon la taille de ton serveur et les fonctionnalités activées.',
       components: []
     }).catch(() => {});
 
@@ -615,8 +616,10 @@ async function _handleNavAndTransitions(guildId, interaction) {
       if (user) {
         await user.send(`🎉 Guardian est installé sur **${interaction.guild?.name || 'ton serveur'}** !`).catch(() => {});
       }
+      setGuildSetting(guildId, 'setup', 'finalizing', false);
     } catch (error) {
       logger.error('Failed to complete guild setup after notify', error);
+      setGuildSetting(guildId, 'setup', 'finalizing', false);
       const target = isChannelStillInGuild(interaction.guild, setupChannel) ? setupChannel : announceChannel;
       if (target?.send) {
         await target.send({ content: '❌ Une erreur est survenue pendant la finalisation. Vérifie les permissions et réessaie.' }).catch(() => {});
