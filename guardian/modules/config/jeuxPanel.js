@@ -5,10 +5,12 @@ const {
   StringSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle
+  TextInputStyle,
+  ChannelType
 } = require('discord.js');
 const { CHANNELS, GRADE_NAMES } = require('../../config');
 const { isNonSteamId } = require('../games/steamGamesList');
+const { provisionGameStructure } = require('../games/gameList');
 const { t } = require('../i18n');
 const { replyEphemeral } = require('../utils/interactions');
 const { findTextChannelByName } = require('../utils/channels');
@@ -40,6 +42,10 @@ const IDS = Object.freeze({
   toggleChangelog:'jeux:toggle:changelog:',
   toggleForum:   'jeux:toggle:forum:',
   confirmDelete: 'jeux:confirm:delete:',
+  linkChannels:  'jeux:link:channels:',
+  linkType:      'jeux:link:type:',
+  linkChannel:   'jeux:link:channel:',
+  linkDone:      'jeux:link:done:',
 });
 
 function hasManagerGrade(member, guildId) {
@@ -140,8 +146,92 @@ function buildGameEditRows(gameId, game) {
       new ButtonBuilder().setCustomId(`${IDS.toggleGalerie}${gameId}`).setLabel(`Galerie: ${game.galerie_enabled ? 'ON' : 'OFF'}`).setStyle(game.galerie_enabled ? ButtonStyle.Success : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`${IDS.toggleChangelog}${gameId}`).setLabel(`Changelog: ${game.changelog_enabled ? 'ON' : 'OFF'}`).setStyle(game.changelog_enabled ? ButtonStyle.Success : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`${IDS.toggleForum}${gameId}`).setLabel(`Forum: ${game.forum_enabled ? 'ON' : 'OFF'}`).setStyle(game.forum_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+    ),
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${IDS.linkChannels}${gameId}`).setLabel('🔗 Lier les channels').setStyle(ButtonStyle.Primary)
     )
   ];
+}
+
+const GAMELINK_TYPE_LABELS = Object.freeze({
+  text:      { icon: '💬', label: 'Chat texte' },
+  changelog: { icon: '📢', label: 'Annonces/Updates' },
+  galerie:   { icon: '🖼️', label: 'Galerie' }
+});
+const GAMELINK_LINKABLE_TYPES = ['text', 'galerie', 'changelog'];
+
+const gameLinkStates = new Map();
+
+function getLinkStateKey(guildId, userId, gameId) {
+  return `${guildId}:${userId}:${gameId}`;
+}
+
+function getUsedChannelIdsForType(guildId, excludeGameId, type) {
+  const db = getDb();
+  const column = type === 'text' ? 'channel_text_id' : type === 'galerie' ? 'channel_galerie_id' : 'channel_changelog_id';
+  const rows = db.prepare(`SELECT ${column} AS id FROM games WHERE guild_id = ? AND game_id != ? AND ${column} IS NOT NULL`).all(guildId, excludeGameId);
+  return new Set(rows.map((r) => r.id));
+}
+
+function buildLinkContent(game, state, guild) {
+  const lines = [
+    `## 🔗 Lier les channels — **${game.name}**`,
+    '',
+    'Associe les channels existants à ce jeu. Une fois lié, le channel sera déplacé dans la catégorie gérée par Guardian.',
+    ''
+  ];
+  for (const type of GAMELINK_LINKABLE_TYPES) {
+    const { icon, label } = GAMELINK_TYPE_LABELS[type];
+    const linkedId = state[type];
+    const linkedName = linkedId ? guild?.channels?.cache?.get(linkedId)?.name || linkedId : null;
+    const active = state.activeType === type ? ' ◀ en cours' : '';
+    lines.push(`> ${icon} **${label}** : ${linkedName ? `✅ \`#${linkedName}\`` : '❌ *non lié*'}${active}`);
+  }
+  return lines.join('\n');
+}
+
+function buildLinkComponents(interaction, game, state) {
+  const guild = interaction.guild;
+  const rows = [];
+  const typeButtons = GAMELINK_LINKABLE_TYPES.map((type) => {
+    const { icon, label } = GAMELINK_TYPE_LABELS[type];
+    const linked = !!state[type];
+    const isActive = state.activeType === type;
+    return new ButtonBuilder()
+      .setCustomId(`${IDS.linkType}${game.game_id}:${type}`)
+      .setLabel(`${icon} ${label}${linked ? ' ✅' : ''}`)
+      .setStyle(isActive ? ButtonStyle.Primary : (linked ? ButtonStyle.Success : ButtonStyle.Secondary));
+  });
+  rows.push(new ActionRowBuilder().addComponents(...typeButtons));
+
+  if (state.activeType) {
+    const type = state.activeType;
+    const allowedTypes = type === 'forum' ? [ChannelType.GuildForum] : [ChannelType.GuildText, ChannelType.GuildAnnouncement];
+    const usedIds = getUsedChannelIdsForType(guild.id, game.game_id, type);
+    const candidates = guild.channels.cache
+      .filter((c) => allowedTypes.includes(c.type) && !usedIds.has(c.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 25)
+      .map((c) => ({ label: c.name.slice(0, 25), value: c.id, description: `#${c.name}`.slice(0, 50) }));
+
+    if (state[type]) {
+      candidates.unshift({ label: '❌ Délier ce channel', value: 'unlink', description: 'Supprimer le lien actuel' });
+    }
+
+    if (candidates.length > 0) {
+      rows.push(new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`${IDS.linkChannel}${game.game_id}:${type}`)
+          .setPlaceholder(`${GAMELINK_TYPE_LABELS[type].icon} Choisir le channel ${GAMELINK_TYPE_LABELS[type].label}`)
+          .addOptions(candidates)
+      ));
+    }
+  }
+
+  rows.push(new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`${IDS.linkDone}${game.game_id}`).setLabel('✅ Terminer').setStyle(ButtonStyle.Success)
+  ));
+  return rows;
 }
 
 async function handleJeuxInteraction(interaction) {
@@ -173,7 +263,7 @@ async function handleJeuxInteraction(interaction) {
   if (interaction.isModalSubmit() && customId === IDS.addGameModal) {
     const name = interaction.fields.getTextInputValue('name').trim();
     const steamAppId = interaction.fields.getTextInputValue('steam_app_id').trim() || null;
-    getDb().prepare('INSERT INTO games (guild_id, name, steam_app_id, galerie_enabled, changelog_enabled, text_channel_enabled, forum_enabled) VALUES (?, ?, ?, 0, 1, 0, 0)').run(guildId, name, steamAppId);
+    getDb().prepare('INSERT INTO games (guild_id, name, steam_app_id, galerie_enabled, changelog_enabled, text_channel_enabled, forum_enabled) VALUES (?, ?, ?, 0, 0, 0, 0)').run(guildId, name, steamAppId);
     await logConfigChange(interaction.guild, interaction.user.id, 'game.add', null, { name, steamAppId });
     await refreshJeuxPanel(interaction.guild);
     await replyEphemeral(interaction, `✅ Jeu **${name}** ajouté.`);
@@ -204,6 +294,84 @@ async function handleJeuxInteraction(interaction) {
       components: buildGameEditRows(gameId, game),
       ephemeral: true
     });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.linkChannels)) {
+    const gameId = Number(customId.slice(IDS.linkChannels.length));
+    const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    const key = getLinkStateKey(guildId, interaction.user.id, gameId);
+    gameLinkStates.set(key, {
+      text: game.channel_text_id,
+      galerie: game.channel_galerie_id,
+      changelog: game.channel_changelog_id,
+      activeType: null
+    });
+    await interaction.reply({
+      content: buildLinkContent(game, gameLinkStates.get(key), interaction.guild),
+      components: buildLinkComponents(interaction, game, gameLinkStates.get(key)),
+      ephemeral: true
+    });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.linkType)) {
+    const parts = customId.slice(IDS.linkType.length).split(':');
+    const gameId = Number(parts[0]);
+    const type = parts[1];
+    const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    const key = getLinkStateKey(guildId, interaction.user.id, gameId);
+    const state = gameLinkStates.get(key) || { text: null, galerie: null, changelog: null, activeType: null };
+    state.activeType = state.activeType === type ? null : type;
+    gameLinkStates.set(key, state);
+    await interaction.update({
+      content: buildLinkContent(game, state, interaction.guild),
+      components: buildLinkComponents(interaction, game, state)
+    });
+    return true;
+  }
+
+  if (interaction.isStringSelectMenu() && customId.startsWith(IDS.linkChannel)) {
+    const parts = customId.slice(IDS.linkChannel.length).split(':');
+    const gameId = Number(parts[0]);
+    const type = parts[1];
+    const value = interaction.values[0];
+    const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+
+    const key = getLinkStateKey(guildId, interaction.user.id, gameId);
+    const state = gameLinkStates.get(key) || { text: null, galerie: null, changelog: null, activeType: type };
+
+    const column = type === 'text' ? 'channel_text_id' : type === 'galerie' ? 'channel_galerie_id' : 'channel_changelog_id';
+    const flagColumn = type === 'text' ? 'text_channel_enabled' : type === 'galerie' ? 'galerie_enabled' : 'changelog_enabled';
+    const linkedId = value === 'unlink' ? null : value;
+
+    getDb().prepare(`UPDATE games SET ${column} = ?, ${flagColumn} = ? WHERE game_id = ?`).run(linkedId, linkedId ? 1 : 0, gameId);
+    state[type] = linkedId;
+    gameLinkStates.set(key, state);
+
+    const updatedGame = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (linkedId) {
+      await provisionGameStructure(interaction.guild, updatedGame).catch((err) => logger.warn(`jeuxPanel: provisionGameStructure failed — ${err.message}`));
+    }
+    await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.${column}`, game[column], linkedId);
+    await refreshJeuxPanel(interaction.guild);
+    await interaction.update({
+      content: buildLinkContent(updatedGame, state, interaction.guild),
+      components: buildLinkComponents(interaction, updatedGame, state)
+    });
+    return true;
+  }
+
+  if (interaction.isButton() && customId.startsWith(IDS.linkDone)) {
+    const gameId = Number(customId.slice(IDS.linkDone.length));
+    const game = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
+    if (!game) { await replyEphemeral(interaction, t(guildId, 'config.jeux.notFound')); return true; }
+    const key = getLinkStateKey(guildId, interaction.user.id, gameId);
+    gameLinkStates.delete(key);
+    await interaction.update({ content: `✅ Lien des channels terminé pour **${game.name}**.`, components: [] });
     return true;
   }
 
