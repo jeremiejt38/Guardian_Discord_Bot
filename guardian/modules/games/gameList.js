@@ -171,6 +171,7 @@ async function ensureTypeCategories(guild, permissions) {
 }
 
 async function provisionGameStructure(guild, game) {
+  logger.info('provisionGameStructure start', { guildId: guild.id, gameId: game.game_id, name: game.name, layout: getGamesLayoutMode(guild.id) });
   const db = getDb();
   const moderationRoleIds = getModerationRoleIds(guild.id);
   const gameRole = await ensureGameRole(guild, game);
@@ -192,52 +193,72 @@ async function provisionGameStructure(guild, game) {
   const textEnabled = game.text_channel_enabled === undefined || Number(game.text_channel_enabled) !== 0;
   let textChannelId = game.channel_text_id || null;
   if (textEnabled) {
-    const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.text;
-    const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id, gameTopics.text);
-    textChannelId = textChannel.id;
+    try {
+      const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.text;
+      const textChannel = await ensureTextChannel(guild, parentId, slug, permissions, game.channel_text_id, gameTopics.text);
+      textChannelId = textChannel.id;
+      logger.info('provisionGameStructure text channel ensured', { guildId: guild.id, gameId: game.game_id, channelId: textChannelId, parentId });
+    } catch (error) {
+      logger.error('provisionGameStructure text channel failed', { guildId: guild.id, gameId: game.game_id, error: error.message });
+    }
   }
 
   let galerieChannelId = game.channel_galerie_id || null;
   if (Number(game.galerie_enabled) === 1) {
-    const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.galerie;
-    const galerieChannel = await ensureTextChannel(
-      guild,
-      parentId,
-      `${slug}-galerie`,
-      permissions,
-      game.channel_galerie_id,
-      gameTopics.galerie
-    );
-    galerieChannelId = galerieChannel.id;
+    try {
+      const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.galerie;
+      const galerieChannel = await ensureTextChannel(
+        guild,
+        parentId,
+        `${slug}-galerie`,
+        permissions,
+        game.channel_galerie_id,
+        gameTopics.galerie
+      );
+      galerieChannelId = galerieChannel.id;
+      logger.info('provisionGameStructure galerie channel ensured', { guildId: guild.id, gameId: game.game_id, channelId: galerieChannelId, parentId });
+    } catch (error) {
+      logger.error('provisionGameStructure galerie channel failed', { guildId: guild.id, gameId: game.game_id, error: error.message });
+    }
   }
 
   let changelogChannelId = game.channel_changelog_id || null;
   if (Number(game.changelog_enabled) === 1) {
-    const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.changelog;
-    const changelogChannel = await ensureTextChannel(
-      guild,
-      parentId,
-      `${slug}-changelogs`,
-      permissions,
-      game.channel_changelog_id,
-      gameTopics.changelog
-    );
-    changelogChannelId = changelogChannel.id;
+    try {
+      const parentId = layoutMode === 'by-game' ? categoryId : typeCategoryIds?.changelog;
+      const changelogChannel = await ensureTextChannel(
+        guild,
+        parentId,
+        `${slug}-changelogs`,
+        permissions,
+        game.channel_changelog_id,
+        gameTopics.changelog
+      );
+      changelogChannelId = changelogChannel.id;
+      logger.info('provisionGameStructure changelog channel ensured', { guildId: guild.id, gameId: game.game_id, channelId: changelogChannelId, parentId });
+    } catch (error) {
+      logger.error('provisionGameStructure changelog channel failed', { guildId: guild.id, gameId: game.game_id, error: error.message });
+    }
   }
 
-  db.prepare(
-    `UPDATE games
-     SET role_id = ?, category_id = ?, channel_text_id = ?, channel_galerie_id = ?, channel_changelog_id = ?
-     WHERE guild_id = ? AND game_id = ?`
-  ).run(
-    gameRole?.id || null,
-    layoutMode === 'by-game' ? categoryId : null,
-    textChannelId,
-    galerieChannelId,
-    changelogChannelId,
-    guild.id,
-    game.game_id
-  );
+  try {
+    db.prepare(
+      `UPDATE games
+       SET role_id = ?, category_id = ?, channel_text_id = ?, channel_galerie_id = ?, channel_changelog_id = ?
+       WHERE guild_id = ? AND game_id = ?`
+    ).run(
+      gameRole?.id || null,
+      layoutMode === 'by-game' ? categoryId : null,
+      textChannelId,
+      galerieChannelId,
+      changelogChannelId,
+      guild.id,
+      game.game_id
+    );
+    logger.info('provisionGameStructure db updated', { guildId: guild.id, gameId: game.game_id, textChannelId, galerieChannelId, changelogChannelId });
+  } catch (error) {
+    logger.error('provisionGameStructure db update failed', { guildId: guild.id, gameId: game.game_id, error: error.message });
+  }
 }
 
 function setGamesLayoutMode(guildId, mode) {

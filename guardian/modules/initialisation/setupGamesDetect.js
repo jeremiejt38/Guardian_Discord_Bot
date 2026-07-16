@@ -5,6 +5,7 @@ const { CHANNELS, CATEGORIES } = require('../../config');
 const { matchGameFromChannelName, isNonSteamId, GENERIC_CHANNEL_NAMES } = require('../games/steamGamesList');
 const { getGuildSetting, setGuildSetting } = require('../config/settings');
 const { CUSTOM_IDS, TOTAL_STEPS } = require('./setupConstants');
+const logger = require('../logs/logger');
 
 const MAX_REVIEW_GAMES = 15;
 
@@ -49,11 +50,16 @@ function detectExistingGameChannels(guild) {
     return true;
   });
 
+  logger.info('detectExistingGameChannels: candidate channels', { guildId: guild.id, count: allText.length, names: allText.slice(0, 50).map((c) => c.name) });
+
   const gameMap = new Map();
   for (const ch of allText) {
     const n = ch.name;
     const baseName = extractGameBaseName(n);
-    if (!baseName) continue;
+    if (!baseName) {
+      logger.debug('detectExistingGameChannels: no baseName extracted', { guildId: guild.id, channel: n });
+      continue;
+    }
     const isForum = ch.type === 15;
     let type = 'text';
     if (n.endsWith('-galerie')) type = 'galerie';
@@ -69,7 +75,11 @@ function detectExistingGameChannels(guild) {
     .filter((g) => !GUARDIAN_RESERVED_BASE_NAMES.has(g.baseName.toLowerCase()))
     .filter((g) => {
       const norm = stripAccents(g.baseName.toLowerCase());
-      return !GENERIC_CHANNEL_NAMES.has(norm) && !GENERIC_CHANNEL_NAMES.has(g.baseName.toLowerCase());
+      const rejected = GENERIC_CHANNEL_NAMES.has(norm) || GENERIC_CHANNEL_NAMES.has(g.baseName.toLowerCase());
+      if (rejected) {
+        logger.info('detectExistingGameChannels: rejected generic name', { guildId: guild.id, baseName: g.baseName });
+      }
+      return !rejected;
     })
     .map((g) => {
       const steamMatch = matchGameFromChannelName(g.baseName);
@@ -80,11 +90,16 @@ function detectExistingGameChannels(guild) {
       };
     })
     .filter((g) => {
-      // Proposer automatiquement uniquement les vrais jeux Steam,
-      // ou les bases avec plusieurs channels dérivés (pattern fort de jeu organisé).
-      if (g.steamAppId) return true;
-      return g.channels.length >= 2;
+      // Proposer automatiquement les jeux reconnus Steam,
+      // ou les noms non-génériques même avec un seul channel (permet de ratrapper les jeux non-Steam).
+      const keep = g.steamAppId || g.baseName.length >= 3;
+      if (!keep) {
+        logger.info('detectExistingGameChannels: rejected after steam match', { guildId: guild.id, baseName: g.baseName, channels: g.channels.length, steamAppId: g.steamAppId });
+      }
+      return keep;
     });
+
+  logger.info('detectExistingGameChannels: resolved games', { guildId: guild.id, count: resolved.length, games: resolved.map((g) => ({ baseName: g.baseName, steamAppId: g.steamAppId, channels: g.channels.length })) });
 
   const seenAppIds = new Set();
   const seenNames = new Set();

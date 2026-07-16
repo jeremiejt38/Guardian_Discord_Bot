@@ -18,6 +18,7 @@ const { getGuildSetting, setGuildSetting } = require('./settings');
 const { getGradeMappings } = require('../initialisation/gradeMapping');
 const { logConfigChange } = require('./configLogger');
 const { getDb } = require('../../database/db');
+const logger = require('../logs/logger');
 
 const CHANGELOGS_IDS = Object.freeze({
   toggleGlobal: 'changelogs:toggle:global',
@@ -455,7 +456,10 @@ async function handleJeuxInteraction(interaction) {
     await logConfigChange(interaction.guild, interaction.user.id, `game.${game.name}.text_channel_enabled`, game.text_channel_enabled, newVal);
     await refreshJeuxPanel(interaction.guild);
     const updated = getDb().prepare('SELECT * FROM games WHERE game_id = ?').get(gameId);
-    if (newVal) await provisionGameStructure(interaction.guild, updated).catch((err) => logger.warn(`jeuxPanel: provisionGameStructure failed — ${err.message}`));
+    if (newVal) {
+      logger.info('jeuxPanel: toggle text ON, calling provisionGameStructure', { guildId, gameId });
+      await provisionGameStructure(interaction.guild, updated).catch((err) => logger.warn(`jeuxPanel: provisionGameStructure failed — ${err.message}`));
+    }
     await interaction.editReply({ content: `**${game.name}** — que souhaitez-vous modifier ?`, components: buildGameEditRows(gameId, updated) }).catch(() => {});
     return true;
   }

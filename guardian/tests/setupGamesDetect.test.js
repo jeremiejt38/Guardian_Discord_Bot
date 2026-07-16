@@ -69,12 +69,13 @@ test('detectExistingGameChannels regroupe eco-chat avec eco', () => {
   assert.strictEqual(games[0].channels.length, 3, 'les 3 channels doivent être regroupés');
 });
 
-test('detectExistingGameChannels ne propose pas un channel non-Steam isolé', () => {
+test('detectExistingGameChannels propose un channel non-Steam isolé avec un nom valide', () => {
   const guild = buildGuild([
     buildChannel('1', 'drac-lab')
   ]);
   const games = detectExistingGameChannels(guild);
-  assert.strictEqual(games.length, 0, 'un channel isolé sans match Steam ne doit pas être proposé');
+  assert.strictEqual(games.length, 1, 'un channel isolé avec un nom non-générique doit être proposé');
+  assert.strictEqual(games[0].baseName, 'drac-lab');
 });
 
 test('detectExistingGameChannels propose un vrai jeu Steam même isolé', () => {
@@ -86,10 +87,10 @@ test('detectExistingGameChannels propose un vrai jeu Steam même isolé', () => 
   assert.strictEqual(games[0].steamName, 'Counter-Strike 2');
 });
 
-test('detectExistingGameChannels ne propose pas un match Steam faible/isolé', () => {
+test('detectExistingGameChannels ne propose pas un channel isolé avec un nom générique', () => {
   const guild = buildGuild([
-    buildChannel('1', 'steam-curation-gz')
+    buildChannel('1', 'discussion')
   ]);
   const games = detectExistingGameChannels(guild);
-  assert.strictEqual(games.length, 0, 'un match Steam faible sur un channel isolé ne doit pas être proposé');
+  assert.strictEqual(games.length, 0, 'un channel avec un nom générique ne doit pas être proposé');
 });
