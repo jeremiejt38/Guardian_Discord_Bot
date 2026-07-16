@@ -276,13 +276,34 @@ async function patchOnboardingDefaultChannels(guild, channelIds) {
     if (!current) return false;
 
     const existing = current.defaultChannels?.map((c) => c.id) ?? [];
-    const merged = [...new Set([...existing, ...channelIds])];
+    const validIds = [];
+    const everyone = guild.roles.everyone;
+
+    for (const id of [...new Set(channelIds)]) {
+      const channel = guild.channels.cache.get(id);
+      if (!channel) continue;
+      const perms = channel.permissionsFor(everyone);
+      if (perms?.has(PermissionFlagsBits.ViewChannel)) {
+        validIds.push(id);
+      } else {
+        try {
+          await channel.permissionOverwrites.create(everyone, { ViewChannel: true });
+          validIds.push(id);
+        } catch (err) {
+          logger.warn(`serverGuides: cannot grant ViewChannel to @everyone for guide channel ${id}: ${err.message}`);
+        }
+      }
+    }
+
+    if (validIds.length === 0) return false;
+
+    const merged = [...new Set([...existing, ...validIds])];
 
     await guild.client.rest.put(`/guilds/${guild.id}/onboarding`, {
       body: { default_channel_ids: merged, enabled: true }
     });
 
-    logger.info(`serverGuides: patched onboarding default_channel_ids for guild ${guild.id} — added ${channelIds.length} guide channels`);
+    logger.info(`serverGuides: patched onboarding default_channel_ids for guild ${guild.id} — added ${validIds.length} guide channels`);
     return true;
   } catch (err) {
     logger.warn(`serverGuides: patchOnboarding failed for guild ${guild.id} — ${err.message}`);
