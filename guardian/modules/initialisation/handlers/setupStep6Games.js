@@ -169,7 +169,7 @@ async function _handleStep6(guildId, interaction) {
     return true;
   }
 
-  if (interaction.customId?.startsWith(`${CUSTOM_IDS.editGamePrefix}:`)) {
+  if (interaction.isButton() && interaction.customId?.startsWith(`${CUSTOM_IDS.editGamePrefix}:`)) {
     const gameId = Number(interaction.customId.split(':').pop());
     const games = listSetupGames(guildId);
     const game = games.find((g) => g.game_id === gameId);
